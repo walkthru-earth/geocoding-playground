@@ -142,24 +142,27 @@
         SELECT country, h3_parent, address_count, unique_cities, unique_postcodes, primary_region
         FROM _tile_index
       `)
-      const features = rows.map(row => {
-        const boundary = cellToBoundary(row.h3_parent)
-        // h3-js returns [lat, lng] pairs, GeoJSON needs [lng, lat]
-        const coords = boundary.map(([lat, lng]) => [lng, lat])
-        coords.push(coords[0]) // close polygon
-        return {
-          type: 'Feature' as const,
-          properties: {
-            country: row.country,
-            h3_parent: row.h3_parent,
-            address_count: row.address_count,
-            unique_cities: row.unique_cities,
-            unique_postcodes: row.unique_postcodes,
-            primary_region: row.primary_region ?? '—',
-          },
-          geometry: { type: 'Polygon' as const, coordinates: [coords] },
-        }
-      })
+      const features: any[] = []
+      for (const row of rows) {
+        try {
+          const boundary = cellToBoundary(row.h3_parent)
+          // h3-js returns [lat, lng] pairs, GeoJSON needs [lng, lat]
+          const coords = boundary.map(([lat, lng]) => [lng, lat])
+          coords.push(coords[0]) // close polygon
+          features.push({
+            type: 'Feature' as const,
+            properties: {
+              country: row.country,
+              h3_parent: row.h3_parent,
+              address_count: row.address_count,
+              unique_cities: row.unique_cities,
+              unique_postcodes: row.unique_postcodes,
+              primary_region: row.primary_region ?? '—',
+            },
+            geometry: { type: 'Polygon' as const, coordinates: [coords] },
+          })
+        } catch { /* skip invalid H3 cell */ }
+      }
       mapView.addGeoJSONLayer('tiles', { type: 'FeatureCollection', features }, {
         fillColor: [
           'interpolate', ['linear'], ['get', 'address_count'],
