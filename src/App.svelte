@@ -52,7 +52,7 @@
   <nav class="shrink-0 flex items-center justify-between px-5 h-14 border-b border-base-content/[0.06] bg-base-100/90 backdrop-blur-md z-50">
     <!-- Brand -->
     <a href="https://walkthru.earth/links" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
-      <img src="/favicon.svg" alt="walkthru.earth" class="w-8 h-8" />
+      <img src="{import.meta.env.BASE_URL}favicon.svg" alt="walkthru.earth" class="w-8 h-8" />
       <span class="text-lg font-bold tracking-tight">
         <span class="text-primary">walkthru</span><span class="text-base-content/30">.earth</span>
       </span>
