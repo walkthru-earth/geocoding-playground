@@ -5,7 +5,7 @@
   import StepLog from '../lib/components/StepLog.svelte'
   import ResultsTable from '../lib/components/ResultsTable.svelte'
   import { SearchCache, rankBySimilarity } from '../lib/search'
-  import { getParser } from '../lib/address-parser'
+  import { getParser, NUMBER_FIRST } from '../lib/address-parser'
   import { esc, toArr, ms, addStep, updateLastStep } from '../lib/utils'
   import type { CityRow, SuggestRow, AddressRow, StepEntry } from '../lib/types'
 
@@ -226,6 +226,26 @@
     suggestTimer = setTimeout(() => doAutocomplete(), 150)
   }
 
+  /** Strip leading/trailing house number from query to get the street part for autocomplete. */
+  function extractStreetQuery(q: string, cc: string): string {
+    const tokens = q.trim().split(/[\s,]+/).filter(Boolean)
+    if (tokens.length <= 1) return q
+
+    if (NUMBER_FIRST.has(cc)) {
+      // US-style: "25109 Cypress St" → strip leading number
+      if (/^\d+[a-z]?$/i.test(tokens[0])) {
+        return tokens.slice(1).join(' ')
+      }
+    } else {
+      // EU-style: "Keizersgracht 185" → strip trailing number
+      const last = tokens[tokens.length - 1]
+      if (/^\d+[a-z]?$/i.test(last)) {
+        return tokens.slice(0, -1).join(' ')
+      }
+    }
+    return q
+  }
+
   async function doAutocomplete() {
     const q = addressQuery.trim().toLowerCase()
     const cc = selectedCountry
@@ -236,6 +256,9 @@
       suggestions = rankSuggestions(cached, q)
       return
     }
+
+    // Strip house number so "25109 Cypress" searches for "cypress" in street_index
+    const streetQ = extractStreetQuery(q, cc)
 
     loadingSuggestions = true
     try {
@@ -251,11 +274,11 @@
           rows.forEach(r => result.push({ type: 'postcode', label: r.postcode, tiles: r.tiles, addr_count: r.addr_count }))
         }
 
-        // Always search streets too
+        // Search streets using the street part (without house number)
         try {
           const rows = await queryObjects<{ street_lower: string; tiles: string[]; addr_count: number; primary_city: string }>(`
             SELECT street_lower, tiles, addr_count, primary_city FROM _streets_${cc}
-            WHERE street_lower LIKE '${esc(q)}%'
+            WHERE street_lower LIKE '${esc(streetQ)}%'
             ORDER BY addr_count DESC LIMIT 15
           `)
           rows.forEach(r => result.push({ type: 'street', label: r.street_lower, tiles: r.tiles, addr_count: r.addr_count, primary_city: r.primary_city }))
@@ -263,7 +286,7 @@
       }
 
       suggestCache.set(cacheKey, result)
-      suggestions = rankSuggestions(result, q)
+      suggestions = rankSuggestions(result, streetQ)
     } catch (e: any) {
       console.warn('[autocomplete]', e.message)
       suggestions = []
@@ -569,6 +592,9 @@
   }
 
   async function search() {
+    if (suggestTimer) { clearTimeout(suggestTimer); suggestTimer = null }
+    suggestions = []
+    cities = []
     steps = []
     mapView?.clearResultMarkers()
     if (isCountryCached(selectedCountry)) {
