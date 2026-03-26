@@ -334,10 +334,10 @@
 
 <SplitPane>
   {#snippet left()}
-  <div class="p-6 space-y-5">
+  <div class="p-3 md:p-6 space-y-4 md:space-y-5">
     <div>
-      <h2 class="text-xl font-bold tracking-tight">Reverse Geocode</h2>
-      <p class="text-sm text-base-content/50 mt-1">Click the map or enter coordinates to find nearby addresses.</p>
+      <h2 class="text-lg md:text-xl font-bold tracking-tight">Reverse Geocode</h2>
+      <p class="text-xs md:text-sm text-base-content/50 mt-1">Click the map or enter coordinates to find nearby addresses.</p>
     </div>
 
     <!-- Coordinate inputs -->
@@ -352,20 +352,20 @@
       </label>
     </div>
 
-    <div class="flex gap-2">
-      <select class="select select-bordered flex-1" bind:value={radius}>
+    <div class="flex gap-2 flex-wrap">
+      <select class="select select-bordered select-sm md:select-md flex-1 min-w-[5rem]" bind:value={radius}>
         <option value={250}>~250m</option>
         <option value={500}>~500m</option>
         <option value={1000}>~1km</option>
         <option value={2000}>~2km</option>
       </select>
-      <select class="select select-bordered w-24" bind:value={resultLimit}>
+      <select class="select select-bordered select-sm md:select-md w-20 md:w-24" bind:value={resultLimit}>
         <option value={10}>10</option>
         <option value={25}>25</option>
         <option value={50}>50</option>
         <option value={100}>100</option>
       </select>
-      <button class="btn btn-primary rounded-full flex-1" onclick={search} disabled={searching}>
+      <button class="btn btn-primary btn-sm md:btn-md rounded-full flex-1 min-w-[8rem]" onclick={search} disabled={searching}>
         {#if searching}
           <span class="loading loading-spinner loading-sm"></span>
         {:else}

@@ -16,7 +16,7 @@
     initialSplit = 42,
     minLeft = 340,
     minRight = 280,
-    mobileMapHeight = '14rem',
+    mobileMapHeight = '40dvh',
   }: Props = $props()
 
   // svelte-ignore state_referenced_locally — intentional: capture initial value only

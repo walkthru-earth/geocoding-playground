@@ -250,45 +250,45 @@
   <div role="alert" class="alert alert-error">{error}</div>
 {:else}
   <!-- Hero stats -->
-  <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-    <div class="stat bg-base-200 rounded-xl p-4">
+  <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 md:gap-3 mb-4 md:mb-6">
+    <div class="stat bg-base-200 rounded-xl p-3 md:p-4">
       <div class="stat-title text-xs">Release</div>
-      <div class="stat-value text-primary text-lg">{release}</div>
+      <div class="stat-value text-primary text-sm md:text-lg">{release}</div>
     </div>
-    <div class="stat bg-base-200 rounded-xl p-4">
+    <div class="stat bg-base-200 rounded-xl p-3 md:p-4">
       <div class="stat-title text-xs">Countries</div>
-      <div class="stat-value text-lg">{totalCountries}</div>
+      <div class="stat-value text-sm md:text-lg">{totalCountries}</div>
     </div>
-    <div class="stat bg-base-200 rounded-xl p-4">
+    <div class="stat bg-base-200 rounded-xl p-3 md:p-4">
       <div class="stat-title text-xs">Total Addresses</div>
-      <div class="stat-value text-lg">{fmt(totalAddresses)}</div>
-      <div class="stat-desc">{fmtFull(totalAddresses)}</div>
+      <div class="stat-value text-sm md:text-lg">{fmt(totalAddresses)}</div>
+      <div class="stat-desc text-[10px] md:text-xs">{fmtFull(totalAddresses)}</div>
     </div>
-    <div class="stat bg-base-200 rounded-xl p-4">
+    <div class="stat bg-base-200 rounded-xl p-3 md:p-4">
       <div class="stat-title text-xs">H3 Tiles</div>
-      <div class="stat-value text-lg">{fmtFull(totalTiles)}</div>
-      <div class="stat-desc">~{fmt(avgTileSize)} avg/tile</div>
+      <div class="stat-value text-sm md:text-lg">{fmtFull(totalTiles)}</div>
+      <div class="stat-desc text-[10px] md:text-xs">~{fmt(avgTileSize)} avg/tile</div>
     </div>
-    <div class="stat bg-base-200 rounded-xl p-4">
+    <div class="stat bg-base-200 rounded-xl p-3 md:p-4 col-span-2 sm:col-span-1">
       <div class="stat-title text-xs">Index Files</div>
-      <div class="stat-value text-lg">{countriesWithPostcode + countriesWithStreet + countriesWithCity}</div>
-      <div class="stat-desc">{countriesWithCity} city, {countriesWithPostcode} postcode, {countriesWithStreet} street</div>
+      <div class="stat-value text-sm md:text-lg">{countriesWithPostcode + countriesWithStreet + countriesWithCity}</div>
+      <div class="stat-desc text-[10px] md:text-xs">{countriesWithCity} city, {countriesWithPostcode} postcode, {countriesWithStreet} street</div>
     </div>
   </div>
 
   <!-- Tab navigation -->
-  <div role="tablist" class="tabs tabs-bordered mb-6">
-    <button role="tab" class="tab" class:tab-active={selectedTab === 'overview'} onclick={() => selectedTab = 'overview'}>Overview</button>
-    <button role="tab" class="tab" class:tab-active={selectedTab === 'tiles'} onclick={() => selectedTab = 'tiles'}>Tile Analytics</button>
-    <button role="tab" class="tab" class:tab-active={selectedTab === 'quality'} onclick={() => selectedTab = 'quality'}>Data Quality</button>
-    <button role="tab" class="tab" class:tab-active={selectedTab === 'countries'} onclick={() => selectedTab = 'countries'}>All Countries</button>
+  <div role="tablist" class="tabs tabs-bordered mb-4 md:mb-6 overflow-x-auto scrollbar-thin">
+    <button role="tab" class="tab tab-sm md:tab-md whitespace-nowrap" class:tab-active={selectedTab === 'overview'} onclick={() => selectedTab = 'overview'}>Overview</button>
+    <button role="tab" class="tab tab-sm md:tab-md whitespace-nowrap" class:tab-active={selectedTab === 'tiles'} onclick={() => selectedTab = 'tiles'}>Tiles</button>
+    <button role="tab" class="tab tab-sm md:tab-md whitespace-nowrap" class:tab-active={selectedTab === 'quality'} onclick={() => selectedTab = 'quality'}>Quality</button>
+    <button role="tab" class="tab tab-sm md:tab-md whitespace-nowrap" class:tab-active={selectedTab === 'countries'} onclick={() => selectedTab = 'countries'}>Countries</button>
   </div>
 
   <!-- Map — always mounted to avoid WebGL context loss on tab switch -->
   <div class="card bg-base-200 shadow mb-6" class:hidden={selectedTab !== 'overview'}>
     <div class="card-body p-0 overflow-hidden rounded-2xl">
-      <div class="flex items-center justify-between px-6 pt-4">
-        <h2 class="card-title">Global Coverage</h2>
+      <div class="flex items-center justify-between px-3 md:px-6 pt-3 md:pt-4 flex-wrap gap-2">
+        <h2 class="card-title text-base md:text-lg">Global Coverage</h2>
         <div class="flex gap-2">
           <label class="label cursor-pointer gap-2">
             <span class="label-text text-xs">Bboxes</span>
@@ -304,7 +304,7 @@
         </div>
       </div>
       {#if showTiles && tilesLoaded}
-        <div class="flex gap-3 px-6 pb-1 text-xs text-base-content/40">
+        <div class="flex gap-2 md:gap-3 px-3 md:px-6 pb-1 text-[10px] md:text-xs text-base-content/40 flex-wrap">
           <span class="flex items-center gap-1"><span class="w-3 h-3 rounded" style="background:#22c55e;opacity:0.5"></span> &lt;50K</span>
           <span class="flex items-center gap-1"><span class="w-3 h-3 rounded" style="background:#eab308;opacity:0.5"></span> 50K</span>
           <span class="flex items-center gap-1"><span class="w-3 h-3 rounded" style="background:#f97316;opacity:0.5"></span> 200K</span>
@@ -312,7 +312,7 @@
           <span class="text-base-content/30 ml-2">Click tile for details</span>
         </div>
       {/if}
-      <MapView bind:this={mapView} class="h-96" onMapReady={onMapReady} />
+      <MapView bind:this={mapView} class="h-56 md:h-96" onMapReady={onMapReady} />
     </div>
   </div>
 
@@ -549,7 +549,7 @@
     <div class="card bg-base-200 shadow mb-6">
       <div class="card-body">
         <h2 class="card-title">Coverage Summary</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-2">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mt-2">
           <div class="bg-base-300 rounded-xl p-4">
             <div class="text-sm text-base-content/50 mb-1">City Indexes</div>
             <div class="text-2xl font-bold">{countriesWithCity}<span class="text-base font-normal text-base-content/40">/{totalCountries}</span></div>

@@ -328,15 +328,15 @@
 </script>
 
 <div class="space-y-6">
-  <div class="flex items-center justify-between">
-    <h1 class="text-2xl font-bold">Index Benchmark</h1>
-    <div class="flex items-center gap-3">
-      <select class="select select-bordered select-sm" bind:value={selectedCountry} disabled={running}>
+  <div class="flex items-center justify-between flex-wrap gap-2">
+    <h1 class="text-xl md:text-2xl font-bold">Index Benchmark</h1>
+    <div class="flex items-center gap-2 md:gap-3">
+      <select class="select select-bordered select-xs md:select-sm" bind:value={selectedCountry} disabled={running}>
         {#each TEST_COUNTRIES as cc}
           <option value={cc}>{cc}</option>
         {/each}
       </select>
-      <button class="btn btn-primary btn-sm" onclick={runBenchmarks} disabled={running}>
+      <button class="btn btn-primary btn-xs md:btn-sm" onclick={runBenchmarks} disabled={running}>
         {#if running}
           <span class="loading loading-spinner loading-xs"></span>
           {currentTest}
@@ -426,7 +426,7 @@
   </div>
 
   <!-- Version descriptions -->
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3">
     {#each Object.entries(INDEX_VERSIONS) as [key, def]}
       <div class="card bg-base-200 p-3">
         <h3 class="font-semibold text-sm">{def.label}</h3>

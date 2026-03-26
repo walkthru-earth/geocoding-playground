@@ -562,11 +562,11 @@
 
 <SplitPane>
   {#snippet left()}
-  <div class="p-6 space-y-5">
+  <div class="p-3 md:p-6 space-y-4 md:space-y-5">
     <!-- Header row -->
-    <div class="flex items-center gap-3">
-      <h2 class="text-xl font-bold tracking-tight flex-1">Forward Geocode</h2>
-      <select class="select select-bordered w-40" bind:value={selectedCountry} onchange={onCountryChange}>
+    <div class="flex items-center gap-2 md:gap-3 flex-wrap">
+      <h2 class="text-lg md:text-xl font-bold tracking-tight flex-1 min-w-0">Forward Geocode</h2>
+      <select class="select select-bordered select-sm md:select-md w-28 md:w-40" bind:value={selectedCountry} onchange={onCountryChange}>
         <option value="">Country...</option>
         {#each countries as c}
           <option value={c}>{c}{isCountryCached(c) ? ' ✓' : ''}</option>
@@ -578,14 +578,14 @@
     </div>
 
     {#if cacheInfo && prefetching}
-      <div class="text-sm text-base-content/50 -mt-3">{cacheInfo}</div>
+      <div class="text-xs md:text-sm text-base-content/50 -mt-2 md:-mt-3 break-words">{cacheInfo}</div>
     {/if}
 
     <!-- Presets -->
     {#if activePresets.length > 0}
       <div class="flex gap-2 flex-wrap">
         {#each activePresets as p}
-          <button class="btn btn-sm rounded-full border-base-content/10 bg-base-content/[0.04] hover:bg-primary/10 hover:border-primary/20 hover:text-primary text-base-content/60 transition-all" onclick={() => runPreset(p)} disabled={searching || prefetching}>{p.label}</button>
+          <button class="preset-pill" onclick={() => runPreset(p)} disabled={searching || prefetching}>{p.label}</button>
         {/each}
       </div>
     {/if}
@@ -595,7 +595,7 @@
       <div class="relative">
         <input
           type="text"
-          class="input input-bordered w-full"
+          class="input input-bordered input-sm md:input-md w-full"
           placeholder="City (optional)..."
           bind:value={cityQuery}
           oninput={() => searchCities()}
@@ -608,10 +608,10 @@
           <ul class="menu bg-base-200 rounded-lg shadow-xl absolute z-50 w-full mt-1 max-h-60 overflow-y-auto border border-base-content/10">
             {#each cities as city}
               <li>
-                <button onclick={() => selectCity(city)}>
-                  <span class="font-bold">{city.city}</span>
-                  {#if city.region}<span class="text-sm opacity-40">{city.region}</span>{/if}
-                  <span class="badge badge-sm badge-ghost ml-auto">{city.addr_count.toLocaleString()}</span>
+                <button class="flex items-center gap-2 min-w-0" onclick={() => selectCity(city)}>
+                  <span class="font-bold truncate">{city.city}</span>
+                  {#if city.region}<span class="text-xs opacity-40 shrink-0">{city.region}</span>{/if}
+                  <span class="badge badge-xs badge-ghost ml-auto shrink-0">{city.addr_count.toLocaleString()}</span>
                 </button>
               </li>
             {/each}
@@ -622,8 +622,8 @@
       <div class="relative">
         <input
           type="text"
-          class="input input-bordered w-full"
-          placeholder="Street name, postcode, or address..."
+          class="input input-bordered input-sm md:input-md w-full"
+          placeholder="Street, postcode, or address..."
           bind:value={addressQuery}
           oninput={() => { selectedSuggestion = null; autocomplete() }}
           onkeydown={(e: KeyboardEvent) => e.key === 'Enter' && search()}
@@ -637,11 +637,11 @@
             {#each suggestions as s}
               {@const tileCount = toArr(s.tiles).length}
               <li>
-                <button onclick={() => selectSuggestion(s)}>
-                  <span class="badge badge-sm rounded-full" class:badge-primary={s.type === 'street'} class:badge-secondary={s.type === 'postcode'}>{s.type}</span>
-                  <span class="font-bold">{s.label}</span>
-                  {#if s.primary_city}<span class="text-sm opacity-40">{s.primary_city}</span>{/if}
-                  <span class="badge badge-sm badge-ghost ml-auto">{tileCount}</span>
+                <button class="flex items-center gap-1.5 min-w-0" onclick={() => selectSuggestion(s)}>
+                  <span class="badge badge-xs rounded-full shrink-0" class:badge-primary={s.type === 'street'} class:badge-secondary={s.type === 'postcode'}>{s.type}</span>
+                  <span class="font-bold truncate">{s.label}</span>
+                  {#if s.primary_city}<span class="text-xs opacity-40 truncate shrink-0 max-w-[6rem]">{s.primary_city}</span>{/if}
+                  <span class="badge badge-xs badge-ghost ml-auto shrink-0">{tileCount}</span>
                 </button>
               </li>
             {/each}
@@ -650,13 +650,13 @@
       </div>
 
       <div class="flex gap-2">
-        <select class="select select-bordered w-24" bind:value={limit}>
+        <select class="select select-bordered select-sm md:select-md w-20 md:w-24" bind:value={limit}>
           <option value={10}>10</option>
           <option value={25}>25</option>
           <option value={50}>50</option>
           <option value={100}>100</option>
         </select>
-        <button class="btn btn-primary rounded-full flex-1" onclick={search} disabled={!selectedCountry || addressQuery.length < 2 || searching || prefetching}>
+        <button class="btn btn-primary btn-sm md:btn-md rounded-full flex-1" onclick={search} disabled={!selectedCountry || addressQuery.length < 2 || searching || prefetching}>
           {#if searching}
             <span class="loading loading-spinner loading-sm"></span>
           {:else}
@@ -668,16 +668,16 @@
 
     <!-- Context badges -->
     {#if selectedCity || selectedSuggestion || (cacheInfo && !prefetching)}
-      <div class="flex flex-wrap gap-2">
+      <div class="flex flex-col sm:flex-row flex-wrap gap-1.5 md:gap-2">
         {#if cacheInfo && !prefetching}
-          <span class="badge badge-sm badge-outline">{cacheInfo}</span>
+          <span class="text-xs text-base-content/40 border border-base-content/10 rounded-lg px-2.5 py-1 leading-snug">{cacheInfo}</span>
         {/if}
         {#if selectedCity}
-          <span class="badge badge-sm badge-info">{selectedCity.city} · {toArr(selectedCity.tiles).length} tiles</span>
+          <span class="badge badge-sm badge-info whitespace-nowrap">{selectedCity.city} · {toArr(selectedCity.tiles).length} tiles</span>
         {/if}
         {#if selectedSuggestion}
           {@const sugTileCount = toArr(selectedSuggestion.tiles).length}
-          <span class="badge badge-sm" class:badge-primary={selectedSuggestion.type === 'street'} class:badge-secondary={selectedSuggestion.type === 'postcode'}>
+          <span class="badge badge-sm whitespace-nowrap" class:badge-primary={selectedSuggestion.type === 'street'} class:badge-secondary={selectedSuggestion.type === 'postcode'}>
             {selectedSuggestion.label} → {sugTileCount} tile{sugTileCount > 1 ? 's' : ''}
           </span>
         {/if}

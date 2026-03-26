@@ -29,15 +29,15 @@
       {' '}in {(searchTime / 1000).toFixed(2)}s
     {/if}
   </div>
-  <div class="overflow-x-auto">
-    <table class="table table-sm">
+  <div class="overflow-x-auto -mx-1">
+    <table class="table table-xs md:table-sm">
       <thead>
         <tr class="text-base-content/40">
-          <th class="w-10">#</th>
+          <th class="w-8 md:w-10">#</th>
           {#if showDistance}<th>Dist</th>{/if}
           <th>Address</th>
-          <th>City</th>
-          <th>Postcode</th>
+          <th class="hidden sm:table-cell">City</th>
+          <th class="hidden sm:table-cell">Postcode</th>
         </tr>
       </thead>
       <tbody>
@@ -45,16 +45,16 @@
           <tr class="hover:bg-primary/[0.06] cursor-pointer transition-colors group" onclick={() => onRowClick?.(r)}>
             <td>
               <span
-                class="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold"
+                class="inline-flex items-center justify-center w-5 h-5 md:w-6 md:h-6 rounded-full text-[10px] md:text-xs font-bold"
                 style="background: {i === 0 ? '#36d399' : '#f0a030'}; color: {i === 0 ? '#0a2018' : '#1a1000'}"
               >{i + 1}</span>
             </td>
             {#if showDistance}
-              <td class="text-sm font-mono text-primary/70 font-semibold">{formatDistance(r.distance_m ?? 0)}</td>
+              <td class="text-xs md:text-sm font-mono text-primary/70 font-semibold whitespace-nowrap">{formatDistance(r.distance_m ?? 0)}</td>
             {/if}
-            <td class="max-w-[280px] truncate group-hover:text-primary transition-colors font-medium">{r.full_address}</td>
-            <td class="text-base-content/50">{r.city ?? ''}</td>
-            <td class="font-mono text-sm text-base-content/40">{r.postcode ?? ''}</td>
+            <td class="max-w-[180px] md:max-w-[280px] truncate group-hover:text-primary transition-colors font-medium text-xs md:text-sm">{r.full_address}</td>
+            <td class="hidden sm:table-cell text-base-content/50 text-xs md:text-sm">{r.city ?? ''}</td>
+            <td class="hidden sm:table-cell font-mono text-xs md:text-sm text-base-content/40">{r.postcode ?? ''}</td>
           </tr>
         {/each}
       </tbody>

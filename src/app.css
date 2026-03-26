@@ -72,16 +72,22 @@
 
 /* ── Pill navigation tabs ────────────────────────────────── */
 .nav-pill {
-  @apply px-5 py-2 text-[15px] font-semibold rounded-full transition-all duration-200;
+  @apply px-3 py-1.5 text-[13px] md:px-5 md:py-2 md:text-[15px] font-semibold rounded-full transition-all duration-200 whitespace-nowrap;
   @apply text-base-content/50 hover:text-base-content/80 hover:bg-base-content/[0.05];
 }
 .nav-pill.active {
   @apply text-primary bg-primary/10;
 }
 
+/* ── Active state for hamburger menu items ───────────────── */
+.active-menu-item > button,
+.active-menu-item > a {
+  @apply text-primary bg-primary/10 font-bold;
+}
+
 /* ── Preset pill buttons ─────────────────────────────────── */
 .preset-pill {
-  @apply btn btn-sm rounded-full transition-all;
+  @apply btn btn-xs md:btn-sm rounded-full transition-all;
   @apply border-base-content/10 bg-base-content/[0.04];
   @apply text-base-content/60;
   @apply hover:bg-primary/10 hover:border-primary/20 hover:text-primary;
