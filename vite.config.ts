@@ -3,6 +3,7 @@ import { svelte } from '@sveltejs/vite-plugin-svelte'
 import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
+  base: '/geocoding-playground/',
   plugins: [tailwindcss(), svelte()],
   optimizeDeps: {
     exclude: ['@duckdb/duckdb-wasm'],
