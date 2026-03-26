@@ -1,0 +1,29 @@
+{
+  "name": "geocoding-playground",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^7.0.0",
+    "@tailwindcss/vite": "^4.2.2",
+    "@tsconfig/svelte": "^5.0.8",
+    "@types/node": "^24.12.0",
+    "daisyui": "^5.5.19",
+    "svelte": "^5.55.0",
+    "svelte-check": "^4.4.5",
+    "tailwindcss": "^4.2.2",
+    "typescript": "~5.9.3",
+    "vite": "^8.0.3"
+  },
+  "dependencies": {
+    "@duckdb/duckdb-wasm": "1.33.1-dev39.0",
+    "h3-js": "^4.4.0",
+    "maplibre-gl": "^5.21.1"
+  }
+}
