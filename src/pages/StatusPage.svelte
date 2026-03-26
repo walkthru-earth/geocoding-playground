@@ -1,7 +1,7 @@
 <script lang="ts">
   import { queryObjects, dataPath } from '../lib/duckdb'
   import MapView from '../lib/MapView.svelte'
-  import { cellToBoundary } from 'h3-js'
+  import { cellToBoundary, isValidCell } from 'h3-js'
   import { fmt, fmtFull } from '../lib/utils'
   import type { ManifestRow, TileStatsRow, TileBucket, IndexAvailRow } from '../lib/types'
 
@@ -144,24 +144,23 @@
       `)
       const features: any[] = []
       for (const row of rows) {
-        try {
-          const boundary = cellToBoundary(row.h3_parent)
-          // h3-js returns [lat, lng] pairs, GeoJSON needs [lng, lat]
-          const coords = boundary.map(([lat, lng]) => [lng, lat])
-          coords.push(coords[0]) // close polygon
-          features.push({
-            type: 'Feature' as const,
-            properties: {
-              country: row.country,
-              h3_parent: row.h3_parent,
-              address_count: row.address_count,
-              unique_cities: row.unique_cities,
-              unique_postcodes: row.unique_postcodes,
-              primary_region: row.primary_region ?? '—',
-            },
-            geometry: { type: 'Polygon' as const, coordinates: [coords] },
-          })
-        } catch { /* skip invalid H3 cell */ }
+        if (!isValidCell(row.h3_parent)) continue
+        const boundary = cellToBoundary(row.h3_parent)
+        // h3-js returns [lat, lng] pairs, GeoJSON needs [lng, lat]
+        const coords = boundary.map(([lat, lng]) => [lng, lat])
+        coords.push(coords[0]) // close polygon
+        features.push({
+          type: 'Feature' as const,
+          properties: {
+            country: row.country,
+            h3_parent: row.h3_parent,
+            address_count: row.address_count,
+            unique_cities: row.unique_cities,
+            unique_postcodes: row.unique_postcodes,
+            primary_region: row.primary_region ?? '—',
+          },
+          geometry: { type: 'Polygon' as const, coordinates: [coords] },
+        })
       }
       mapView.addGeoJSONLayer('tiles', { type: 'FeatureCollection', features }, {
         fillColor: [
