@@ -59,6 +59,7 @@
   let countries = $state<string[]>([])
   let selectedCountry = $state('')
   let activePresets = $derived(presetsByCountry[selectedCountry] ?? [])
+  let selectedCityTiles = $derived(selectedCity ? new Set(toArr(selectedCity.tiles)) : null)
   let cityQuery = $state('')
   let cities = $state<CityRow[]>([])
   let selectedCity = $state<CityRow | null>(null)
@@ -199,18 +200,22 @@
     }
   }
 
-  /** Rank suggestions: boost matches for selected city, then by similarity. */
+  /** Rank suggestions: boost matches for selected city, then by similarity.
+   *  Uses both primary_city name AND tile overlap so streets like "via delle cave"
+   *  that exist in Roma but have primary_city "Vecchiano" still get boosted. */
   function rankSuggestions(items: SuggestRow[], query: string): SuggestRow[] {
     if (items.length <= 1) return items
     const cityName = selectedCity?.city?.toLowerCase() ?? ''
     const ranked = rankBySimilarity(items, query, s => s.label)
     if (!cityName) return ranked
 
-    // Partition: city matches first, then the rest
+    // Partition: city matches first (by name or tile overlap), then the rest
     const inCity: SuggestRow[] = []
     const other: SuggestRow[] = []
     for (const s of ranked) {
-      if (s.primary_city && s.primary_city.toLowerCase() === cityName) {
+      const nameMatch = s.primary_city && s.primary_city.toLowerCase() === cityName
+      const tileMatch = selectedCityTiles && s.tiles && toArr(s.tiles).some(t => selectedCityTiles.has(t))
+      if (nameMatch || tileMatch) {
         inCity.push(s)
       } else {
         other.push(s)
@@ -682,12 +687,17 @@
           <ul class="menu bg-base-200 rounded-lg shadow-xl absolute z-50 w-full mt-1 max-h-60 overflow-y-auto border border-base-content/10">
             {#each suggestions as s}
               {@const tileCount = toArr(s.tiles).length}
+              {@const cityNameMatch = selectedCity && s.primary_city && s.primary_city.toLowerCase() === selectedCity.city.toLowerCase()}
+              {@const cityTileMatch = !cityNameMatch && selectedCityTiles && s.tiles && toArr(s.tiles).some(t => selectedCityTiles.has(t))}
+              {@const isInCity = cityNameMatch || cityTileMatch}
               <li>
                 <button class="flex items-center gap-1.5 min-w-0" onclick={() => selectSuggestion(s)}>
                   <span class="badge badge-xs rounded-full shrink-0" class:badge-primary={s.type === 'street'} class:badge-secondary={s.type === 'postcode'}>{s.type}</span>
                   <span class="font-bold truncate">{s.label}</span>
-                  {#if s.primary_city}
-                    <span class="text-xs shrink-0 max-w-[8rem] truncate" class:text-secondary={selectedCity && s.primary_city?.toLowerCase() === selectedCity.city.toLowerCase()} class:opacity-40={!selectedCity || s.primary_city?.toLowerCase() !== selectedCity.city.toLowerCase()}>{s.primary_city}</span>
+                  {#if isInCity && selectedCity}
+                    <span class="text-xs shrink-0 max-w-[8rem] truncate text-secondary">{selectedCity.city}</span>
+                  {:else if s.primary_city}
+                    <span class="text-xs shrink-0 max-w-[8rem] truncate opacity-40">{s.primary_city}</span>
                   {/if}
                   <span class="badge badge-xs badge-ghost ml-auto shrink-0">{tileCount}</span>
                 </button>
