@@ -199,6 +199,26 @@
     }
   }
 
+  /** Rank suggestions: boost matches for selected city, then by similarity. */
+  function rankSuggestions(items: SuggestRow[], query: string): SuggestRow[] {
+    if (items.length <= 1) return items
+    const cityName = selectedCity?.city?.toLowerCase() ?? ''
+    const ranked = rankBySimilarity(items, query, s => s.label)
+    if (!cityName) return ranked
+
+    // Partition: city matches first, then the rest
+    const inCity: SuggestRow[] = []
+    const other: SuggestRow[] = []
+    for (const s of ranked) {
+      if (s.primary_city && s.primary_city.toLowerCase() === cityName) {
+        inCity.push(s)
+      } else {
+        other.push(s)
+      }
+    }
+    return [...inCity, ...other]
+  }
+
   /** Address/postcode autocomplete — DuckDB SQL on cached tables with debounce */
   function autocomplete() {
     if (!selectedCountry || addressQuery.length < 2) { suggestions = []; return }
@@ -213,7 +233,7 @@
     const cacheKey = `${cc}:${q}`
     const cached = suggestCache.get(cacheKey)
     if (cached) {
-      suggestions = rankBySimilarity(cached, q, s => s.label)
+      suggestions = rankSuggestions(cached, q)
       return
     }
 
@@ -243,7 +263,7 @@
       }
 
       suggestCache.set(cacheKey, result)
-      suggestions = rankBySimilarity(result, q, s => s.label)
+      suggestions = rankSuggestions(result, q)
     } catch (e: any) {
       console.warn('[autocomplete]', e.message)
       suggestions = []
@@ -640,7 +660,9 @@
                 <button class="flex items-center gap-1.5 min-w-0" onclick={() => selectSuggestion(s)}>
                   <span class="badge badge-xs rounded-full shrink-0" class:badge-primary={s.type === 'street'} class:badge-secondary={s.type === 'postcode'}>{s.type}</span>
                   <span class="font-bold truncate">{s.label}</span>
-                  {#if s.primary_city}<span class="text-xs opacity-40 truncate shrink-0 max-w-[6rem]">{s.primary_city}</span>{/if}
+                  {#if s.primary_city}
+                    <span class="text-xs shrink-0 max-w-[8rem] truncate" class:text-secondary={selectedCity && s.primary_city?.toLowerCase() === selectedCity.city.toLowerCase()} class:opacity-40={!selectedCity || s.primary_city?.toLowerCase() !== selectedCity.city.toLowerCase()}>{s.primary_city}</span>
+                  {/if}
                   <span class="badge badge-xs badge-ghost ml-auto shrink-0">{tileCount}</span>
                 </button>
               </li>
