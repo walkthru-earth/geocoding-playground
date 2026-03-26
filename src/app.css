@@ -113,31 +113,31 @@
 
 /* ── MapLibre popup theming ──────────────────────────────── */
 .maplibregl-popup-content {
-  background: oklch(var(--b2)) !important;
-  color: oklch(var(--bc)) !important;
+  background: oklch(0.178 0.004 165) !important;
+  color: oklch(0.935 0.006 90) !important;
   border-radius: 0.75rem;
   padding: 0.625rem 0.875rem;
   font-size: 0.8rem;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-  border: 1px solid oklch(var(--bc) / 0.06);
+  border: 1px solid oklch(0.935 0.006 90 / 0.08);
 }
 .maplibregl-popup-tip {
-  border-top-color: oklch(var(--b2)) !important;
+  border-top-color: oklch(0.178 0.004 165) !important;
 }
 .maplibregl-popup-anchor-bottom .maplibregl-popup-tip {
-  border-top-color: oklch(var(--b2)) !important;
+  border-top-color: oklch(0.178 0.004 165) !important;
 }
 .maplibregl-popup-anchor-top .maplibregl-popup-tip {
-  border-bottom-color: oklch(var(--b2)) !important;
+  border-bottom-color: oklch(0.178 0.004 165) !important;
 }
 .maplibregl-popup-anchor-left .maplibregl-popup-tip {
-  border-right-color: oklch(var(--b2)) !important;
+  border-right-color: oklch(0.178 0.004 165) !important;
 }
 .maplibregl-popup-anchor-right .maplibregl-popup-tip {
-  border-left-color: oklch(var(--b2)) !important;
+  border-left-color: oklch(0.178 0.004 165) !important;
 }
 .maplibregl-popup-close-button {
-  color: oklch(var(--bc)) !important;
+  color: oklch(0.935 0.006 90) !important;
   font-size: 1.1rem;
   padding: 2px 6px;
 }
