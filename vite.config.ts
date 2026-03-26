@@ -8,4 +8,12 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['@duckdb/duckdb-wasm'],
   },
+  build: {
+    rolldownOptions: {
+      external: ['maplibre-gl'],
+      output: {
+        globals: { 'maplibre-gl': 'maplibregl' },
+      },
+    },
+  },
 })
