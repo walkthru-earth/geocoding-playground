@@ -567,13 +567,13 @@
 
   function resultPopupHtml(r: AddressRow, idx: number): string {
     const parts = [r.city, r.postcode].filter(Boolean).join(' · ')
-    return `<div style="font-family:'Quicksand',sans-serif;line-height:1.6;padding:2px 0">
+    return `<div class="popup-body">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-        <span style="background:#36d399;color:#0a2018;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0">${idx + 1}</span>
-        <span style="font-weight:700;font-size:14px">${r.full_address}</span>
+        <span class="popup-badge popup-badge-primary">${idx + 1}</span>
+        <span class="popup-title">${r.full_address}</span>
       </div>
-      ${parts ? `<div style="font-size:13px;opacity:0.6;margin-left:32px">${parts}</div>` : ''}
-      <div style="font-size:11px;font-family:monospace;opacity:0.3;margin-left:32px;margin-top:3px">${r.lat?.toFixed(5)}, ${r.lon?.toFixed(5)}</div>
+      ${parts ? `<div class="popup-subtitle">${parts}</div>` : ''}
+      <div class="popup-coords">${r.lat?.toFixed(5)}, ${r.lon?.toFixed(5)}</div>
     </div>`
   }
 

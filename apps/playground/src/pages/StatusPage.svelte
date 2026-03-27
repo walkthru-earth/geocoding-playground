@@ -174,8 +174,8 @@
         lineWidth: 0.5,
         visible: true,
         popupFn: (p) => `
-          <div style="font-family: monospace; font-size: 12px; line-height: 1.6;">
-            <div style="font-weight: bold; font-size: 14px; margin-bottom: 4px;">${p.country} / ${p.h3_parent}</div>
+          <div class="popup-mono">
+            <div class="popup-mono-title">${p.country} / ${p.h3_parent}</div>
             <div>Addresses: <b>${Number(p.address_count).toLocaleString()}</b></div>
             <div>Cities: <b>${p.unique_cities}</b></div>
             <div>Postcodes: <b>${p.unique_postcodes}</b></div>
@@ -261,17 +261,17 @@
     <div class="stat bg-base-200 rounded-xl p-3 md:p-4">
       <div class="stat-title text-xs">Total Addresses</div>
       <div class="stat-value text-sm md:text-lg">{fmt(totalAddresses)}</div>
-      <div class="stat-desc text-[10px] md:text-xs">{fmtFull(totalAddresses)}</div>
+      <div class="stat-desc text-xs">{fmtFull(totalAddresses)}</div>
     </div>
     <div class="stat bg-base-200 rounded-xl p-3 md:p-4">
       <div class="stat-title text-xs">H3 Tiles</div>
       <div class="stat-value text-sm md:text-lg">{fmtFull(totalTiles)}</div>
-      <div class="stat-desc text-[10px] md:text-xs">~{fmt(avgTileSize)} avg/tile</div>
+      <div class="stat-desc text-xs">~{fmt(avgTileSize)} avg/tile</div>
     </div>
     <div class="stat bg-base-200 rounded-xl p-3 md:p-4 col-span-2 sm:col-span-1">
       <div class="stat-title text-xs">Index Files</div>
       <div class="stat-value text-sm md:text-lg">{countriesWithPostcode + countriesWithStreet + countriesWithCity}</div>
-      <div class="stat-desc text-[10px] md:text-xs">{countriesWithCity} city, {countriesWithPostcode} postcode, {countriesWithStreet} street</div>
+      <div class="stat-desc text-xs">{countriesWithCity} city, {countriesWithPostcode} postcode, {countriesWithStreet} street</div>
     </div>
   </div>
 
@@ -303,7 +303,7 @@
         </div>
       </div>
       {#if showTiles && tilesLoaded}
-        <div class="flex gap-2 md:gap-3 px-3 md:px-6 pb-1 text-[10px] md:text-xs text-base-content/40 flex-wrap">
+        <div class="flex gap-2 md:gap-3 px-3 md:px-6 pb-1 text-xs text-base-content/40 flex-wrap">
           <span class="flex items-center gap-1"><span class="w-3 h-3 rounded" style="background:#22c55e;opacity:0.5"></span> &lt;50K</span>
           <span class="flex items-center gap-1"><span class="w-3 h-3 rounded" style="background:#eab308;opacity:0.5"></span> 50K</span>
           <span class="flex items-center gap-1"><span class="w-3 h-3 rounded" style="background:#f97316;opacity:0.5"></span> 200K</span>

@@ -10,7 +10,7 @@
 </script>
 
 {#if steps.length > 0}
-  <div class="bg-base-200/60 rounded-xl p-3 md:p-4 font-mono text-[11px] md:text-sm leading-relaxed max-h-40 md:max-h-52 overflow-y-auto overflow-x-hidden scrollbar-thin {className}">
+  <div class="bg-base-200/60 rounded-xl p-3 md:p-4 font-mono text-xs md:text-sm leading-relaxed max-h-40 md:max-h-52 overflow-y-auto overflow-x-hidden scrollbar-thin {className}">
     {#each steps as step}
       <div
         class="flex items-center gap-2"

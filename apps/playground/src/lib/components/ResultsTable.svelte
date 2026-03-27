@@ -45,8 +45,8 @@
           <tr class="hover:bg-primary/[0.06] cursor-pointer transition-colors group" onclick={() => onRowClick?.(r)}>
             <td>
               <span
-                class="inline-flex items-center justify-center w-5 h-5 md:w-6 md:h-6 rounded-full text-[10px] md:text-xs font-bold"
-                style="background: {i === 0 ? '#36d399' : '#f0a030'}; color: {i === 0 ? '#0a2018' : '#1a1000'}"
+                class="inline-flex items-center justify-center w-5 h-5 md:w-6 md:h-6 rounded-full text-2xs md:text-xs font-bold"
+                style="background: var({i === 0 ? '--wt-marker-primary' : '--wt-marker-secondary'}); color: var({i === 0 ? '--wt-marker-primary-fg' : '--wt-marker-secondary-fg'})"
               >{i + 1}</span>
             </td>
             {#if showDistance}

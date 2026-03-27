@@ -2,6 +2,20 @@
   import { untrack } from 'svelte'
   import maplibregl from 'maplibre-gl'
 
+  /** Read a CSS custom property to get the resolved color string */
+  function getMarkerColor(type: 'primary' | 'secondary'): string {
+    const prop = type === 'primary' ? '--wt-marker-primary' : '--wt-marker-secondary'
+    return getComputedStyle(document.documentElement).getPropertyValue(prop).trim() || (type === 'primary' ? '#36d399' : '#f0a030')
+  }
+
+  /** Detect if we should use dark map tiles */
+  function isDarkMode(): boolean {
+    const theme = document.documentElement.getAttribute('data-theme')
+    if (theme === 'walkthru-light') return false
+    if (theme === 'walkthru-dark') return true
+    return window.matchMedia('(prefers-color-scheme: dark)').matches
+  }
+
   interface Props {
     center?: [number, number]
     zoom?: number
@@ -21,19 +35,22 @@
     const initialZoom = untrack(() => zoom)
     const readyCb = untrack(() => onMapReady)
 
+    const dark = isDarkMode()
+    const tileVariant = dark ? 'dark_all' : 'light_all'
+
     map = new maplibregl.Map({
       container,
       style: {
         version: 8,
         sources: {
-          'carto-dark': {
+          'carto-basemap': {
             type: 'raster',
-            tiles: ['https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png'],
+            tiles: [`https://basemaps.cartocdn.com/${tileVariant}/{z}/{x}/{y}@2x.png`],
             tileSize: 256,
             attribution: '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
           },
         },
-        layers: [{ id: 'carto-dark', type: 'raster', source: 'carto-dark' }],
+        layers: [{ id: 'carto-basemap', type: 'raster', source: 'carto-basemap' }],
       },
       center: initialCenter,
       zoom: initialZoom,
@@ -51,7 +68,32 @@
     const ro = new ResizeObserver(() => { map?.resize() })
     ro.observe(container)
 
+    // Switch basemap tiles when theme changes
+    function updateBasemap() {
+      if (!map) return
+      const variant = isDarkMode() ? 'dark_all' : 'light_all'
+      const src = map.getSource('carto-basemap') as maplibregl.RasterTileSource | undefined
+      if (src) {
+        // RasterTileSource doesn't expose setTiles, so swap via style mutation
+        const style = map.getStyle()
+        const source = style.sources['carto-basemap'] as maplibregl.RasterSourceSpecification
+        if (source?.tiles?.[0]?.includes(variant)) return // already correct
+        source.tiles = [`https://basemaps.cartocdn.com/${variant}/{z}/{x}/{y}@2x.png`]
+        map.setStyle(style)
+      }
+    }
+
+    // Watch for data-theme attribute changes on <html>
+    const observer = new MutationObserver(updateBasemap)
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+
+    // Watch for system preference changes (when theme is "system")
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    mq.addEventListener('change', updateBasemap)
+
     return () => {
+      mq.removeEventListener('change', updateBasemap)
+      observer.disconnect()
       ro.disconnect()
       map?.remove()
       map = null
@@ -65,7 +107,7 @@
     if (!map) return
     map.flyTo({ center: [lng, lat], zoom: z, duration: 1500 })
     if (marker) marker.remove()
-    marker = new maplibregl.Marker({ color: '#36d399' })
+    marker = new maplibregl.Marker({ color: getMarkerColor('primary') })
       .setLngLat([lng, lat])
       .addTo(map)
   }
@@ -87,13 +129,13 @@
         id: `${id}-fill`,
         type: 'fill',
         source: id,
-        paint: { 'fill-color': '#36d399', 'fill-opacity': 0.15, ...paint },
+        paint: { 'fill-color': getMarkerColor('primary'), 'fill-opacity': 0.15, ...paint },
       })
       map.addLayer({
         id: `${id}-line`,
         type: 'line',
         source: id,
-        paint: { 'line-color': '#36d399', 'line-width': 1.5, 'line-opacity': 0.6 },
+        paint: { 'line-color': getMarkerColor('primary'), 'line-width': 1.5, 'line-opacity': 0.6 },
       })
     }
   }
@@ -135,7 +177,7 @@
       }
 
       const m = new maplibregl.Marker({
-        color: isFirst ? '#36d399' : '#f0a030',
+        color: isFirst ? getMarkerColor('primary') : getMarkerColor('secondary'),
         scale: isFirst ? 1.0 : 0.8,
       })
         .setLngLat([p.lng, p.lat])
@@ -206,7 +248,7 @@
     } = {}
   ) {
     if (!map) return
-    const { fillColor = '#36d399', fillOpacity = 0.2, lineColor = '#36d399', lineWidth = 1, popupFn, visible = true } = options
+    const { fillColor = getMarkerColor('primary'), fillOpacity = 0.2, lineColor = getMarkerColor('primary'), lineWidth = 1, popupFn, visible = true } = options
     const vis = visible ? 'visible' : 'none'
 
     if (map.getSource(id)) {

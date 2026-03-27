@@ -80,7 +80,7 @@
     class="shrink-0"
     class:order-2={!isMobile}
     style={isMobile
-      ? `height: ${mobileMapHeight}; border-bottom: 1px solid oklch(0.935 0.006 90 / 0.06)`
+      ? `height: ${mobileMapHeight}; border-bottom: 1px solid var(--wt-border-subtle)`
       : 'flex: 1; min-width: 0'}
   >
     {@render right()}

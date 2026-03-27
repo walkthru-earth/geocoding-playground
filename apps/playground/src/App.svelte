@@ -1,5 +1,6 @@
 <script lang="ts">
   import { initDuckDB, getRelease, availableReleases, switchRelease, onReleaseChange } from '@walkthru-earth/geocoding-core'
+  import { initAnalytics } from './lib/analytics'
   import StatusPage from './pages/StatusPage.svelte'
   import GeocodePage from './pages/GeocodePage.svelte'
   import ReversePage from './pages/ReversePage.svelte'
@@ -36,6 +37,9 @@
     }
   }
 
+  // Initialize analytics (no-op if env vars missing)
+  initAnalytics()
+
   $effect(() => {
     initDuckDB()
       .then(() => {
@@ -45,12 +49,43 @@
       })
       .catch((e: any) => { dbError = e.message })
   })
+
+  // ── Theme management ──────────────────────────────────────
+  type Theme = 'light' | 'dark' | 'system'
+
+  let theme = $state<Theme>((localStorage.getItem('theme') as Theme) ?? 'system')
+  let themeMenuOpen = $state(false)
+
+  function applyTheme(t: Theme) {
+    theme = t
+    localStorage.setItem('theme', t)
+    themeMenuOpen = false
+    const html = document.documentElement
+    if (t === 'system') {
+      html.removeAttribute('data-theme')
+    } else if (t === 'light') {
+      html.setAttribute('data-theme', 'walkthru-light')
+    } else {
+      html.setAttribute('data-theme', 'walkthru-dark')
+    }
+  }
+
+  // Apply on mount
+  $effect(() => {
+    applyTheme(theme)
+  })
+
+  // Close theme menu on click outside
+  function handleClickOutside(e: MouseEvent) {
+    if (themeMenuOpen) themeMenuOpen = false
+  }
 </script>
 
-<div class="h-dvh flex flex-col overflow-hidden">
+<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+<div class="h-dvh flex flex-col overflow-hidden" onclick={handleClickOutside}>
   <!-- ── Navbar ───────────────────────────────────────────── -->
-  <div class="navbar shrink-0 border-b border-base-content/[0.06] bg-base-100/90 backdrop-blur-md z-50 min-h-12 md:min-h-14 px-2 md:px-4">
-    <div class="navbar-start gap-1">
+  <nav class="sticky top-0 z-50 flex items-center justify-between shrink-0 border-b border-base-content/[0.06] bg-base-100/90 backdrop-blur-md min-h-14 md:min-h-16 px-3 md:px-5">
+    <div class="flex items-center gap-2">
       <!-- Hamburger menu (mobile) -->
       <div class="dropdown">
         <div tabindex="0" role="button" class="btn btn-ghost btn-sm lg:hidden">
@@ -76,48 +111,93 @@
     </div>
 
     <!-- Navigation pills (desktop) -->
-    <div class="navbar-center hidden lg:flex">
-      <div class="flex items-center gap-1">
-        <button class="nav-pill" class:active={page === 'status'} onclick={() => navigate('status')}>Status</button>
-        <button class="nav-pill" class:active={page === 'geocode'} onclick={() => navigate('geocode')}>Geocode</button>
-        <button class="nav-pill" class:active={page === 'reverse'} onclick={() => navigate('reverse')}>Reverse</button>
-        <button class="nav-pill" class:active={page === 'benchmark'} onclick={() => navigate('benchmark')}>Benchmark</button>
-      </div>
+    <div class="hidden lg:flex items-center gap-1">
+      <button class="nav-pill" class:active={page === 'status'} onclick={() => navigate('status')}>Status</button>
+      <button class="nav-pill" class:active={page === 'geocode'} onclick={() => navigate('geocode')}>Geocode</button>
+      <button class="nav-pill" class:active={page === 'reverse'} onclick={() => navigate('reverse')}>Reverse</button>
+      <button class="nav-pill" class:active={page === 'benchmark'} onclick={() => navigate('benchmark')}>Benchmark</button>
     </div>
 
-    <!-- Release selector + DB status -->
-    <div class="navbar-end gap-2 md:gap-3">
-      <div class="flex items-center gap-2 md:gap-3 text-xs text-base-content/40">
-        {#if dbReady}
-          <select
-            class="select select-xs select-bordered bg-base-200/60 text-base-content/60 font-mono w-28 md:w-40"
-            value={selectedRelease}
-            onchange={onReleaseSelect}
-            disabled={switchingRelease}
-          >
-            {#each releases as r}
-              <option value={r}>{r}</option>
-            {/each}
-          </select>
-          {#if switchingRelease}
-            <span class="loading loading-spinner loading-xs text-primary"></span>
-          {:else}
-            <span class="flex items-center gap-1.5">
-              <span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
-              <span class="hidden md:inline">DuckDB</span>
-            </span>
-          {/if}
-        {:else if dbError}
-          <span class="flex items-center gap-1.5">
-            <span class="w-1.5 h-1.5 rounded-full bg-error"></span>
-            <span class="hidden md:inline">Error</span>
-          </span>
+    <!-- Release selector + theme toggle + DB status -->
+    <div class="flex items-center gap-2 md:gap-3">
+      {#if dbReady}
+        <select
+          class="select select-xs select-bordered bg-base-200/60 text-base-content/60 font-mono w-28 md:w-40"
+          value={selectedRelease}
+          onchange={onReleaseSelect}
+          disabled={switchingRelease}
+        >
+          {#each releases as r}
+            <option value={r}>{r}</option>
+          {/each}
+        </select>
+        {#if switchingRelease}
+          <span class="loading loading-spinner loading-xs text-primary"></span>
         {:else}
-          <span class="loading loading-spinner loading-xs"></span>
+          <span class="flex items-center gap-1.5 text-xs text-base-content/40">
+            <span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+            <span class="hidden md:inline">DuckDB</span>
+          </span>
+        {/if}
+      {:else if dbError}
+        <span class="flex items-center gap-1.5 text-xs text-base-content/40">
+          <span class="w-1.5 h-1.5 rounded-full bg-error"></span>
+          <span class="hidden md:inline">Error</span>
+        </span>
+      {:else}
+        <span class="loading loading-spinner loading-xs"></span>
+      {/if}
+
+      <!-- Theme toggle -->
+      <div class="relative">
+        <button
+          class="btn btn-ghost btn-sm btn-square"
+          onclick={(e: MouseEvent) => { e.stopPropagation(); themeMenuOpen = !themeMenuOpen }}
+          aria-label="Toggle theme"
+        >
+          {#if theme === 'light'}
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+          {:else if theme === 'dark'}
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+            </svg>
+          {:else}
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+          {/if}
+        </button>
+        {#if themeMenuOpen}
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div
+            class="absolute right-0 top-full mt-2 w-36 rounded-lg bg-base-200 border border-base-content/10 shadow-lg z-50 py-1"
+            onclick={(e: MouseEvent) => e.stopPropagation()}
+          >
+            <button class="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-base-300 transition-colors" class:text-primary={theme === 'light'} onclick={() => applyTheme('light')}>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+              Light
+            </button>
+            <button class="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-base-300 transition-colors" class:text-primary={theme === 'dark'} onclick={() => applyTheme('dark')}>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+              </svg>
+              Dark
+            </button>
+            <button class="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-base-300 transition-colors" class:text-primary={theme === 'system'} onclick={() => applyTheme('system')}>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              System
+            </button>
+          </div>
         {/if}
       </div>
     </div>
-  </div>
+  </nav>
 
   <!-- ── Main content ─────────────────────────────────────── -->
   <main class="flex-1 min-h-0">
@@ -152,7 +232,7 @@
   </main>
 
   <!-- ── Footer ───────────────────────────────────────────── -->
-  <footer class="shrink-0 flex items-center justify-center h-7 border-t border-base-content/[0.04] text-[10px] md:text-[11px] text-base-content/25 gap-1 md:gap-1.5 px-2">
+  <footer class="shrink-0 flex items-center justify-center h-7 border-t border-base-content/[0.04] text-xs text-base-content/25 gap-1 md:gap-1.5 px-2">
     <a href="https://walkthru.earth/links" target="_blank" rel="noopener noreferrer" class="font-medium text-primary/40 hover:text-primary/60 transition-colors">walkthru<span class="opacity-40">.earth</span></a>
     <span class="opacity-20">·</span>
     <span>DuckDB-WASM</span>
