@@ -1,12 +1,12 @@
 <script lang="ts">
   import { initDuckDB, getRelease, availableReleases, switchRelease, onReleaseChange } from '@walkthru-earth/geocoding-core'
   import { initAnalytics } from './lib/analytics'
-  import StatusPage from './pages/StatusPage.svelte'
-  import GeocodePage from './pages/GeocodePage.svelte'
   import ReversePage from './pages/ReversePage.svelte'
+  import GeocodePage from './pages/GeocodePage.svelte'
+  import StatusPage from './pages/StatusPage.svelte'
   import BenchmarkPage from './pages/BenchmarkPage.svelte'
 
-  let page = $state(window.location.hash.slice(1) || 'status')
+  let page = $state(window.location.hash.slice(1) || 'reverse')
   let dbReady = $state(false)
   let dbError = $state('')
   let selectedRelease = $state(getRelease())
@@ -16,7 +16,7 @@
   const isFullWidth = $derived(page === 'geocode' || page === 'reverse')
 
   window.addEventListener('hashchange', () => {
-    page = window.location.hash.slice(1) || 'status'
+    page = window.location.hash.slice(1) || 'reverse'
   })
 
   function navigate(p: string) {
@@ -110,9 +110,9 @@
         </div>
         <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
         <ul tabindex="0" class="menu menu-sm dropdown-content bg-base-200 rounded-box z-50 mt-3 w-52 p-2 shadow-lg border border-base-content/10">
-          <li class:active-menu-item={page === 'status'}><button onclick={() => navigate('status')}>Status</button></li>
-          <li class:active-menu-item={page === 'geocode'}><button onclick={() => navigate('geocode')}>Geocode</button></li>
           <li class:active-menu-item={page === 'reverse'}><button onclick={() => navigate('reverse')}>Reverse</button></li>
+          <li class:active-menu-item={page === 'geocode'}><button onclick={() => navigate('geocode')}>Geocode</button></li>
+          <li class:active-menu-item={page === 'status'}><button onclick={() => navigate('status')}>Status</button></li>
           <li class:active-menu-item={page === 'benchmark'}><button onclick={() => navigate('benchmark')}>Benchmark</button></li>
         </ul>
       </div>
@@ -127,9 +127,9 @@
 
     <!-- Navigation pills (desktop) -->
     <div class="hidden lg:flex items-center gap-1">
-      <button class="nav-pill" class:active={page === 'status'} onclick={() => navigate('status')}>Status</button>
-      <button class="nav-pill" class:active={page === 'geocode'} onclick={() => navigate('geocode')}>Geocode</button>
       <button class="nav-pill" class:active={page === 'reverse'} onclick={() => navigate('reverse')}>Reverse</button>
+      <button class="nav-pill" class:active={page === 'geocode'} onclick={() => navigate('geocode')}>Geocode</button>
+      <button class="nav-pill" class:active={page === 'status'} onclick={() => navigate('status')}>Status</button>
       <button class="nav-pill" class:active={page === 'benchmark'} onclick={() => navigate('benchmark')}>Benchmark</button>
     </div>
 
@@ -240,10 +240,10 @@
         </div>
       </div>
     {:else if isFullWidth}
-      {#if page === 'geocode'}
-        <GeocodePage />
-      {:else}
+      {#if page === 'reverse'}
         <ReversePage />
+      {:else}
+        <GeocodePage />
       {/if}
     {:else}
       <div class="h-full overflow-y-auto scrollbar-thin">
