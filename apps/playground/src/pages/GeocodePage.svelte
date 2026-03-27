@@ -1,11 +1,14 @@
 <script lang="ts">
   import {
     queryObjects, queryObjectsWithRetry, tilePath, prefetchCountry, isCountryCached, onCacheLog, getTileSource, isTileCached,
-    SearchCache, rankBySimilarity, jaccardSimilarity,
-    getParser, NUMBER_FIRST,
+    SearchCache, rankBySimilarity,
+    getParser,
     esc, toArr, ms, addStep, updateLastStep,
+    // Smart autocomplete (core)
+    suggest, classifyInput, resolveTiles, rankSuggestions,
+    buildPostcodeSQL, buildStreetSQL, buildPostcodeNarrowSQL, buildStreetNarrowSQL,
   } from '@walkthru-earth/geocoding-core'
-  import type { CityRow, SuggestRow, AddressRow, StepEntry } from '@walkthru-earth/geocoding-core'
+  import type { CityRow, SuggestRow, AddressRow, StepEntry, AutocompleteQueryFns, InputClassification } from '@walkthru-earth/geocoding-core'
   import MapView from '../lib/MapView.svelte'
   import SplitPane from '../lib/components/SplitPane.svelte'
   import StepLog from '../lib/components/StepLog.svelte'
@@ -93,11 +96,54 @@
     steps = updateLastStep(steps, text, status)
   }
 
-  // ── Country-aware input parsing (delegated to address-parser module) ──
+  // ── Smart autocomplete query functions (bridge core engine to DuckDB) ──
 
-  function looksLikePostcode(q: string, cc: string): boolean {
-    return getParser(cc).extractPostcode(q.trim()) !== null
+  const autoQueryFns: AutocompleteQueryFns = {
+    async queryPostcodes(cc: string, query: string, cityTiles: string[]): Promise<SuggestRow[]> {
+      const sql = buildPostcodeSQL(cc, query, cityTiles)
+      const rows = await queryObjects<{ postcode: string; tiles: string[]; addr_count: number }>(sql)
+      return rows.map((r: { postcode: string; tiles: string[]; addr_count: number }) => ({
+        type: 'postcode' as const, label: r.postcode, tiles: r.tiles, addr_count: r.addr_count,
+      }))
+    },
+    async queryStreets(cc: string, query: string, cityTiles: string[]): Promise<SuggestRow[]> {
+      try {
+        const sql = buildStreetSQL(cc, query, cityTiles)
+        const rows = await queryObjects<{ street_lower: string; tiles: string[]; addr_count: number; primary_city: string }>(sql)
+        return rows.map((r: { street_lower: string; tiles: string[]; addr_count: number; primary_city: string }) => ({
+          type: 'street' as const, label: r.street_lower, tiles: r.tiles, addr_count: r.addr_count, primary_city: r.primary_city,
+        }))
+      } catch { return [] }
+    },
+    async queryAddresses(cc: string, street: string, numberPrefix: string, tiles: string[]): Promise<SuggestRow[]> {
+      try {
+        // ONLY query tiles already cached in WASM memory (instant, no network)
+        // This respects the index architecture: autocomplete uses lightweight indexes,
+        // tile data is only queried after a search has cached it.
+        const cachedTile = tiles.find((t: string) => isTileCached(cc, t))
+        if (!cachedTile) return [] // No cached tiles, caller will show street fallback
+
+        const src = await getTileSource(cc, cachedTile)
+        const rows = await queryObjects<{ number: string; street: string; city: string; postcode: string }>(`
+          SELECT DISTINCT number, street, city, postcode
+          FROM ${src}
+          WHERE lower(street) = '${esc(street.toLowerCase())}'
+            AND number LIKE '${esc(numberPrefix)}%'
+          ORDER BY number
+          LIMIT 10
+        `)
+        return rows.map((r: { number: string; street: string; city: string; postcode: string }) => ({
+          type: 'address' as const,
+          label: `${r.street} ${r.number}`,
+          tiles: [cachedTile],
+          addr_count: 1,
+          primary_city: r.city,
+        }))
+      } catch { return [] }
+    },
   }
+
+  let lastClassification = $state<InputClassification | null>(null)
 
   onCacheLog((msg: string) => { cacheInfo = msg })
 
@@ -211,126 +257,28 @@
     }
   }
 
-  /** Score how well a label matches the query.
-   *  Rewards exact match, then word-boundary containment, then prefix closeness.
-   *  Avoids Jaccard's bias against longer strings that contain the query as a word. */
-  function suggestionScore(label: string, query: string): number {
-    const l = label.toLowerCase()
-    const q = query.toLowerCase()
-    if (l === q) return 100                                   // exact match
-    // Query appears as a whole word (bounded by space or start/end)
-    const wordRe = new RegExp(`(?:^|\\s)${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:\\s|$)`)
-    if (wordRe.test(l)) return 80                             // "via cave di peperino" matches "via cave"
-    if (l.startsWith(q)) return 60 + (1 / l.length)           // prefix match, shorter = better
-    if (l.includes(q)) return 40                              // substring match
-    return jaccardSimilarity(q, l) * 30                       // fallback to bigram similarity
-  }
-
-  /** Rank suggestions: boost matches for selected city, then by relevance.
-   *  Uses both primary_city name AND tile overlap so streets like "via delle cave"
-   *  that exist in Roma but have primary_city "Vecchiano" still get boosted. */
-  function rankSuggestions(items: SuggestRow[], query: string): SuggestRow[] {
-    if (items.length <= 1) return items
-    const cityName = selectedCity?.city?.toLowerCase() ?? ''
-
-    // Partition: city matches first (by name or tile overlap), then the rest
-    const inCity: SuggestRow[] = []
-    const other: SuggestRow[] = []
-    for (const s of items) {
-      const nameMatch = cityName && s.primary_city && s.primary_city.toLowerCase() === cityName
-      const tileMatch = selectedCityTiles && s.tiles && toArr(s.tiles).some((t: string) => selectedCityTiles.has(t))
-      if (nameMatch || tileMatch) {
-        inCity.push(s)
-      } else {
-        other.push(s)
-      }
-    }
-
-    // Sort each group by relevance score
-    const byScore = (a: SuggestRow, b: SuggestRow) => suggestionScore(b.label, query) - suggestionScore(a.label, query)
-    inCity.sort(byScore)
-    other.sort(byScore)
-    return cityName ? [...inCity, ...other] : [...inCity, ...other].sort(byScore)
-  }
-
-  /** Address/postcode autocomplete ,DuckDB SQL on cached tables with debounce */
+  /** Address/postcode autocomplete via smart engine (core) with debounce */
   function autocomplete() {
-    if (!selectedCountry || addressQuery.length < 2) { suggestions = []; return }
+    if (!selectedCountry || addressQuery.length < 2) { suggestions = []; lastClassification = null; return }
     if (suggestTimer) clearTimeout(suggestTimer)
     suggestTimer = setTimeout(() => doAutocomplete(), 150)
   }
 
-  /** Strip leading/trailing house number from query to get the street part for autocomplete. */
-  function extractStreetQuery(q: string, cc: string): string {
-    const tokens = q.trim().split(/[\s,]+/).filter(Boolean)
-    if (tokens.length <= 1) return q
-
-    if (NUMBER_FIRST.has(cc)) {
-      // US-style: "25109 Cypress St" → strip leading number
-      if (/^\d+[a-z]?$/i.test(tokens[0])) {
-        return tokens.slice(1).join(' ')
-      }
-    } else {
-      // EU-style: "Keizersgracht 185" → strip trailing number
-      const last = tokens[tokens.length - 1]
-      if (/^\d+[a-z]?$/i.test(last)) {
-        return tokens.slice(0, -1).join(' ')
-      }
-    }
-    return q
-  }
-
   async function doAutocomplete() {
-    const q = addressQuery.trim().toLowerCase()
-    const cc = selectedCountry
-
-    const cacheKey = `${cc}:${q}`
-    const cached = suggestCache.get(cacheKey)
-    if (cached) {
-      suggestions = rankSuggestions(cached, q)
-      return
-    }
-
-    // Strip house number so "25109 Cypress" searches for "cypress" in street_index
-    const streetQ = extractStreetQuery(q, cc)
+    if (!isCountryCached(selectedCountry)) return
 
     loadingSuggestions = true
     try {
-      const result: SuggestRow[] = []
-
-      if (isCountryCached(cc)) {
-        if (looksLikePostcode(q, cc)) {
-          const pcCityTiles = selectedCityTiles ? [...selectedCityTiles] : []
-          const pcBoost = pcCityTiles.length > 0
-            ? `list_has_any(tiles, ['${pcCityTiles.join("','")}']::VARCHAR[]) DESC, `
-            : ''
-          const rows = await queryObjects<{ postcode: string; tiles: string[]; addr_count: number }>(`
-            SELECT postcode, tiles, addr_count FROM _postcodes_${cc}
-            WHERE lower(postcode) LIKE '${esc(q)}%'
-            ORDER BY ${pcBoost}addr_count DESC LIMIT 15
-          `)
-          rows.forEach((r: { postcode: string; tiles: string[]; addr_count: number }) => result.push({ type: 'postcode', label: r.postcode, tiles: r.tiles, addr_count: r.addr_count }))
-        }
-
-        // Search streets using the street part (without house number)
-        // When a city is selected, prioritize streets that overlap with the city's tiles
-        // so "via cave" in Roma shows Roma streets first, not Bagnolo Piemonte
-        try {
-          const cityTilesArr = selectedCityTiles ? [...selectedCityTiles] : []
-          const cityBoost = cityTilesArr.length > 0
-            ? `list_has_any(tiles, ['${cityTilesArr.join("','")}']::VARCHAR[]) DESC, `
-            : ''
-          const rows = await queryObjects<{ street_lower: string; tiles: string[]; addr_count: number; primary_city: string }>(`
-            SELECT street_lower, tiles, addr_count, primary_city FROM _streets_${cc}
-            WHERE street_lower LIKE '${esc(streetQ)}%'
-            ORDER BY ${cityBoost}addr_count DESC LIMIT 15
-          `)
-          rows.forEach((r: { street_lower: string; tiles: string[]; addr_count: number; primary_city: string }) => result.push({ type: 'street', label: r.street_lower, tiles: r.tiles, addr_count: r.addr_count, primary_city: r.primary_city }))
-        } catch { /* street table not available */ }
-      }
-
-      suggestCache.set(cacheKey, result)
-      suggestions = rankSuggestions(result, streetQ)
+      const { classification, suggestions: results } = await suggest(
+        addressQuery,
+        selectedCountry,
+        selectedCity?.city ?? null,
+        selectedCityTiles,
+        autoQueryFns,
+        suggestCache,
+      )
+      lastClassification = classification
+      suggestions = results
     } catch (e: any) {
       console.warn('[autocomplete]', e.message)
       suggestions = []
@@ -343,20 +291,16 @@
     selectedSuggestion = s
     addressQuery = s.label
     suggestions = []
+    lastClassification = null
+
+    // Address suggestions (street + number) are ready to search immediately
+    if (s.type === 'address') {
+      search()
+    }
   }
 
   function getSearchTiles(): { tiles: string[]; source: string } {
-
-    if (selectedSuggestion) {
-      const tiles = toArr(selectedSuggestion.tiles)
-      if (selectedCity && selectedCityTiles) {
-        const intersected = tiles.filter((t: string) => selectedCityTiles.has(t))
-        if (intersected.length > 0) return { tiles: intersected, source: `${selectedSuggestion.type} ∩ city` }
-      }
-      return { tiles, source: `${selectedSuggestion.type} "${selectedSuggestion.label}"` }
-    }
-    if (selectedCityTiles) return { tiles: [...selectedCityTiles] as string[], source: `city "${selectedCity!.city}"` }
-    return { tiles: [], source: 'none' }
+    return resolveTiles(selectedSuggestion, selectedCity, selectedCityTiles)
   }
 
   async function runPreset(preset: { label: string; city: string; query: string }) {
@@ -403,7 +347,7 @@
     // Narrow via postcode or street index (from cache)
     t0 = performance.now()
     const q = preset.query.toLowerCase()
-    if (looksLikePostcode(q, cc)) {
+    if (classifyInput(q, cc).hasPostcode || classifyInput(q, cc).mode === 'postcode') {
       log(`Step 3  Narrowing via postcodes for "${q}"...`, 'loading')
       const rows = await queryObjects<{ postcode: string; tiles: string[]; addr_count: number }>(`
         SELECT postcode, tiles, addr_count FROM _postcodes_${cc}
@@ -469,50 +413,34 @@
     if (parsed.postcode && isCountryCached(cc)) {
       const t0 = performance.now()
       try {
-        const rows = await queryObjects<{ postcode: string; tiles: string[]; addr_count: number }>(`
-          SELECT postcode, tiles, addr_count FROM _postcodes_${cc}
-          WHERE lower(postcode) = '${esc(parsed.postcode.toLowerCase())}'
-          LIMIT 1
-        `)
+        const rows = await queryObjects<{ postcode: string; tiles: string[]; addr_count: number }>(buildPostcodeNarrowSQL(cc, parsed.postcode))
         if (rows.length > 0) {
           tiles = toArr(rows[0].tiles)
           source = `postcode "${rows[0].postcode}" (${rows[0].addr_count.toLocaleString()} addr)`
-          log(`Narrow  Postcode ${rows[0].postcode} → ${tiles.length} tile(s) (${ms(t0)})`, 'done')
+          log(`Narrow  Postcode ${rows[0].postcode} \u2192 ${tiles.length} tile(s) (${ms(t0)})`, 'done')
         }
       } catch { /* no postcode table */ }
     }
 
-    // Try street narrowing if no postcode tiles
-    // Use full street name first for exact match, fall back to first word for prefix
+    // Try street narrowing if no postcode tiles (exact then prefix)
     if (tiles.length === 0 && parsed.street && isCountryCached(cc)) {
       const t0 = performance.now()
-      const streetFull = parsed.street.toLowerCase()
       try {
-        // Try exact match first
-        let rows = await queryObjects<{ street_lower: string; tiles: string[]; addr_count: number }>(`
-          SELECT street_lower, tiles, addr_count FROM _streets_${cc}
-          WHERE street_lower = '${esc(streetFull)}'
-          LIMIT 1
-        `)
-        // Fall back to prefix match with full street name
+        let rows = await queryObjects<{ street_lower: string; tiles: string[]; addr_count: number }>(buildStreetNarrowSQL(cc, parsed.street, true))
         if (rows.length === 0) {
-          rows = await queryObjects<{ street_lower: string; tiles: string[]; addr_count: number }>(`
-            SELECT street_lower, tiles, addr_count FROM _streets_${cc}
-            WHERE street_lower LIKE '${esc(streetFull)}%'
-            ORDER BY addr_count DESC LIMIT 1
-          `)
+          rows = await queryObjects<{ street_lower: string; tiles: string[]; addr_count: number }>(buildStreetNarrowSQL(cc, parsed.street, false))
         }
         if (rows.length > 0) {
           tiles = toArr(rows[0].tiles)
           source = `street "${rows[0].street_lower}" (${rows[0].addr_count.toLocaleString()} addr)`
-          log(`Narrow  Street "${rows[0].street_lower}" → ${tiles.length} tile(s) (${ms(t0)})`, 'done')
+          log(`Narrow  Street "${rows[0].street_lower}" \u2192 ${tiles.length} tile(s) (${ms(t0)})`, 'done')
         }
       } catch { /* no street table */ }
     }
 
     // Intersect with city tiles if city is selected
     if (tiles.length > 0 && selectedCityTiles) {
-      const intersected = tiles.filter(t => selectedCityTiles.has(t))
+      const intersected = tiles.filter((t: string) => selectedCityTiles.has(t))
       if (intersected.length > 0 && intersected.length < tiles.length) {
         log(`Narrow  City "${selectedCity!.city}" intersection: ${tiles.length} → ${intersected.length} tile(s)`, 'done')
         tiles = intersected
@@ -750,7 +678,7 @@
               {@const isInCity = cityNameMatch || cityTileMatch}
               <li>
                 <button class="flex items-center gap-1.5 min-w-0" onclick={() => selectSuggestion(s)}>
-                  <span class="badge badge-sm rounded-full shrink-0" class:badge-primary={s.type === 'street'} class:badge-secondary={s.type === 'postcode'}>{s.type}</span>
+                  <span class="badge badge-sm rounded-full shrink-0" class:badge-primary={s.type === 'street'} class:badge-secondary={s.type === 'postcode'} class:badge-accent={s.type === 'address'}>{s.type === 'address' ? '↵' : s.type}</span>
                   <span class="font-bold truncate">{s.label}</span>
                   {#if isInCity && selectedCity}
                     <span class="text-xs shrink-0 max-w-[8rem] truncate text-secondary">{selectedCity.city}</span>

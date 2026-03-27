@@ -33,7 +33,7 @@ export interface CityRow {
 }
 
 export interface SuggestRow {
-  type: 'postcode' | 'street'
+  type: 'postcode' | 'street' | 'address'
   label: string
   tiles: string[]
   addr_count: number

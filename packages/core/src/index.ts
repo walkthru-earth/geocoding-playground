@@ -3,6 +3,21 @@
 export type { CountryParser, ParsedAddress } from './address-parser'
 // ── Address parser ───────────────────────────────────────────
 export { buildDefaultWhere, getParser, NUMBER_FIRST, POSTCODE_RE } from './address-parser'
+// ── Autocomplete ────────────────────────────────────────────
+export type { AutocompleteQueryFns, InputClassification, TileResolutionResult } from './autocomplete'
+export {
+  buildAddressSQL,
+  buildPostcodeNarrowSQL,
+  buildPostcodeSQL,
+  buildStreetNarrowSQL,
+  buildStreetSQL,
+  classifyInput,
+  extractStreetQuery,
+  rankSuggestions,
+  resolveTiles,
+  suggest,
+  suggestionScore,
+} from './autocomplete'
 export type { PrefetchOptions, QueryResult } from './duckdb'
 // ── DuckDB ───────────────────────────────────────────────────
 export {
