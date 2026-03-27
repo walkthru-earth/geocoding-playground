@@ -35,6 +35,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @walkthru-earth/geocoding-core build
       - run: pnpm --filter playground build
+        env:
+          VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
+          VITE_POSTHOG_HOST: ${{ secrets.VITE_POSTHOG_HOST }}
 
       - uses: actions/configure-pages@v5
 
