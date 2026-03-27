@@ -8,8 +8,8 @@
   import maplibregl from 'maplibre-gl'
   import { cellToBoundary } from 'h3-js'
 
-  let lat = $state(52.3676)
-  let lon = $state(4.9041)
+  let lat = $state(40.4168)
+  let lon = $state(-3.7038)
   let radius = $state(250)
   let resultLimit = $state(10)
   let results = $state<AddressRow[]>([])
@@ -375,7 +375,7 @@
 
     <!-- Presets -->
     <div class="flex gap-2 flex-wrap">
-      <button class="preset-pill" onclick={() => setPreset('Dam Square', 52.3731, 4.8932)}>Dam Square</button>
+      <button class="preset-pill" onclick={() => setPreset('Puerta del Sol', 40.4168, -3.7038)}>Puerta del Sol</button>
       <button class="preset-pill" onclick={() => setPreset('Times Square', 40.7580, -73.9855)}>Times Sq</button>
       <button class="preset-pill" onclick={() => setPreset('Champs-Élysées', 48.8698, 2.3078)}>Champs-Élysées</button>
       <button class="preset-pill" onclick={() => setPreset('Colosseum', 41.8902, 12.4922)}>Colosseum</button>
