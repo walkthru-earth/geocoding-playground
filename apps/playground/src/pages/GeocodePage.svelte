@@ -180,13 +180,16 @@
     loadingCities = true
     try {
       const result = await queryObjects<CityRow>(`
-        SELECT region, city, tiles, addr_count,
-               COALESCE(bbox_min_lon_e6, 0) AS bbox_min_lon_e6,
-               COALESCE(bbox_max_lon_e6, 0) AS bbox_max_lon_e6,
-               COALESCE(bbox_min_lat_e6, 0) AS bbox_min_lat_e6,
-               COALESCE(bbox_max_lat_e6, 0) AS bbox_max_lat_e6
+        SELECT region, city,
+               list_distinct(flatten(list(tiles))) AS tiles,
+               sum(addr_count)::INTEGER AS addr_count,
+               COALESCE(min(bbox_min_lon_e6), 0) AS bbox_min_lon_e6,
+               COALESCE(max(bbox_max_lon_e6), 0) AS bbox_max_lon_e6,
+               COALESCE(min(bbox_min_lat_e6), 0) AS bbox_min_lat_e6,
+               COALESCE(max(bbox_max_lat_e6), 0) AS bbox_max_lat_e6
         FROM _cities_${selectedCountry}
         WHERE lower(city) LIKE '%${esc(cityQuery.toLowerCase())}%'
+        GROUP BY region, city
         ORDER BY addr_count DESC LIMIT 20
       `)
       cityCache.set(cacheKey, result)
@@ -364,8 +367,12 @@
     let t0 = performance.now()
     log(`Step 2  Looking up "${preset.city}"...`, 'loading')
     const cityResults = await queryObjects<CityRow>(`
-      SELECT region, city, tiles, addr_count FROM _cities_${cc}
+      SELECT region, city,
+             list_distinct(flatten(list(tiles))) AS tiles,
+             sum(addr_count)::INTEGER AS addr_count
+      FROM _cities_${cc}
       WHERE lower(city) = '${esc(preset.city.toLowerCase())}'
+      GROUP BY region, city
       ORDER BY addr_count DESC LIMIT 1
     `)
     if (cityResults.length === 0) { updateLast(`Step 2  City not found!`, 'error'); return }
