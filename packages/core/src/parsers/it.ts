@@ -1,6 +1,6 @@
-import { GenericParser } from './generic'
 import type { ParsedAddress } from '../address-parser'
 import { esc } from '../address-parser'
+import { GenericParser } from './generic'
 
 /**
  * IT address parser.
@@ -12,7 +12,9 @@ import { esc } from '../address-parser'
  *   → street=Via del Corso, number=12, postcode=00186
  */
 export class ITParser extends GenericParser {
-  constructor() { super('IT') }
+  constructor() {
+    super('IT')
+  }
 
   parseAddress(input: string): ParsedAddress {
     const raw = input.trim()
@@ -20,8 +22,7 @@ export class ITParser extends GenericParser {
     if (!raw) return { tokens: [], raw }
 
     const pcResult = this.extractPostcode(raw)
-    let remaining = (pcResult ? pcResult.remainder : raw)
-      .split(/[\s,]+/).filter(Boolean)
+    const remaining = (pcResult ? pcResult.remainder : raw).split(/[\s,]+/).filter(Boolean)
 
     // Street-first, number at end
     let number: string | undefined
@@ -48,9 +49,11 @@ export class ITParser extends GenericParser {
     }
     if (conditions.length > 0) return conditions.join(' AND ')
 
-    return parsed.tokens
-      .filter(t => t.length > 0)
-      .map(t => `full_address ILIKE '%${esc(t)}%'`)
-      .join(' AND ') || '1=1'
+    return (
+      parsed.tokens
+        .filter((t) => t.length > 0)
+        .map((t) => `full_address ILIKE '%${esc(t)}%'`)
+        .join(' AND ') || '1=1'
+    )
   }
 }

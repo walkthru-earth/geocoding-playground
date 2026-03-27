@@ -30,7 +30,8 @@ export function startGeocodeTour() {
         element: '#tour-country-select',
         popover: {
           title: 'Step 1: Pick a country',
-          description: 'Start here. Select a country to load its address indexes. City and street fields unlock after this.',
+          description:
+            'Start here. Select a country to load its address indexes. City and street fields unlock after this.',
           side: 'bottom',
           align: 'start',
         },
@@ -48,7 +49,8 @@ export function startGeocodeTour() {
         element: '#tour-address-input',
         popover: {
           title: 'Step 3: Enter an address',
-          description: 'Type a street name, postcode, or full address. Autocomplete suggestions will appear as you type.',
+          description:
+            'Type a street name, postcode, or full address. Autocomplete suggestions will appear as you type.',
           side: 'bottom',
           align: 'start',
         },
@@ -57,7 +59,8 @@ export function startGeocodeTour() {
         element: '#tour-search-btn',
         popover: {
           title: 'Step 4: Search',
-          description: 'Hit this button or press Enter to run the geocoding query. Results appear in the table and on the map.',
+          description:
+            'Hit this button or press Enter to run the geocoding query. Results appear in the table and on the map.',
           side: 'top',
           align: 'start',
         },
@@ -86,7 +89,8 @@ export function showNavTour() {
       {
         popover: {
           title: 'Welcome to Geocoding Playground',
-          description: 'This is the reverse geocoding page. Click anywhere on the map to find nearby addresses from coordinates.',
+          description:
+            'This is the reverse geocoding page. Click anywhere on the map to find nearby addresses from coordinates.',
         },
       },
       {

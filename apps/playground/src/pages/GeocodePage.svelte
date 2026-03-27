@@ -703,8 +703,7 @@
           disabled={!selectedCountry || !citiesReady}
         />
         {#if !selectedCountry}
-          <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-          <div class="absolute inset-0 cursor-pointer" onclick={onDisabledFieldClick}></div>
+          <div class="absolute inset-0 cursor-pointer" role="button" tabindex="0" aria-label="Select a country first" onclick={onDisabledFieldClick} onkeydown={(e) => e.key === 'Enter' && onDisabledFieldClick()}></div>
         {/if}
         {#if loadingCities}
           <span class="loading loading-spinner loading-sm absolute right-3 top-3"></span>
@@ -736,8 +735,7 @@
           disabled={!selectedCountry || prefetching}
         />
         {#if !selectedCountry}
-          <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-          <div class="absolute inset-0 cursor-pointer" onclick={onDisabledFieldClick}></div>
+          <div class="absolute inset-0 cursor-pointer" role="button" tabindex="0" aria-label="Select a country first" onclick={onDisabledFieldClick} onkeydown={(e) => e.key === 'Enter' && onDisabledFieldClick()}></div>
         {/if}
         {#if loadingSuggestions}
           <span class="loading loading-spinner loading-sm absolute right-3 top-3"></span>
@@ -782,8 +780,7 @@
           {/if}
         </button>
         {#if !selectedCountry}
-          <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-          <div class="absolute inset-0 cursor-pointer" onclick={onDisabledFieldClick}></div>
+          <div class="absolute inset-0 cursor-pointer" role="button" tabindex="0" aria-label="Select a country first" onclick={onDisabledFieldClick} onkeydown={(e) => e.key === 'Enter' && onDisabledFieldClick()}></div>
         {/if}
       </div>
     </div>

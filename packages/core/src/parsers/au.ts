@@ -1,5 +1,5 @@
-import { GenericParser } from './generic'
 import type { ParsedAddress } from '../address-parser'
+import { GenericParser } from './generic'
 
 const AU_STATE_CODES = new Set(['NSW', 'VIC', 'QLD', 'WA', 'SA', 'TAS', 'ACT', 'NT'])
 
@@ -13,7 +13,9 @@ const AU_STATE_CODES = new Set(['NSW', 'VIC', 'QLD', 'WA', 'SA', 'TAS', 'ACT', '
  *   → unit=3, number=45, street=George Street, postcode=2000
  */
 export class AUParser extends GenericParser {
-  constructor() { super('AU') }
+  constructor() {
+    super('AU')
+  }
 
   parseAddress(input: string): ParsedAddress {
     const raw = input.trim()
@@ -21,11 +23,10 @@ export class AUParser extends GenericParser {
     if (!raw) return { tokens: [], raw }
 
     const pcResult = this.extractPostcode(raw)
-    let remaining = (pcResult ? pcResult.remainder : raw)
-      .split(/[\s,]+/).filter(Boolean)
+    let remaining = (pcResult ? pcResult.remainder : raw).split(/[\s,]+/).filter(Boolean)
 
     // Strip state codes
-    remaining = remaining.filter(t => !AU_STATE_CODES.has(t.toUpperCase()))
+    remaining = remaining.filter((t) => !AU_STATE_CODES.has(t.toUpperCase()))
 
     // Unit/number: "3/45" format in first token
     let number: string | undefined

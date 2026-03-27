@@ -2,7 +2,8 @@ import * as duckdb from '@duckdb/duckdb-wasm'
 
 // Public HTTPS URL ,works reliably for all file sizes in DuckDB-WASM.
 // S3 protocol fails on large files (416 Range Not Satisfiable) in WASM httpfs.
-const DATA_ROOT = 'https://s3.us-west-2.amazonaws.com/us-west-2.opendata.source.coop/walkthru-earth/indices/addresses-index/v1'
+const DATA_ROOT =
+  'https://s3.us-west-2.amazonaws.com/us-west-2.opendata.source.coop/walkthru-earth/indices/addresses-index/v1'
 const DEFAULT_RELEASE = '2026-03-18.0'
 
 let currentRelease = DEFAULT_RELEASE
@@ -23,7 +24,9 @@ let releaseChangeCallbacks: ReleaseChangeCallback[] = []
 
 export function onReleaseChange(cb: ReleaseChangeCallback): () => void {
   releaseChangeCallbacks.push(cb)
-  return () => { releaseChangeCallbacks = releaseChangeCallbacks.filter(c => c !== cb) }
+  return () => {
+    releaseChangeCallbacks = releaseChangeCallbacks.filter((c) => c !== cb)
+  }
 }
 
 /**
@@ -36,14 +39,22 @@ export async function switchRelease(release: string): Promise<void> {
 
   // Drop all cached country tables + tile tables
   for (const cc of cachedCountries) {
-    try { await c.query(`DROP TABLE IF EXISTS _cities_${cc}`) } catch {}
-    try { await c.query(`DROP TABLE IF EXISTS _postcodes_${cc}`) } catch {}
-    try { await c.query(`DROP TABLE IF EXISTS _streets_${cc}`) } catch {}
+    try {
+      await c.query(`DROP TABLE IF EXISTS _cities_${cc}`)
+    } catch {}
+    try {
+      await c.query(`DROP TABLE IF EXISTS _postcodes_${cc}`)
+    } catch {}
+    try {
+      await c.query(`DROP TABLE IF EXISTS _streets_${cc}`)
+    } catch {}
   }
   cachedCountries.clear()
 
   for (const tile of tileCache.values()) {
-    try { await c.query(`DROP TABLE IF EXISTS ${tile.tableName}`) } catch {}
+    try {
+      await c.query(`DROP TABLE IF EXISTS ${tile.tableName}`)
+    } catch {}
   }
   tileCache.clear()
   tileCacheAddrTotal = 0
@@ -55,11 +66,13 @@ export async function switchRelease(release: string): Promise<void> {
   // Re-load global indexes (with retry for stale cache after release change)
   await c.query(`DROP TABLE IF EXISTS _tile_index`)
   await c.query(`DROP TABLE IF EXISTS _manifest`)
-  await queryRemoteWithRetry(`CREATE TABLE _tile_index AS SELECT * FROM read_parquet('${DATA_BASE}/tile_index.parquet')`)
+  await queryRemoteWithRetry(
+    `CREATE TABLE _tile_index AS SELECT * FROM read_parquet('${DATA_BASE}/tile_index.parquet')`,
+  )
   await queryRemoteWithRetry(`CREATE TABLE _manifest AS SELECT * FROM read_parquet('${DATA_BASE}/manifest.parquet')`)
   console.log(`[duckdb] Switched to release ${release}`)
 
-  releaseChangeCallbacks.forEach(cb => cb(release))
+  releaseChangeCallbacks.forEach((cb) => cb(release))
 }
 
 export async function initDuckDB(): Promise<duckdb.AsyncDuckDBConnection> {
@@ -97,17 +110,23 @@ export async function initDuckDB(): Promise<duckdb.AsyncDuckDBConnection> {
 
   // Cache tile_index + manifest at startup via HTTPS (~17K + 39 rows)
   console.log('[duckdb] Caching tile_index + manifest...')
-  await queryRemoteWithRetry(`CREATE TABLE _tile_index AS SELECT * FROM read_parquet('${DATA_BASE}/tile_index.parquet')`)
+  await queryRemoteWithRetry(
+    `CREATE TABLE _tile_index AS SELECT * FROM read_parquet('${DATA_BASE}/tile_index.parquet')`,
+  )
   await queryRemoteWithRetry(`CREATE TABLE _manifest AS SELECT * FROM read_parquet('${DATA_BASE}/manifest.parquet')`)
   console.log('[duckdb] Global indexes cached, ready!')
 
   // Discover available releases from manifest
   try {
-    const rows = await queryObjects<{ overture_release: string }>(`SELECT DISTINCT overture_release FROM _manifest ORDER BY overture_release DESC`)
+    const rows = await queryObjects<{ overture_release: string }>(
+      `SELECT DISTINCT overture_release FROM _manifest ORDER BY overture_release DESC`,
+    )
     if (rows.length > 0) {
-      availableReleases = rows.map(r => r.overture_release)
+      availableReleases = rows.map((r) => r.overture_release)
     }
-  } catch { /* keep default */ }
+  } catch {
+    /* keep default */
+  }
 
   return conn
 }
@@ -157,6 +176,29 @@ export async function clearHttpCache(): Promise<void> {
   // Flush external file cache (in-memory cached file pages)
   await c.query(`SET enable_external_file_cache = false`)
   await c.query(`SET enable_external_file_cache = true`)
+
+  // Also purge the browser's HTTP cache for our S3 parquet URLs.
+  // DuckDB-WASM uses fetch() internally, and the browser may cache
+  // stale responses (wrong content-length, old ETag) even after
+  // DuckDB's in-memory caches are flushed.
+  if (typeof caches !== 'undefined') {
+    try {
+      const cacheNames = await caches.keys()
+      for (const name of cacheNames) {
+        const cache = await caches.open(name)
+        const keys = await cache.keys()
+        for (const req of keys) {
+          if (req.url.includes('opendata.source.coop') && req.url.endsWith('.parquet')) {
+            await cache.delete(req)
+          }
+        }
+      }
+      console.log('[duckdb] Browser Cache API entries purged')
+    } catch {
+      /* Cache API not available or permission denied */
+    }
+  }
+
   console.log('[duckdb] HTTP + Parquet + external file caches cleared')
 }
 
@@ -189,7 +231,7 @@ export async function query(sql: string): Promise<QueryResult> {
   const elapsed = (performance.now() - t0).toFixed(0)
   console.log(`[query] ${result.numRows} rows in ${elapsed}ms`)
 
-  const columns = result.schema.fields.map(f => f.name)
+  const columns = result.schema.fields.map((f) => f.name)
   const rows: any[][] = []
   for (let i = 0; i < result.numRows; i++) {
     const row: any[] = []
@@ -203,9 +245,11 @@ export async function query(sql: string): Promise<QueryResult> {
 
 export async function queryObjects<T = Record<string, any>>(sql: string): Promise<T[]> {
   const { columns, rows } = await query(sql)
-  return rows.map(row => {
+  return rows.map((row) => {
     const obj: any = {}
-    columns.forEach((col, i) => { obj[col] = row[i] })
+    columns.forEach((col, i) => {
+      obj[col] = row[i]
+    })
     return obj as T
   })
 }
@@ -229,10 +273,10 @@ export async function queryObjectsWithRetry<T = Record<string, any>>(sql: string
 // Subsequent queries in the same area skip the network entirely.
 
 interface CachedTile {
-  key: string          // "CC_h3parent"
-  tableName: string    // "_tile_CC_h3parent"
-  addrCount: number    // estimated row count for memory budgeting
-  lastUsed: number     // timestamp for LRU eviction
+  key: string // "CC_h3parent"
+  tableName: string // "_tile_CC_h3parent"
+  addrCount: number // estimated row count for memory budgeting
+  lastUsed: number // timestamp for LRU eviction
 }
 
 const tileCache = new Map<string, CachedTile>()
@@ -258,7 +302,9 @@ async function evictTiles(neededAddr: number): Promise<void> {
     try {
       const c = await getConnection()
       await c.query(`DROP TABLE IF EXISTS ${oldest.tableName}`)
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     tileCacheAddrTotal -= oldest.addrCount
     tileCache.delete(oldest.key)
     cacheLog(`tile evicted: ${oldest.key} (${oldest.addrCount.toLocaleString()} addr)`)
@@ -286,7 +332,9 @@ export async function getTileSource(country: string, h3Parent: string): Promise<
       LIMIT 1
     `)
     if (rows.length > 0) addrCount = rows[0].address_count
-  } catch { /* use default */ }
+  } catch {
+    /* use default */
+  }
 
   // Evict if needed
   await evictTiles(addrCount)
@@ -301,7 +349,7 @@ export async function getTileSource(country: string, h3Parent: string): Promise<
     tileCacheAddrTotal += addrCount
     cacheLog(`tile cached: ${key} (${addrCount.toLocaleString()} addr, total: ${tileCacheAddrTotal.toLocaleString()})`)
     return tableName
-  } catch (e) {
+  } catch (_e) {
     // If caching fails, fall back to direct URL read
     return `read_parquet('${url}')`
   }
@@ -322,11 +370,13 @@ let cacheCallbacks: ((msg: string) => void)[] = []
 
 export function onCacheLog(cb: (msg: string) => void): () => void {
   cacheCallbacks.push(cb)
-  return () => { cacheCallbacks = cacheCallbacks.filter(c => c !== cb) }
+  return () => {
+    cacheCallbacks = cacheCallbacks.filter((c) => c !== cb)
+  }
 }
 function cacheLog(msg: string) {
   console.log('[cache]', msg)
-  cacheCallbacks.forEach(cb => cb(msg))
+  cacheCallbacks.forEach((cb) => cb(msg))
 }
 
 export function isCountryCached(cc: string): boolean {
@@ -350,7 +400,10 @@ export interface PrefetchOptions {
  * All autocomplete queries hit these tables ,zero network latency.
  * Enriched columns: primary_city, centroid, bbox available for UX.
  */
-export async function prefetchCountry(cc: string, opts?: PrefetchOptions): Promise<{ cities: number; postcodes: number; streets: number }> {
+export async function prefetchCountry(
+  cc: string,
+  opts?: PrefetchOptions,
+): Promise<{ cities: number; postcodes: number; streets: number }> {
   if (cachedCountries.has(cc)) {
     cacheLog(`${cc} already cached`)
     opts?.onCitiesReady?.(0)
@@ -378,7 +431,7 @@ export async function prefetchCountry(cc: string, opts?: PrefetchOptions): Promi
       WHERE country = '${cc}'
     `)
   }
-  const cRows = await queryObjects<{c: number}>(`SELECT count(*)::INTEGER AS c FROM _cities_${cc}`)
+  const cRows = await queryObjects<{ c: number }>(`SELECT count(*)::INTEGER AS c FROM _cities_${cc}`)
   const cities = cRows[0]?.c ?? 0
   cacheLog(`${cc}: ${cities} cities cached`)
   opts?.onCitiesReady?.(cities)
@@ -394,11 +447,13 @@ export async function prefetchCountry(cc: string, opts?: PrefetchOptions): Promi
              COALESCE(centroid_lat_e6, 0) AS centroid_lat_e6
       FROM read_parquet('${dataPath(`postcode_index/${cc}.parquet`)}')
     `)
-    const pRows = await queryObjects<{c: number}>(`SELECT count(*)::INTEGER AS c FROM _postcodes_${cc}`)
+    const pRows = await queryObjects<{ c: number }>(`SELECT count(*)::INTEGER AS c FROM _postcodes_${cc}`)
     postcodes = pRows[0]?.c ?? 0
     cacheLog(`${cc}: ${postcodes} postcodes cached`)
   } catch {
-    await queryObjects(`CREATE OR REPLACE TABLE _postcodes_${cc}(postcode VARCHAR, tiles VARCHAR[], addr_count INTEGER, centroid_lon_e6 INTEGER, centroid_lat_e6 INTEGER)`)
+    await queryObjects(
+      `CREATE OR REPLACE TABLE _postcodes_${cc}(postcode VARCHAR, tiles VARCHAR[], addr_count INTEGER, centroid_lon_e6 INTEGER, centroid_lat_e6 INTEGER)`,
+    )
     cacheLog(`${cc}: no postcode index available`)
   }
 
@@ -413,15 +468,19 @@ export async function prefetchCountry(cc: string, opts?: PrefetchOptions): Promi
              COALESCE(centroid_lat_e6, 0) AS centroid_lat_e6
       FROM read_parquet('${dataPath(`street_index/${cc}.parquet`)}')
     `)
-    const sRows = await queryObjects<{c: number}>(`SELECT count(*)::INTEGER AS c FROM _streets_${cc}`)
+    const sRows = await queryObjects<{ c: number }>(`SELECT count(*)::INTEGER AS c FROM _streets_${cc}`)
     streets = sRows[0]?.c ?? 0
     cacheLog(`${cc}: ${streets} streets cached`)
   } catch {
-    await queryObjects(`CREATE OR REPLACE TABLE _streets_${cc}(street_lower VARCHAR, tiles VARCHAR[], addr_count INTEGER, primary_city VARCHAR, centroid_lon_e6 INTEGER, centroid_lat_e6 INTEGER)`)
+    await queryObjects(
+      `CREATE OR REPLACE TABLE _streets_${cc}(street_lower VARCHAR, tiles VARCHAR[], addr_count INTEGER, primary_city VARCHAR, centroid_lon_e6 INTEGER, centroid_lat_e6 INTEGER)`,
+    )
     cacheLog(`${cc}: street_index not available yet`)
   }
 
   cachedCountries.add(cc)
-  cacheLog(`${cc}: all indexes cached in ${((performance.now() - t0) / 1000).toFixed(2)}s (${cities} cities, ${postcodes} postcodes, ${streets} streets)`)
+  cacheLog(
+    `${cc}: all indexes cached in ${((performance.now() - t0) / 1000).toFixed(2)}s (${cities} cities, ${postcodes} postcodes, ${streets} streets)`,
+  )
   return { cities, postcodes, streets }
 }

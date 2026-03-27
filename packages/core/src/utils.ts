@@ -4,9 +4,9 @@ import type { StepEntry } from './types'
 
 /** Format large numbers compactly: 1.2B, 3.5M, 10.2K */
 export function fmt(n: number): string {
-  if (n >= 1_000_000_000) return (n / 1_000_000_000).toFixed(1) + 'B'
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M'
-  if (n >= 1_000) return (n / 1_000).toFixed(1) + 'K'
+  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`
   return n.toLocaleString()
 }
 
@@ -27,7 +27,7 @@ export function formatSize(bytes: number): string {
 
 /** Format elapsed time from a performance.now() start */
 export function ms(t0: number): string {
-  return ((performance.now() - t0) / 1000).toFixed(2) + 's'
+  return `${((performance.now() - t0) / 1000).toFixed(2)}s`
 }
 
 // ── SQL helpers ─────────────────────────────────────────────

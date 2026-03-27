@@ -1,47 +1,52 @@
 // ── Types ────────────────────────────────────────────────────
-export type {
-  StepEntry,
-  AddressRow,
-  CityRow,
-  SuggestRow,
-  ManifestRow,
-  TileStatsRow,
-  TileBucket,
-  IndexAvailRow,
-  CityRecord,
-  PostcodeRecord,
-  StreetRecord,
-} from './types'
 
-// ── Utilities ────────────────────────────────────────────────
-export { fmt, fmtFull, formatSize, ms, esc, toArr, addStep, updateLastStep } from './utils'
-
+export type { CountryParser, ParsedAddress } from './address-parser'
+// ── Address parser ───────────────────────────────────────────
+export { buildDefaultWhere, getParser, NUMBER_FIRST, POSTCODE_RE } from './address-parser'
+export type { PrefetchOptions, QueryResult } from './duckdb'
 // ── DuckDB ───────────────────────────────────────────────────
 export {
-  initDuckDB,
+  availableReleases,
+  clearHttpCache,
+  dataPath,
   getConnection,
   getRelease,
-  availableReleases,
-  switchRelease,
+  getTileSource,
+  initDuckDB,
+  isCountryCached,
+  isTileCached,
+  markCountryCached,
+  onCacheLog,
   onReleaseChange,
-  dataPath,
-  tilePath,
+  prefetchCountry,
   query,
   queryObjects,
   queryObjectsWithRetry,
-  getTileSource,
-  isTileCached,
-  prefetchCountry,
-  isCountryCached,
-  markCountryCached,
-  onCacheLog,
-  clearHttpCache,
+  switchRelease,
+  tilePath,
 } from './duckdb'
-export type { QueryResult, PrefetchOptions } from './duckdb'
 
 // ── Search ───────────────────────────────────────────────────
-export { SearchCache, jaccardSimilarity, rankBySimilarity, searchStreets, searchPostcodes, searchCities } from './search'
-
-// ── Address parser ───────────────────────────────────────────
-export { getParser, buildDefaultWhere, POSTCODE_RE, NUMBER_FIRST } from './address-parser'
-export type { ParsedAddress, CountryParser } from './address-parser'
+export {
+  jaccardSimilarity,
+  rankBySimilarity,
+  SearchCache,
+  searchCities,
+  searchPostcodes,
+  searchStreets,
+} from './search'
+export type {
+  AddressRow,
+  CityRecord,
+  CityRow,
+  IndexAvailRow,
+  ManifestRow,
+  PostcodeRecord,
+  StepEntry,
+  StreetRecord,
+  SuggestRow,
+  TileBucket,
+  TileStatsRow,
+} from './types'
+// ── Utilities ────────────────────────────────────────────────
+export { addStep, esc, fmt, fmtFull, formatSize, ms, toArr, updateLastStep } from './utils'

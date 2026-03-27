@@ -1,5 +1,5 @@
-import { GenericParser } from './generic'
 import type { ParsedAddress } from '../address-parser'
+import { GenericParser } from './generic'
 
 /**
  * BR address parser.
@@ -11,7 +11,9 @@ import type { ParsedAddress } from '../address-parser'
  *   → street=Rua Augusta, number=1234, postcode=01305-000
  */
 export class BRParser extends GenericParser {
-  constructor() { super('BR') }
+  constructor() {
+    super('BR')
+  }
 
   parseAddress(input: string): ParsedAddress {
     const raw = input.trim()
@@ -19,8 +21,7 @@ export class BRParser extends GenericParser {
     if (!raw) return { tokens: [], raw }
 
     const pcResult = this.extractPostcode(raw)
-    let remaining = (pcResult ? pcResult.remainder : raw)
-      .split(/[\s,]+/).filter(Boolean)
+    const remaining = (pcResult ? pcResult.remainder : raw).split(/[\s,]+/).filter(Boolean)
 
     // In Overture data, BR addresses are stored street-first: "Rua Augusta 1234"
     // Override NUMBER_FIRST: look for number at end

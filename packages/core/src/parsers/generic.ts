@@ -1,5 +1,5 @@
 import type { CountryParser, ParsedAddress } from '../address-parser'
-import { POSTCODE_RE, NUMBER_FIRST, buildDefaultWhere } from '../address-parser'
+import { buildDefaultWhere, NUMBER_FIRST, POSTCODE_RE } from '../address-parser'
 
 /**
  * Generic parser ,works for any country using shared constants.
@@ -29,7 +29,7 @@ export class GenericParser implements CountryParser {
       }
       // Try joining with next token (e.g., NL "1016 AG", CA "K1A 0A0")
       if (i < tokens.length - 1) {
-        const joined = tokens[i] + ' ' + tokens[i + 1]
+        const joined = `${tokens[i]} ${tokens[i + 1]}`
         if (re.test(joined)) {
           const remainder = [...tokens.slice(0, i), ...tokens.slice(i + 2)].join(' ')
           return { postcode: joined, remainder }

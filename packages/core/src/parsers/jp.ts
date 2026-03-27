@@ -1,6 +1,6 @@
-import { GenericParser } from './generic'
 import type { ParsedAddress } from '../address-parser'
 import { esc } from '../address-parser'
+import { GenericParser } from './generic'
 
 /**
  * JP address parser.
@@ -12,7 +12,9 @@ import { esc } from '../address-parser'
  * "本郷" → street=本郷
  */
 export class JPParser extends GenericParser {
-  constructor() { super('JP') }
+  constructor() {
+    super('JP')
+  }
 
   parseAddress(input: string): ParsedAddress {
     const raw = input.trim()
@@ -20,12 +22,11 @@ export class JPParser extends GenericParser {
     if (!raw) return { tokens: [], raw }
 
     const pcResult = this.extractPostcode(raw)
-    let remaining = (pcResult ? pcResult.remainder : raw)
-      .split(/[\s,]+/).filter(Boolean)
+    const remaining = (pcResult ? pcResult.remainder : raw).split(/[\s,]+/).filter(Boolean)
 
     // Chome-banchi-go: "1-2-3" or "１−２−３" patterns
     let number: string | undefined
-    const numIdx = remaining.findIndex(t => /^\d+[-−]\d+(-\d+)?$/.test(t))
+    const numIdx = remaining.findIndex((t) => /^\d+[-−]\d+(-\d+)?$/.test(t))
     if (numIdx !== -1) {
       number = remaining.splice(numIdx, 1)[0]
     }
@@ -46,9 +47,11 @@ export class JPParser extends GenericParser {
     }
     if (conditions.length > 0) return conditions.join(' AND ')
 
-    return parsed.tokens
-      .filter(t => t.length > 0)
-      .map(t => `full_address ILIKE '%${esc(t)}%'`)
-      .join(' AND ') || '1=1'
+    return (
+      parsed.tokens
+        .filter((t) => t.length > 0)
+        .map((t) => `full_address ILIKE '%${esc(t)}%'`)
+        .join(' AND ') || '1=1'
+    )
   }
 }

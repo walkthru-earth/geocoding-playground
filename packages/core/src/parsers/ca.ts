@@ -1,9 +1,7 @@
-import { GenericParser } from './generic'
 import type { ParsedAddress } from '../address-parser'
+import { GenericParser } from './generic'
 
-const CA_PROVINCE_CODES = new Set([
-  'ON', 'QC', 'BC', 'AB', 'MB', 'SK', 'NS', 'NB', 'NL', 'PE', 'NT', 'YT', 'NU',
-])
+const CA_PROVINCE_CODES = new Set(['ON', 'QC', 'BC', 'AB', 'MB', 'SK', 'NS', 'NB', 'NL', 'PE', 'NT', 'YT', 'NU'])
 
 /**
  * CA address parser.
@@ -14,13 +12,15 @@ const CA_PROVINCE_CODES = new Set([
  *   → number=123, street=King Street, postcode=M5V 1A1
  */
 export class CAParser extends GenericParser {
-  constructor() { super('CA') }
+  constructor() {
+    super('CA')
+  }
 
   extractPostcode(input: string): { postcode: string; remainder: string } | null {
     // Canadian postal codes: A1A 1A1 or A1A1A1
     const match = input.match(/\b([A-Z]\d[A-Z])\s?(\d[A-Z]\d)\b/i)
     if (match) {
-      const postcode = match[1] + ' ' + match[2]
+      const postcode = `${match[1]} ${match[2]}`
       const remainder = input.slice(0, match.index) + input.slice(match.index! + match[0].length)
       return { postcode, remainder: remainder.replace(/\s+/g, ' ').trim() }
     }
@@ -40,11 +40,10 @@ export class CAParser extends GenericParser {
     if (!raw) return { tokens: [], raw }
 
     const pcResult = this.extractPostcode(raw)
-    let remaining = (pcResult ? pcResult.remainder : raw)
-      .split(/[\s,]+/).filter(Boolean)
+    let remaining = (pcResult ? pcResult.remainder : raw).split(/[\s,]+/).filter(Boolean)
 
     // Strip province codes
-    remaining = remaining.filter(t => !CA_PROVINCE_CODES.has(t.toUpperCase()))
+    remaining = remaining.filter((t) => !CA_PROVINCE_CODES.has(t.toUpperCase()))
 
     // Number-first
     let number: string | undefined

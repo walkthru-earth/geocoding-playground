@@ -868,10 +868,9 @@
 
 <!-- ═══════ TILE INVESTIGATE MODAL ═══════ -->
 {#if inspectTile}
-  <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-  <div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm" onclick={closeInspect}>
-    <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-    <div class="bg-base-100 rounded-2xl shadow-2xl w-[95vw] max-w-3xl max-h-[85vh] overflow-hidden flex flex-col" onclick={(e) => e.stopPropagation()}>
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm" role="button" tabindex="-1" aria-label="Close modal" onclick={closeInspect} onkeydown={(e) => e.key === 'Escape' && closeInspect()}>
+    <div class="bg-base-100 rounded-2xl shadow-2xl w-[95vw] max-w-3xl max-h-[85vh] overflow-hidden flex flex-col" role="dialog" tabindex="-1" aria-modal="true" onclick={(e) => e.stopPropagation()}>
       <!-- Header -->
       <div class="flex items-center justify-between px-5 py-3 border-b border-base-content/10">
         <div>
@@ -881,7 +880,7 @@
             {#if inspectTile.primary_region !== '-'}, region: {inspectTile.primary_region}{/if}
           </p>
         </div>
-        <button class="btn btn-ghost btn-sm btn-square" onclick={closeInspect}>
+        <button class="btn btn-ghost btn-sm btn-square" aria-label="Close" onclick={closeInspect}>
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
           </svg>

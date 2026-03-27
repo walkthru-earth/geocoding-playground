@@ -1,17 +1,66 @@
-import { GenericParser } from './generic'
 import type { ParsedAddress } from '../address-parser'
-import { esc, buildDefaultWhere } from '../address-parser'
+import { GenericParser } from './generic'
 
 const US_STATE_CODES = new Set([
-  'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA',
-  'KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ',
-  'NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT',
-  'VA','WA','WV','WI','WY','DC','PR','VI','GU','AS','MP',
+  'AL',
+  'AK',
+  'AZ',
+  'AR',
+  'CA',
+  'CO',
+  'CT',
+  'DE',
+  'FL',
+  'GA',
+  'HI',
+  'ID',
+  'IL',
+  'IN',
+  'IA',
+  'KS',
+  'KY',
+  'LA',
+  'ME',
+  'MD',
+  'MA',
+  'MI',
+  'MN',
+  'MS',
+  'MO',
+  'MT',
+  'NE',
+  'NV',
+  'NH',
+  'NJ',
+  'NM',
+  'NY',
+  'NC',
+  'ND',
+  'OH',
+  'OK',
+  'OR',
+  'PA',
+  'RI',
+  'SC',
+  'SD',
+  'TN',
+  'TX',
+  'UT',
+  'VT',
+  'VA',
+  'WA',
+  'WV',
+  'WI',
+  'WY',
+  'DC',
+  'PR',
+  'VI',
+  'GU',
+  'AS',
+  'MP',
 ])
 
-const UNIT_INDICATORS = new Set([
-  'APT', 'UNIT', 'STE', 'SUITE', 'FL', 'FLOOR', 'RM', 'ROOM', 'BLDG', 'LOT',
-])
+const UNIT_INDICATORS = new Set(['APT', 'UNIT', 'STE', 'SUITE', 'FL', 'FLOOR', 'RM', 'ROOM', 'BLDG', 'LOT'])
 
 /**
  * US address parser.
@@ -23,7 +72,9 @@ const UNIT_INDICATORS = new Set([
  *   → postcode=11385, number=1871, street=MENAHAN ST, unit=APT 2R
  */
 export class USParser extends GenericParser {
-  constructor() { super('US') }
+  constructor() {
+    super('US')
+  }
 
   parseAddress(input: string): ParsedAddress {
     const raw = input.trim()
@@ -32,7 +83,7 @@ export class USParser extends GenericParser {
 
     // Step 1: Extract ZIP code from anywhere
     const pcResult = this.extractPostcode(raw)
-    let remaining = (pcResult ? pcResult.remainder : raw).split(/[\s,]+/).filter(Boolean)
+    const remaining = (pcResult ? pcResult.remainder : raw).split(/[\s,]+/).filter(Boolean)
 
     // Step 2: Extract house number (first token if numeric)
     let number: string | undefined
@@ -42,7 +93,7 @@ export class USParser extends GenericParser {
 
     // Step 3: Extract unit (APT 2R, UNIT 5, STE 100, #3)
     let unit: string | undefined
-    const unitIdx = remaining.findIndex(t => UNIT_INDICATORS.has(t.toUpperCase()) || t === '#')
+    const unitIdx = remaining.findIndex((t) => UNIT_INDICATORS.has(t.toUpperCase()) || t === '#')
     if (unitIdx !== -1) {
       // Unit indicator + everything after it until next known section
       const unitParts = [remaining[unitIdx]]
@@ -64,10 +115,40 @@ export class USParser extends GenericParser {
     // Step 5: Try to identify street vs city/neighborhood noise
     // Common US street suffixes help identify where the street name ends
     const STREET_SUFFIXES = new Set([
-      'ST', 'STREET', 'AVE', 'AVENUE', 'BLVD', 'BOULEVARD', 'DR', 'DRIVE',
-      'RD', 'ROAD', 'LN', 'LANE', 'CT', 'COURT', 'PL', 'PLACE', 'WAY',
-      'CIR', 'CIRCLE', 'TER', 'TERRACE', 'PKWY', 'PARKWAY', 'HWY', 'HIGHWAY',
-      'SQ', 'SQUARE', 'TRL', 'TRAIL', 'LOOP', 'PATH', 'PIKE', 'ALY', 'ALLEY',
+      'ST',
+      'STREET',
+      'AVE',
+      'AVENUE',
+      'BLVD',
+      'BOULEVARD',
+      'DR',
+      'DRIVE',
+      'RD',
+      'ROAD',
+      'LN',
+      'LANE',
+      'CT',
+      'COURT',
+      'PL',
+      'PLACE',
+      'WAY',
+      'CIR',
+      'CIRCLE',
+      'TER',
+      'TERRACE',
+      'PKWY',
+      'PARKWAY',
+      'HWY',
+      'HIGHWAY',
+      'SQ',
+      'SQUARE',
+      'TRL',
+      'TRAIL',
+      'LOOP',
+      'PATH',
+      'PIKE',
+      'ALY',
+      'ALLEY',
     ])
 
     // Find the last street suffix ,everything up to and including it is the street name

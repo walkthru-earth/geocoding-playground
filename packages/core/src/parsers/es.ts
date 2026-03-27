@@ -1,5 +1,5 @@
-import { GenericParser } from './generic'
 import type { ParsedAddress } from '../address-parser'
+import { GenericParser } from './generic'
 
 /**
  * ES address parser.
@@ -11,7 +11,9 @@ import type { ParsedAddress } from '../address-parser'
  *   → street=Calle Gran Via, number=12, unit=3o 2a, postcode=28013
  */
 export class ESParser extends GenericParser {
-  constructor() { super('ES') }
+  constructor() {
+    super('ES')
+  }
 
   parseAddress(input: string): ParsedAddress {
     const raw = input.trim()
@@ -19,13 +21,12 @@ export class ESParser extends GenericParser {
     if (!raw) return { tokens: [], raw }
 
     const pcResult = this.extractPostcode(raw)
-    let remaining = (pcResult ? pcResult.remainder : raw)
-      .split(/[\s,]+/).filter(Boolean)
+    let remaining = (pcResult ? pcResult.remainder : raw).split(/[\s,]+/).filter(Boolean)
 
     // Extract floor/door indicators: "3o", "2a", "1ero", "bajo"
     let unit: string | undefined
     const unitParts: string[] = []
-    remaining = remaining.filter(t => {
+    remaining = remaining.filter((t) => {
       if (/^\d{1,2}[oa]$/i.test(t) || /^\d{1,2}(ero|era)$/i.test(t) || t.toLowerCase() === 'bajo') {
         unitParts.push(t)
         return false

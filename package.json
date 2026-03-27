@@ -6,6 +6,20 @@
     "dev": "pnpm --filter playground dev",
     "build": "pnpm --filter @walkthru-earth/geocoding-core build && pnpm --filter playground build",
     "preview": "pnpm --filter playground preview",
-    "check": "pnpm --filter playground check"
+    "check": "pnpm --filter playground check",
+    "lint": "pnpm biome check .",
+    "lint:fix": "pnpm biome check --write .",
+    "format": "pnpm biome format --write .",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{js,ts,cjs,mjs,jsx,tsx,json,jsonc,css}": [
+      "pnpm biome check --write --no-errors-on-unmatched --files-ignore-unknown=true"
+    ]
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.9",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0"
   }
 }

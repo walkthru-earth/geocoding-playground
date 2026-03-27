@@ -1,5 +1,5 @@
-import { GenericParser } from './generic'
 import type { ParsedAddress } from '../address-parser'
+import { GenericParser } from './generic'
 
 /**
  * NL address parser.
@@ -11,7 +11,9 @@ import type { ParsedAddress } from '../address-parser'
  *   → street=Keizersgracht, number=185, unit=bis, postcode=1016AG
  */
 export class NLParser extends GenericParser {
-  constructor() { super('NL') }
+  constructor() {
+    super('NL')
+  }
 
   parseAddress(input: string): ParsedAddress {
     const raw = input.trim()
@@ -20,7 +22,7 @@ export class NLParser extends GenericParser {
 
     // Step 1: Extract postcode (1016AG or 1016 AG)
     const pcResult = this.extractPostcode(raw)
-    let remaining = (pcResult ? pcResult.remainder : raw).split(/[\s,]+/).filter(Boolean)
+    const remaining = (pcResult ? pcResult.remainder : raw).split(/[\s,]+/).filter(Boolean)
 
     // Step 2: Remove city name if it's the last word and not numeric
     // (cities are handled by the city selector, not needed in tile query)

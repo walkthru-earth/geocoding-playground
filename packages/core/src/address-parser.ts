@@ -38,6 +38,7 @@ export interface CountryParser {
 // ── Shared utilities ─────────────────────────────────────────
 
 export { esc } from './utils'
+
 import { esc } from './utils'
 
 /** Postcode regex patterns per country */
@@ -66,7 +67,20 @@ export const POSTCODE_RE: Record<string, RegExp> = {
 
 /** Countries where house number comes before street name */
 export const NUMBER_FIRST = new Set([
-  'US', 'CA', 'AU', 'NZ', 'BR', 'MX', 'CL', 'CO', 'UY', 'SG', 'HK', 'TW', 'GB', 'IE',
+  'US',
+  'CA',
+  'AU',
+  'NZ',
+  'BR',
+  'MX',
+  'CL',
+  'CO',
+  'UY',
+  'SG',
+  'HK',
+  'TW',
+  'GB',
+  'IE',
 ])
 
 /** Default WHERE clause builder ,reusable by all parsers */
@@ -86,16 +100,18 @@ export function buildDefaultWhere(parsed: ParsedAddress): string {
   if (conditions.length > 0) return conditions.join(' AND ')
 
   // Fallback: ILIKE on full_address for each token
-  return parsed.tokens
-    .filter(t => t.length > 1)
-    .map(t => `full_address ILIKE '%${esc(t)}%'`)
-    .join(' AND ') || '1=1'
+  return (
+    parsed.tokens
+      .filter((t) => t.length > 1)
+      .map((t) => `full_address ILIKE '%${esc(t)}%'`)
+      .join(' AND ') || '1=1'
+  )
 }
 
 // ── Factory ──────────────────────────────────────────────────
 
-import { PARSER_REGISTRY } from './parsers/index'
 import { GenericParser } from './parsers/generic'
+import { PARSER_REGISTRY } from './parsers/index'
 
 const parserCache = new Map<string, CountryParser>()
 

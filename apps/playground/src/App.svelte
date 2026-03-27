@@ -96,8 +96,7 @@
   }
 </script>
 
-<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-<div class="h-dvh flex flex-col overflow-hidden" onclick={handleClickOutside}>
+<div class="h-dvh flex flex-col overflow-hidden" role="presentation" onclick={handleClickOutside}>
   <!-- ── Navbar ───────────────────────────────────────────── -->
   <nav class="sticky top-0 z-50 flex items-center justify-between shrink-0 border-b border-base-content/[0.06] bg-base-100/90 backdrop-blur-md min-h-14 md:min-h-16 px-3 md:px-5">
     <div class="flex items-center gap-2">
@@ -197,9 +196,11 @@
           {/if}
         </button>
         {#if themeMenuOpen}
-          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
           <div
             class="absolute right-0 top-full mt-2 w-36 rounded-lg bg-base-200 border border-base-content/10 shadow-lg z-50 py-1"
+            role="menu"
+            tabindex="-1"
             onclick={(e: MouseEvent) => e.stopPropagation()}
           >
             <button class="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-base-300 transition-colors" class:text-primary={theme === 'light'} onclick={() => applyTheme('light')}>

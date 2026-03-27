@@ -1,5 +1,5 @@
-import { GenericParser } from './generic'
 import type { ParsedAddress } from '../address-parser'
+import { GenericParser } from './generic'
 
 /**
  * DE address parser.
@@ -9,7 +9,9 @@ import type { ParsedAddress } from '../address-parser'
  *   → street=Unter den Linden, number=5, postcode=10117
  */
 export class DEParser extends GenericParser {
-  constructor() { super('DE') }
+  constructor() {
+    super('DE')
+  }
 
   parseAddress(input: string): ParsedAddress {
     const raw = input.trim()
@@ -17,8 +19,7 @@ export class DEParser extends GenericParser {
     if (!raw) return { tokens: [], raw }
 
     const pcResult = this.extractPostcode(raw)
-    let remaining = (pcResult ? pcResult.remainder : raw)
-      .split(/[\s,]+/).filter(Boolean)
+    const remaining = (pcResult ? pcResult.remainder : raw).split(/[\s,]+/).filter(Boolean)
 
     // House number: last token if numeric (with optional letter: 12a, 12-14)
     let number: string | undefined
