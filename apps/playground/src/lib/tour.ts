@@ -68,30 +68,6 @@ export function startGeocodeTour() {
   driverObj.drive()
 }
 
-/** Quick tooltip pointing at the country selector when user clicks a disabled field. */
-export function highlightCountryFirst() {
-  const driverObj = driver({
-    animate: true,
-    overlayColor: 'black',
-    stagePadding: 8,
-    stageRadius: 12,
-    popoverClass: 'wt-tour-popover',
-    steps: [
-      {
-        element: '#tour-country-select',
-        popover: {
-          title: 'Select a country first',
-          description: 'Pick a country to unlock city and address search fields.',
-          side: 'bottom',
-          align: 'start',
-        },
-      },
-    ],
-  })
-
-  driverObj.drive()
-}
-
 /** Tour step shown on the Reverse page pointing to nav for geocoding. */
 export function showNavTour() {
   const isMobile = window.innerWidth < 1024

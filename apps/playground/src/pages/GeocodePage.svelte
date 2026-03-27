@@ -10,7 +10,7 @@
   import SplitPane from '../lib/components/SplitPane.svelte'
   import StepLog from '../lib/components/StepLog.svelte'
   import ResultsTable from '../lib/components/ResultsTable.svelte'
-  import { shouldShowTour, startGeocodeTour, highlightCountryFirst } from '../lib/tour'
+  import { startGeocodeTour } from '../lib/tour'
 
   const presetsByCountry: Record<string, { label: string; city: string; query: string }[]> = {
     NL: [
@@ -103,18 +103,9 @@
 
   $effect(() => { loadCountries() })
 
-  // Auto-start guided tour on first visit
-  $effect(() => {
-    if (shouldShowTour()) {
-      // Small delay so the page has rendered
-      const timer = setTimeout(() => startGeocodeTour(), 600)
-      return () => clearTimeout(timer)
-    }
-  })
-
-  /** When user clicks a disabled field, nudge them to pick a country first. */
+  /** When user clicks a disabled field, show the full guided tour. */
   function onDisabledFieldClick() {
-    if (!selectedCountry) highlightCountryFirst()
+    if (!selectedCountry) startGeocodeTour()
   }
 
   async function loadCountries() {
@@ -697,9 +688,8 @@
     {/if}
 
     <!-- Search fields -->
-    <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
     <div class="space-y-3">
-      <div class="relative" onclick={onDisabledFieldClick}>
+      <div class="relative">
         <input
           type="text"
           class="input input-bordered input-sm md:input-md w-full"
@@ -709,6 +699,10 @@
           oninput={() => searchCities()}
           disabled={!selectedCountry || !citiesReady}
         />
+        {#if !selectedCountry}
+          <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+          <div class="absolute inset-0 cursor-pointer" onclick={onDisabledFieldClick}></div>
+        {/if}
         {#if loadingCities}
           <span class="loading loading-spinner loading-sm absolute right-3 top-3"></span>
         {/if}
@@ -727,7 +721,7 @@
         {/if}
       </div>
 
-      <div class="relative" onclick={onDisabledFieldClick}>
+      <div class="relative">
         <input
           type="text"
           class="input input-bordered input-sm md:input-md w-full"
@@ -738,6 +732,10 @@
           onkeydown={(e: KeyboardEvent) => e.key === 'Enter' && search()}
           disabled={!selectedCountry || prefetching}
         />
+        {#if !selectedCountry}
+          <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+          <div class="absolute inset-0 cursor-pointer" onclick={onDisabledFieldClick}></div>
+        {/if}
         {#if loadingSuggestions}
           <span class="loading loading-spinner loading-sm absolute right-3 top-3"></span>
         {/if}
@@ -766,7 +764,7 @@
         {/if}
       </div>
 
-      <div class="flex gap-2">
+      <div class="relative flex gap-2">
         <select class="select select-bordered select-sm md:select-md w-20 md:w-24" bind:value={limit}>
           <option value={10}>10</option>
           <option value={25}>25</option>
@@ -780,6 +778,10 @@
             Search
           {/if}
         </button>
+        {#if !selectedCountry}
+          <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+          <div class="absolute inset-0 cursor-pointer" onclick={onDisabledFieldClick}></div>
+        {/if}
       </div>
     </div>
 
