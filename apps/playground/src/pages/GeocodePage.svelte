@@ -291,20 +291,30 @@
 
       if (isCountryCached(cc)) {
         if (looksLikePostcode(q, cc)) {
+          const pcCityTiles = selectedCityTiles ? [...selectedCityTiles] : []
+          const pcBoost = pcCityTiles.length > 0
+            ? `list_has_any(tiles, ['${pcCityTiles.join("','")}']::VARCHAR[]) DESC, `
+            : ''
           const rows = await queryObjects<{ postcode: string; tiles: string[]; addr_count: number }>(`
             SELECT postcode, tiles, addr_count FROM _postcodes_${cc}
             WHERE lower(postcode) LIKE '${esc(q)}%'
-            ORDER BY addr_count DESC LIMIT 15
+            ORDER BY ${pcBoost}addr_count DESC LIMIT 15
           `)
           rows.forEach(r => result.push({ type: 'postcode', label: r.postcode, tiles: r.tiles, addr_count: r.addr_count }))
         }
 
         // Search streets using the street part (without house number)
+        // When a city is selected, prioritize streets that overlap with the city's tiles
+        // so "via cave" in Roma shows Roma streets first, not Bagnolo Piemonte
         try {
+          const cityTilesArr = selectedCityTiles ? [...selectedCityTiles] : []
+          const cityBoost = cityTilesArr.length > 0
+            ? `list_has_any(tiles, ['${cityTilesArr.join("','")}']::VARCHAR[]) DESC, `
+            : ''
           const rows = await queryObjects<{ street_lower: string; tiles: string[]; addr_count: number; primary_city: string }>(`
             SELECT street_lower, tiles, addr_count, primary_city FROM _streets_${cc}
             WHERE street_lower LIKE '${esc(streetQ)}%'
-            ORDER BY addr_count DESC LIMIT 15
+            ORDER BY ${cityBoost}addr_count DESC LIMIT 15
           `)
           rows.forEach(r => result.push({ type: 'street', label: r.street_lower, tiles: r.tiles, addr_count: r.addr_count, primary_city: r.primary_city }))
         } catch { /* street table not available */ }
