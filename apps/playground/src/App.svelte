@@ -56,13 +56,19 @@
   let theme = $state<Theme>((localStorage.getItem('theme') as Theme) ?? 'system')
   let themeMenuOpen = $state(false)
 
+  function resolveSystemTheme(): 'walkthru-light' | 'walkthru-dark' {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'walkthru-dark'
+      : 'walkthru-light'
+  }
+
   function applyTheme(t: Theme) {
     theme = t
     localStorage.setItem('theme', t)
     themeMenuOpen = false
     const html = document.documentElement
     if (t === 'system') {
-      html.removeAttribute('data-theme')
+      html.setAttribute('data-theme', resolveSystemTheme())
     } else if (t === 'light') {
       html.setAttribute('data-theme', 'walkthru-light')
     } else {
@@ -70,9 +76,18 @@
     }
   }
 
-  // Apply on mount
+  // Apply on mount + watch system preference changes
   $effect(() => {
     applyTheme(theme)
+
+    if (theme === 'system') {
+      const mq = window.matchMedia('(prefers-color-scheme: dark)')
+      const onChange = () => {
+        document.documentElement.setAttribute('data-theme', resolveSystemTheme())
+      }
+      mq.addEventListener('change', onChange)
+      return () => mq.removeEventListener('change', onChange)
+    }
   })
 
   // Close theme menu on click outside
