@@ -362,7 +362,7 @@
     </p>
     {#if cdnResults.length > 0}
       <div class="overflow-x-auto">
-        <table class="table table-xs">
+        <table class="table table-sm">
           <thead>
             <tr>
               <th>File</th>
@@ -407,11 +407,11 @@
                 </td>
                 <td>
                   {#if winner !== 'tie' && diff > 50}
-                    <span class="badge badge-xs" class:badge-primary={winner === 'source-coop'} class:badge-secondary={winner === 's3-direct'}>
+                    <span class="badge badge-sm" class:badge-primary={winner === 'source-coop'} class:badge-secondary={winner === 's3-direct'}>
                       {winner === 'source-coop' ? 'SC' : 'S3'} -{diff}ms
                     </span>
                   {:else}
-                    <span class="badge badge-ghost badge-xs">~same</span>
+                    <span class="badge badge-ghost badge-sm">~same</span>
                   {/if}
                 </td>
               </tr>
@@ -449,7 +449,7 @@
     <div class="card bg-base-200 p-4">
       <h2 class="font-bold mb-2">File Sizes ({selectedCountry})</h2>
       <div class="overflow-x-auto">
-        <table class="table table-xs">
+        <table class="table table-sm">
           <thead>
             <tr>
               <th>Version</th>
@@ -484,7 +484,7 @@
       <div class="card bg-base-200 p-4">
         <h2 class="font-bold mb-1">{scenario.label}: "{scenario.queries[selectedCountry]}"</h2>
         <div class="overflow-x-auto">
-          <table class="table table-xs">
+          <table class="table table-sm">
             <thead>
               <tr>
                 <th>Version</th>

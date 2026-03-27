@@ -24,8 +24,7 @@
   let totalCountries = $derived(manifest.length)
   let release = $derived(manifest[0]?.overture_release ?? '-')
 
-  let top10 = $derived(manifest.slice(0, 10))
-  let maxCount = $derived(top10[0]?.address_count ?? 1)
+  let maxCount = $derived(manifest[0]?.address_count ?? 1)
 
   // Tile size analytics
   let avgTileSize = $derived(totalTiles > 0 ? Math.round(totalAddresses / totalTiles) : 0)
@@ -37,6 +36,15 @@
   let countriesWithCity = $derived(indexAvail.filter(r => r.has_city).length)
   // Autocomplete readiness: has enriched indexes (primary_city + centroid)
   let countriesFullAutocomplete = $derived(indexAvail.filter(r => r.has_street && r.has_city).length)
+
+  // Known issues: depth-1 countries (no region) with oversized bboxes
+  function hasOversizedBbox(row: ManifestRow): boolean {
+    return (row.bbox_max_lon - row.bbox_min_lon) > 100
+  }
+  function hasNoRegion(cc: string): boolean {
+    const ts = tileStatsFor(cc)
+    return ts !== undefined && ts.regions === 0
+  }
 
   // Computed for templates (avoid @const outside valid positions)
   let maxBucketTiles = $derived(Math.max(...tileBuckets.map(b => b.tiles), 1))
@@ -246,7 +254,10 @@
       lineColor: getMarkerColor('primary'),
       lineWidth: 1.5,
       visible: showCoverage,
-      popupFn: (p) => `
+      popupFn: (p) => {
+        const lonSpan = parseFloat(p.bbox.split(',')[0].split('..').reduce((a: string, b: string) => String(parseFloat(b) - parseFloat(a))))
+        const isOversized = lonSpan > 100
+        return `
         <div class="popup-mono">
           <div class="popup-mono-title">${p.country}</div>
           <div>Addresses: <b>${Number(p.addresses).toLocaleString()}</b></div>
@@ -258,8 +269,9 @@
           <div>Street index: <b>${p.has_street}</b></div>
           <div>Postcode index: <b>${p.has_postcode}</b></div>
           <div>Bbox: <b>${p.bbox}</b></div>
+          ${isOversized ? '<div style="color:#eab308;margin-top:4px">Oversized bbox: no region data in Overture, city bboxes merged across overseas territories</div>' : ''}
         </div>
-      `,
+      `},
     })
   }
 
@@ -358,12 +370,12 @@
 
   <!-- ═══════ OVERVIEW TAB ═══════ -->
   {#if selectedTab === 'overview'}
-    <!-- Top 10 countries -->
+    <!-- All countries -->
     <div class="card bg-base-200 shadow mb-6">
       <div class="card-body">
-        <h2 class="card-title">Top 10 Countries by Address Count</h2>
+        <h2 class="card-title">Countries by Address Count</h2>
         <div class="flex flex-col gap-2 mt-2">
-          {#each top10 as row}
+          {#each manifest as row}
             {@const ts = tileStatsFor(row.country)}
             <button class="flex items-center gap-3 hover:bg-base-300 rounded-lg px-2 py-1 transition-colors cursor-pointer" onclick={() => zoomToCountry(row)}>
               <span class="w-8 font-mono text-sm font-bold">{row.country}</span>
@@ -425,7 +437,7 @@
         <h2 class="card-title">Per-Country Tile Statistics</h2>
         <p class="text-sm text-base-content/50 mb-2">From the cached tile_index ,median is more representative than average for skewed distributions</p>
         <div class="overflow-x-auto">
-          <table class="table table-zebra table-xs">
+          <table class="table table-zebra table-sm">
             <thead>
               <tr>
                 <th>Country</th>
@@ -500,7 +512,7 @@
         <h2 class="card-title">Oversized Tiles (&gt;500K addresses)</h2>
         <p class="text-sm text-base-content/50 mb-2">These tiles cause slow browser queries (10-60s). Moving to H3 res-5 would ~7x reduce each.</p>
         <div class="overflow-x-auto">
-          <table class="table table-zebra table-xs">
+          <table class="table table-zebra table-sm">
             <thead>
               <tr><th>Country</th><th class="text-right">Tiles &gt;500K</th><th class="text-right">Max Tile</th><th class="text-right">Est. Max Size</th></tr>
             </thead>
@@ -528,7 +540,7 @@
         <h2 class="card-title">Index Availability Matrix</h2>
         <p class="text-sm text-base-content/50 mb-2">Per-country index files on S3 with enriched schema (primary_city, centroid, bbox).</p>
         <div class="overflow-x-auto">
-          <table class="table table-zebra table-xs">
+          <table class="table table-zebra table-sm">
             <thead>
               <tr>
                 <th>Country</th>
@@ -551,27 +563,27 @@
                   <td class="text-right font-mono">{fmt(row.address_count)}</td>
                   <td class="text-center">
                     {#if hasCity}
-                      <span class="badge badge-success badge-xs">{fmt(idx?.city_count ?? 0)}</span>
+                      <span class="badge badge-success badge-sm">{fmt(idx?.city_count ?? 0)}</span>
                     {:else}
-                      <span class="badge badge-ghost badge-xs">none</span>
+                      <span class="badge badge-ghost badge-sm">none</span>
                     {/if}
                   </td>
                   <td class="text-center">
                     {#if hasPostcode}
-                      <span class="badge badge-success badge-xs">{fmt(idx?.postcode_count ?? 0)}</span>
+                      <span class="badge badge-success badge-sm">{fmt(idx?.postcode_count ?? 0)}</span>
                     {:else}
-                      <span class="badge badge-ghost badge-xs">none</span>
+                      <span class="badge badge-ghost badge-sm">none</span>
                     {/if}
                   </td>
                   <td class="text-center">
                     {#if hasStreet}
-                      <span class="badge badge-success badge-xs">yes</span>
+                      <span class="badge badge-success badge-sm">yes</span>
                     {:else}
-                      <span class="badge badge-ghost badge-xs">none</span>
+                      <span class="badge badge-ghost badge-sm">none</span>
                     {/if}
                   </td>
                   <td>
-                    <span class="badge badge-xs"
+                    <span class="badge badge-sm"
                       class:badge-success={readiness === 'Full'}
                       class:badge-warning={readiness === 'Street + City' || readiness === 'City only'}
                       class:badge-error={readiness === 'Fallback'}
@@ -623,44 +635,50 @@
       <div class="card-body">
         <h2 class="card-title">Known Data Gaps</h2>
         <div class="overflow-x-auto">
-          <table class="table table-xs">
+          <table class="table table-sm">
             <thead><tr><th>Issue</th><th>Countries</th><th>Impact</th><th>Status</th></tr></thead>
             <tbody>
               <tr>
                 <td>No postcode data in Overture</td>
-                <td class="font-mono text-xs">JP, IT, HK, NZ, CL, CO, EE, RS, TW</td>
+                <td class="font-mono text-sm">JP, IT, HK, NZ, CL, CO, EE, RS, TW</td>
                 <td>Postcode search unavailable</td>
-                <td><span class="badge badge-warning badge-xs">upstream</span></td>
+                <td><span class="badge badge-warning badge-sm">upstream</span></td>
               </tr>
               <tr>
                 <td>US city missing for 4.4% of addresses</td>
-                <td class="font-mono text-xs">US</td>
+                <td class="font-mono text-sm">US</td>
                 <td>5.5M addresses use state code as city fallback</td>
-                <td><a href="https://github.com/OvertureMaps/data/issues/509" class="link link-primary text-xs" target="_blank">#509</a></td>
+                <td><a href="https://github.com/OvertureMaps/data/issues/509" class="link link-primary text-sm" target="_blank">#509</a></td>
               </tr>
               <tr>
                 <td>Variable address_levels depth</td>
-                <td class="font-mono text-xs">LV, SK, EE</td>
+                <td class="font-mono text-sm">LV, SK, EE</td>
                 <td>Fixed with COALESCE cascade (was 62% LV, 55% SK missing)</td>
-                <td><span class="badge badge-success badge-xs">fixed</span></td>
+                <td><span class="badge badge-success badge-sm">fixed</span></td>
+              </tr>
+              <tr>
+                <td>No region data, merged city bboxes</td>
+                <td class="font-mono text-sm">{manifest.filter(r => { const ts = tileStatsFor(r.country); return ts && ts.regions === 0 }).map(r => r.country).join(', ')}</td>
+                <td>Overture gives only city (no region). Same-name cities across territories merge into one row with planet-spanning bboxes (e.g. FR bbox spans -151..167 lon)</td>
+                <td><span class="badge badge-warning badge-sm whitespace-nowrap">fix ready</span></td>
               </tr>
               <tr>
                 <td>Oversized H3 res-4 tiles</td>
-                <td class="font-mono text-xs">TW, BR, CA, US, BE, AU</td>
+                <td class="font-mono text-sm">TW, BR, CA, US, BE, AU</td>
                 <td>Tiles &gt;1M addresses (48+ MB, 30-60s query)</td>
-                <td><span class="badge badge-info badge-xs">planned: adaptive res-5</span></td>
+                <td><span class="badge badge-info badge-sm whitespace-nowrap">planned</span></td>
               </tr>
               <tr>
                 <td>Enriched index schema</td>
-                <td class="font-mono text-xs">all 39 countries</td>
+                <td class="font-mono text-sm">all 39 countries</td>
                 <td>street: +primary_city, +centroid; postcode: +centroid; city: +bbox, per-country</td>
-                <td><span class="badge badge-success badge-xs">deployed</span></td>
+                <td><span class="badge badge-success badge-sm">deployed</span></td>
               </tr>
               <tr>
-                <td>JS array autocomplete</td>
-                <td class="font-mono text-xs">all countries</td>
-                <td>Sub-ms search via Array.filter() instead of SQL LIKE (was 2-7s for NL postcodes)</td>
-                <td><span class="badge badge-success badge-xs">deployed</span></td>
+                <td>In-memory SQL autocomplete</td>
+                <td class="font-mono text-sm">all countries</td>
+                <td>DuckDB SQL on prefetched in-memory tables for city, street, and postcode search</td>
+                <td><span class="badge badge-success badge-sm">deployed</span></td>
               </tr>
             </tbody>
           </table>
@@ -674,7 +692,7 @@
       <div class="card-body">
         <h2 class="card-title">All {totalCountries} Countries</h2>
         <div class="overflow-x-auto mt-2">
-          <table class="table table-zebra table-xs">
+          <table class="table table-zebra table-sm">
             <thead>
               <tr>
                 <th>#</th>
@@ -697,7 +715,14 @@
                 {@const idx = indexFor(row.country)}
                 <tr class="hover:bg-base-300 cursor-pointer" onclick={() => zoomToCountry(row)}>
                   <td class="text-base-content/40">{i + 1}</td>
-                  <td class="font-mono font-bold">{row.country}</td>
+                  <td class="font-mono font-bold">
+                    {row.country}
+                    {#if hasNoRegion(row.country) && hasOversizedBbox(row)}
+                      <span class="badge badge-warning badge-sm ml-1" title="No region data, merged city bboxes">bbox</span>
+                    {:else if hasNoRegion(row.country)}
+                      <span class="badge badge-ghost badge-sm ml-1" title="No region in Overture (depth-1 address_levels)">no-reg</span>
+                    {/if}
+                  </td>
                   <td class="text-right font-mono">{fmtFull(row.address_count)}</td>
                   <td class="text-right font-mono">{fmtFull(row.tile_count)}</td>
                   <td class="text-right font-mono">{fmt(Math.round(row.address_count / row.tile_count))}</td>
@@ -712,7 +737,7 @@
                   <td class="text-right font-mono">{idx?.has_postcode ? fmt(idx.postcode_count) : '-'}</td>
                   <td class="text-right font-mono">{idx?.has_street ? fmt(idx.street_count) : '-'}</td>
                   <td class="text-right font-mono">{ts && ts.regions > 1 ? ts.regions : '-'}</td>
-                  <td class="text-xs text-base-content/50">
+                  <td class="text-xs {hasOversizedBbox(row) ? 'text-warning' : 'text-base-content/50'}">
                     {row.bbox_min_lon.toFixed(1)}..{row.bbox_max_lon.toFixed(1)}, {row.bbox_min_lat.toFixed(1)}..{row.bbox_max_lat.toFixed(1)}
                   </td>
                   <td><span class="text-xs opacity-40">zoom</span></td>

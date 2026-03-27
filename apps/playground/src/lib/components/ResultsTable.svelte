@@ -30,7 +30,7 @@
     {/if}
   </div>
   <div class="overflow-x-auto -mx-1">
-    <table class="table table-xs md:table-sm">
+    <table class="table table-sm">
       <thead>
         <tr class="text-base-content/40">
           <th class="w-8 md:w-10">#</th>

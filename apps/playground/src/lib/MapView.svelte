@@ -2,6 +2,9 @@
   import { untrack } from 'svelte'
   import maplibregl from 'maplibre-gl'
 
+  const STYLE_LIGHT = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json'
+  const STYLE_DARK = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
+
   /** Read a CSS custom property to get the resolved color string */
   function getMarkerColor(type: 'primary' | 'secondary'): string {
     const prop = type === 'primary' ? '--wt-marker-primary' : '--wt-marker-secondary'
@@ -28,6 +31,69 @@
   let container: HTMLDivElement
   let map: maplibregl.Map | null = null
 
+  // Track custom layers so they can be restored after a style swap
+  interface StoredLayer {
+    id: string
+    geojson: GeoJSON.GeoJSON
+    fillColor: string | maplibregl.DataDrivenPropertyValueSpecification<string>
+    fillOpacity: number
+    lineColor: string
+    lineWidth: number
+    visible: boolean
+    popupFn?: (props: Record<string, any>) => string
+  }
+  const customLayers = new Map<string, StoredLayer>()
+  const layerClickHandlers = new Set<string>()
+  let currentDark = false
+
+  /** Re-add all tracked custom layers to the map */
+  function restoreCustomLayers() {
+    if (!map) return
+    for (const [id, layer] of customLayers) {
+      const vis = layer.visible ? 'visible' : 'none'
+      if (!map.getSource(id)) {
+        map.addSource(id, { type: 'geojson', data: layer.geojson as any })
+      }
+      if (!map.getLayer(`${id}-fill`)) {
+        map.addLayer({
+          id: `${id}-fill`,
+          type: 'fill',
+          source: id,
+          paint: { 'fill-color': layer.fillColor as any, 'fill-opacity': layer.fillOpacity },
+          layout: { visibility: vis },
+        })
+      }
+      if (!map.getLayer(`${id}-line`)) {
+        map.addLayer({
+          id: `${id}-line`,
+          type: 'line',
+          source: id,
+          paint: { 'line-color': layer.lineColor, 'line-width': layer.lineWidth, 'line-opacity': 0.7 },
+          layout: { visibility: vis },
+        })
+      }
+      // Re-register click handlers (they are lost on style swap)
+      if (layer.popupFn) {
+        registerClickHandler(id, layer.popupFn)
+      }
+    }
+  }
+
+  function registerClickHandler(id: string, popupFn: (props: Record<string, any>) => string) {
+    if (!map || layerClickHandlers.has(id)) return
+    layerClickHandlers.add(id)
+    map.on('click', `${id}-fill`, (e) => {
+      if (!e.features?.[0]) return
+      const props = e.features[0].properties ?? {}
+      new maplibregl.Popup({ maxWidth: '320px' })
+        .setLngLat(e.lngLat)
+        .setHTML(popupFn(props))
+        .addTo(map!)
+    })
+    map.on('mouseenter', `${id}-fill`, () => { map!.getCanvas().style.cursor = 'pointer' })
+    map.on('mouseleave', `${id}-fill`, () => { map!.getCanvas().style.cursor = '' })
+  }
+
   $effect(() => {
     if (!container) return
 
@@ -35,23 +101,11 @@
     const initialZoom = untrack(() => zoom)
     const readyCb = untrack(() => onMapReady)
 
-    const dark = isDarkMode()
-    const tileVariant = dark ? 'dark_all' : 'light_all'
+    currentDark = isDarkMode()
 
     map = new maplibregl.Map({
       container,
-      style: {
-        version: 8,
-        sources: {
-          'carto-basemap': {
-            type: 'raster',
-            tiles: [`https://basemaps.cartocdn.com/${tileVariant}/{z}/{x}/{y}@2x.png`],
-            tileSize: 256,
-            attribution: '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
-          },
-        },
-        layers: [{ id: 'carto-basemap', type: 'raster', source: 'carto-basemap' }],
-      },
+      style: currentDark ? STYLE_DARK : STYLE_LIGHT,
       center: initialCenter,
       zoom: initialZoom,
       attributionControl: false,
@@ -68,20 +122,23 @@
     const ro = new ResizeObserver(() => { map?.resize() })
     ro.observe(container)
 
-    // Switch basemap tiles when theme changes
+    // Switch basemap when theme changes
     function updateBasemap() {
       if (!map) return
-      const variant = isDarkMode() ? 'dark_all' : 'light_all'
-      const src = map.getSource('carto-basemap') as maplibregl.RasterTileSource | undefined
-      if (src) {
-        // RasterTileSource doesn't expose setTiles, so swap via style mutation
-        const style = map.getStyle()
-        const source = style.sources['carto-basemap'] as maplibregl.RasterSourceSpecification
-        if (source?.tiles?.[0]?.includes(variant)) return // already correct
-        source.tiles = [`https://basemaps.cartocdn.com/${variant}/{z}/{x}/{y}@2x.png`]
-        map.setStyle(style)
-      }
+      const dark = isDarkMode()
+      if (dark === currentDark) return
+      currentDark = dark
+
+      // Clear handler tracking so they get re-registered after style load
+      layerClickHandlers.clear()
+
+      map.setStyle(dark ? STYLE_DARK : STYLE_LIGHT)
     }
+
+    // Restore custom layers after vector style finishes loading
+    map.on('style.load', () => {
+      restoreCustomLayers()
+    })
 
     // Watch for data-theme attribute changes on <html>
     const observer = new MutationObserver(updateBasemap)
@@ -118,7 +175,7 @@
     map.fitBounds(bounds, { padding, duration: 1000 })
   }
 
-  /** Add a GeoJSON source + layer */
+  /** Add a GeoJSON source + layer (simple, no popup) */
   export function setGeoJSON(id: string, geojson: GeoJSON.GeoJSON, paint: Record<string, any> = {}) {
     if (!map) return
     if (map.getSource(id)) {
@@ -138,6 +195,16 @@
         paint: { 'line-color': getMarkerColor('primary'), 'line-width': 1.5, 'line-opacity': 0.6 },
       })
     }
+    // Track for restoration
+    customLayers.set(id, {
+      id,
+      geojson,
+      fillColor: paint['fill-color'] ?? getMarkerColor('primary'),
+      fillOpacity: paint['fill-opacity'] ?? 0.15,
+      lineColor: getMarkerColor('primary'),
+      lineWidth: 1.5,
+      visible: true,
+    })
   }
 
   /** Remove marker */
@@ -235,8 +302,6 @@
   }
 
   /** Add a styled GeoJSON layer with popup on click */
-  const layerClickHandlers = new Set<string>()
-
   export function addGeoJSONLayer(
     id: string,
     geojson: GeoJSON.GeoJSON,
@@ -273,18 +338,11 @@
       })
     }
 
-    if (popupFn && !layerClickHandlers.has(id)) {
-      layerClickHandlers.add(id)
-      map.on('click', `${id}-fill`, (e) => {
-        if (!e.features?.[0]) return
-        const props = e.features[0].properties ?? {}
-        new maplibregl.Popup({ maxWidth: '320px' })
-          .setLngLat(e.lngLat)
-          .setHTML(popupFn(props))
-          .addTo(map!)
-      })
-      map.on('mouseenter', `${id}-fill`, () => { map!.getCanvas().style.cursor = 'pointer' })
-      map.on('mouseleave', `${id}-fill`, () => { map!.getCanvas().style.cursor = '' })
+    // Track for restoration after style swap
+    customLayers.set(id, { id, geojson, fillColor, fillOpacity, lineColor, lineWidth, visible, popupFn })
+
+    if (popupFn) {
+      registerClickHandler(id, popupFn)
     }
   }
 
@@ -294,6 +352,9 @@
     const vis = visible ? 'visible' : 'none'
     if (map.getLayer(`${id}-fill`)) map.setLayoutProperty(`${id}-fill`, 'visibility', vis)
     if (map.getLayer(`${id}-line`)) map.setLayoutProperty(`${id}-line`, 'visibility', vis)
+    // Keep tracked state in sync
+    const stored = customLayers.get(id)
+    if (stored) stored.visible = visible
   }
 
   export function getMap(): maplibregl.Map | null {

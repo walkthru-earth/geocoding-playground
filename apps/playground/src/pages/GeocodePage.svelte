@@ -662,7 +662,7 @@
                 <button class="flex items-center gap-2 min-w-0" onclick={() => selectCity(city)}>
                   <span class="font-bold truncate">{city.city}</span>
                   {#if city.region}<span class="text-xs opacity-40 shrink-0">{city.region}</span>{/if}
-                  <span class="badge badge-xs badge-ghost ml-auto shrink-0">{city.addr_count.toLocaleString()}</span>
+                  <span class="badge badge-sm badge-ghost ml-auto shrink-0">{city.addr_count.toLocaleString()}</span>
                 </button>
               </li>
             {/each}
@@ -693,14 +693,14 @@
               {@const isInCity = cityNameMatch || cityTileMatch}
               <li>
                 <button class="flex items-center gap-1.5 min-w-0" onclick={() => selectSuggestion(s)}>
-                  <span class="badge badge-xs rounded-full shrink-0" class:badge-primary={s.type === 'street'} class:badge-secondary={s.type === 'postcode'}>{s.type}</span>
+                  <span class="badge badge-sm rounded-full shrink-0" class:badge-primary={s.type === 'street'} class:badge-secondary={s.type === 'postcode'}>{s.type}</span>
                   <span class="font-bold truncate">{s.label}</span>
                   {#if isInCity && selectedCity}
                     <span class="text-xs shrink-0 max-w-[8rem] truncate text-secondary">{selectedCity.city}</span>
                   {:else if s.primary_city}
                     <span class="text-xs shrink-0 max-w-[8rem] truncate opacity-40">{s.primary_city}</span>
                   {/if}
-                  <span class="badge badge-xs badge-ghost ml-auto shrink-0">{tileCount}</span>
+                  <span class="badge badge-sm badge-ghost ml-auto shrink-0">{tileCount}</span>
                 </button>
               </li>
             {/each}
