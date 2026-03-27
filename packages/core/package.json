@@ -1,0 +1,31 @@
+{
+  "name": "@walkthru-earth/geocoding-core",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Framework-agnostic geocoding engine powered by DuckDB-WASM and Overture Maps data",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch"
+  },
+  "peerDependencies": {
+    "@duckdb/duckdb-wasm": ">=1.28.0"
+  },
+  "devDependencies": {
+    "@duckdb/duckdb-wasm": "1.33.1-dev41.0",
+    "vite-plugin-dts": "5.0.0-beta.6",
+    "vite": "^8.0.3",
+    "typescript": "~6.0.2"
+  }
+}
