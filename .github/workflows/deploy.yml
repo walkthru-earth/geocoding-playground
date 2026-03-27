@@ -32,9 +32,23 @@ jobs:
           node-version: lts/*
           cache: pnpm
 
+      - uses: biomejs/setup-biome@v2
+        with:
+          version: latest
+
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @walkthru-earth/geocoding-core build
-      - run: pnpm --filter playground build
+
+      - name: Lint
+        run: biome ci .
+
+      - name: Type check
+        run: pnpm check
+
+      - name: Build core
+        run: pnpm --filter @walkthru-earth/geocoding-core build
+
+      - name: Build playground
+        run: pnpm --filter playground build
         env:
           VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
           VITE_POSTHOG_HOST: ${{ secrets.VITE_POSTHOG_HOST }}
