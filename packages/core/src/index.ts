@@ -34,6 +34,7 @@ export {
   isCountryCached,
   markCountryCached,
   onCacheLog,
+  clearHttpCache,
 } from './duckdb'
 export type { QueryResult, PrefetchOptions } from './duckdb'
 

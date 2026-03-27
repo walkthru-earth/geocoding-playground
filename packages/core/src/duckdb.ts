@@ -52,11 +52,11 @@ export async function switchRelease(release: string): Promise<void> {
   currentRelease = release
   DATA_BASE = `${DATA_ROOT}/release=${release}`
 
-  // Re-load global indexes
+  // Re-load global indexes (with retry for stale cache after release change)
   await c.query(`DROP TABLE IF EXISTS _tile_index`)
   await c.query(`DROP TABLE IF EXISTS _manifest`)
-  await c.query(`CREATE TABLE _tile_index AS SELECT * FROM read_parquet('${DATA_BASE}/tile_index.parquet')`)
-  await c.query(`CREATE TABLE _manifest AS SELECT * FROM read_parquet('${DATA_BASE}/manifest.parquet')`)
+  await queryRemoteWithRetry(`CREATE TABLE _tile_index AS SELECT * FROM read_parquet('${DATA_BASE}/tile_index.parquet')`)
+  await queryRemoteWithRetry(`CREATE TABLE _manifest AS SELECT * FROM read_parquet('${DATA_BASE}/manifest.parquet')`)
   console.log(`[duckdb] Switched to release ${release}`)
 
   releaseChangeCallbacks.forEach(cb => cb(release))
@@ -97,8 +97,8 @@ export async function initDuckDB(): Promise<duckdb.AsyncDuckDBConnection> {
 
   // Cache tile_index + manifest at startup via HTTPS (~17K + 39 rows)
   console.log('[duckdb] Caching tile_index + manifest...')
-  await conn.query(`CREATE TABLE _tile_index AS SELECT * FROM read_parquet('${DATA_BASE}/tile_index.parquet')`)
-  await conn.query(`CREATE TABLE _manifest AS SELECT * FROM read_parquet('${DATA_BASE}/manifest.parquet')`)
+  await queryRemoteWithRetry(`CREATE TABLE _tile_index AS SELECT * FROM read_parquet('${DATA_BASE}/tile_index.parquet')`)
+  await queryRemoteWithRetry(`CREATE TABLE _manifest AS SELECT * FROM read_parquet('${DATA_BASE}/manifest.parquet')`)
   console.log('[duckdb] Global indexes cached, ready!')
 
   // Discover available releases from manifest
@@ -132,6 +132,48 @@ function toJS(val: any): any {
   if (val.toJSON) return val.toJSON()
   if (typeof val === 'bigint') return Number(val)
   return val
+}
+
+/**
+ * Flush DuckDB's HTTP metadata, Parquet metadata, and external file caches.
+ *
+ * When S3 parquet files are replaced, the browser and DuckDB-WASM keep
+ * stale cached headers (ETag, content-length) and parquet footers. This
+ * causes "TProtocolException: Invalid data", "416 Range Not Satisfiable",
+ * or "Snappy decompression failure" on the next read.
+ * See: duckdb/duckdb-wasm#1658, duckdb/duckdb#20167
+ *
+ * DuckDB has no explicit cache-clear API. Toggling the settings off/on
+ * is the best available method to flush in-memory metadata.
+ */
+export async function clearHttpCache(): Promise<void> {
+  const c = await getConnection()
+  // Flush HTTP metadata cache (HEAD request results: ETag, content-length)
+  await c.query(`SET enable_http_metadata_cache = false`)
+  await c.query(`SET enable_http_metadata_cache = true`)
+  // Flush Parquet metadata cache (footer, row group offsets)
+  await c.query(`SET parquet_metadata_cache = false`)
+  await c.query(`SET parquet_metadata_cache = true`)
+  // Flush external file cache (in-memory cached file pages)
+  await c.query(`SET enable_external_file_cache = false`)
+  await c.query(`SET enable_external_file_cache = true`)
+  console.log('[duckdb] HTTP + Parquet + external file caches cleared')
+}
+
+/**
+ * Run a SQL statement that reads remote parquet files.
+ * On failure, clears all HTTP/parquet caches and retries once.
+ * This handles stale browser-cached S3 metadata after file updates.
+ */
+async function queryRemoteWithRetry(sql: string): Promise<void> {
+  const c = await getConnection()
+  try {
+    await c.query(sql)
+  } catch (e) {
+    console.warn('[duckdb] Remote query failed, clearing caches and retrying:', (e as Error).message?.slice(0, 120))
+    await clearHttpCache()
+    await c.query(sql)
+  }
 }
 
 export interface QueryResult {
@@ -239,8 +281,7 @@ export async function getTileSource(country: string, h3Parent: string): Promise<
   const tableName = tileCacheTableName(country, h3Parent)
   const url = tilePath(country, h3Parent)
   try {
-    const c = await getConnection()
-    await c.query(`CREATE OR REPLACE TABLE ${tableName} AS SELECT * FROM read_parquet('${url}')`)
+    await queryRemoteWithRetry(`CREATE OR REPLACE TABLE ${tableName} AS SELECT * FROM read_parquet('${url}')`)
     const entry: CachedTile = { key, tableName, addrCount, lastUsed: Date.now() }
     tileCache.set(key, entry)
     tileCacheAddrTotal += addrCount
@@ -307,14 +348,14 @@ export async function prefetchCountry(cc: string, opts?: PrefetchOptions): Promi
   // Phase 1: Cities ,fast, unlocks city search immediately
   cacheLog(`${cc}: loading cities...`)
   try {
-    await queryObjects(`
+    await queryRemoteWithRetry(`
       CREATE OR REPLACE TABLE _cities_${cc} AS
       SELECT region, city, tiles, addr_count,
              bbox_min_lon_e6, bbox_max_lon_e6, bbox_min_lat_e6, bbox_max_lat_e6
       FROM read_parquet('${dataPath(`city_index/${cc}.parquet`)}')
     `)
   } catch {
-    await queryObjects(`
+    await queryRemoteWithRetry(`
       CREATE OR REPLACE TABLE _cities_${cc} AS
       SELECT region, city, tiles, addr_count,
              0 AS bbox_min_lon_e6, 0 AS bbox_max_lon_e6,
@@ -332,7 +373,7 @@ export async function prefetchCountry(cc: string, opts?: PrefetchOptions): Promi
   let postcodes = 0
   try {
     cacheLog(`${cc}: loading postcodes...`)
-    await queryObjects(`
+    await queryRemoteWithRetry(`
       CREATE OR REPLACE TABLE _postcodes_${cc} AS
       SELECT postcode, tiles, addr_count,
              COALESCE(centroid_lon_e6, 0) AS centroid_lon_e6,
@@ -350,7 +391,7 @@ export async function prefetchCountry(cc: string, opts?: PrefetchOptions): Promi
   let streets = 0
   try {
     cacheLog(`${cc}: loading streets...`)
-    await queryObjects(`
+    await queryRemoteWithRetry(`
       CREATE OR REPLACE TABLE _streets_${cc} AS
       SELECT street_lower, tiles, addr_count,
              COALESCE(primary_city, '') AS primary_city,
