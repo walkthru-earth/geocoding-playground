@@ -235,6 +235,8 @@
   }
 
   /** Add a styled GeoJSON layer with popup on click */
+  const layerClickHandlers = new Set<string>()
+
   export function addGeoJSONLayer(
     id: string,
     geojson: GeoJSON.GeoJSON,
@@ -253,26 +255,26 @@
 
     if (map.getSource(id)) {
       (map.getSource(id) as maplibregl.GeoJSONSource).setData(geojson as any)
-      return
+    } else {
+      map.addSource(id, { type: 'geojson', data: geojson as any })
+      map.addLayer({
+        id: `${id}-fill`,
+        type: 'fill',
+        source: id,
+        paint: { 'fill-color': fillColor as any, 'fill-opacity': fillOpacity },
+        layout: { visibility: vis },
+      })
+      map.addLayer({
+        id: `${id}-line`,
+        type: 'line',
+        source: id,
+        paint: { 'line-color': lineColor, 'line-width': lineWidth, 'line-opacity': 0.7 },
+        layout: { visibility: vis },
+      })
     }
 
-    map.addSource(id, { type: 'geojson', data: geojson as any })
-    map.addLayer({
-      id: `${id}-fill`,
-      type: 'fill',
-      source: id,
-      paint: { 'fill-color': fillColor as any, 'fill-opacity': fillOpacity },
-      layout: { visibility: vis },
-    })
-    map.addLayer({
-      id: `${id}-line`,
-      type: 'line',
-      source: id,
-      paint: { 'line-color': lineColor, 'line-width': lineWidth, 'line-opacity': 0.7 },
-      layout: { visibility: vis },
-    })
-
-    if (popupFn) {
+    if (popupFn && !layerClickHandlers.has(id)) {
+      layerClickHandlers.add(id)
       map.on('click', `${id}-fill`, (e) => {
         if (!e.features?.[0]) return
         const props = e.features[0].properties ?? {}

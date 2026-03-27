@@ -1,5 +1,10 @@
 <script lang="ts">
   import { queryObjects, dataPath, fmt, fmtFull } from '@walkthru-earth/geocoding-core'
+
+  function getMarkerColor(type: 'primary' | 'secondary'): string {
+    const prop = type === 'primary' ? '--wt-marker-primary' : '--wt-marker-secondary'
+    return getComputedStyle(document.documentElement).getPropertyValue(prop).trim() || (type === 'primary' ? '#36d399' : '#f0a030')
+  }
   import type { ManifestRow, TileStatsRow, TileBucket, IndexAvailRow } from '@walkthru-earth/geocoding-core'
   import MapView from '../lib/MapView.svelte'
   import { cellToBoundary, isValidCell } from 'h3-js'
@@ -205,21 +210,57 @@
 
   function showBboxes() {
     if (!mapView || !mapReady || manifest.length === 0) return
-    const features = manifest.map(row => ({
-      type: 'Feature' as const,
-      properties: { country: row.country, addresses: row.address_count, tiles: row.tile_count },
-      geometry: {
-        type: 'Polygon' as const,
-        coordinates: [[
-          [row.bbox_min_lon, row.bbox_min_lat],
-          [row.bbox_max_lon, row.bbox_min_lat],
-          [row.bbox_max_lon, row.bbox_max_lat],
-          [row.bbox_min_lon, row.bbox_max_lat],
-          [row.bbox_min_lon, row.bbox_min_lat],
-        ]],
-      },
-    }))
-    mapView.setGeoJSON('coverage', { type: 'FeatureCollection', features })
+    const features = manifest.map(row => {
+      const ts = tileStatsFor(row.country)
+      const idx = indexFor(row.country)
+      return {
+        type: 'Feature' as const,
+        properties: {
+          country: row.country,
+          addresses: row.address_count,
+          tiles: row.tile_count,
+          release: row.overture_release,
+          cities: ts?.total_cities ?? 0,
+          postcodes: ts?.total_postcodes ?? 0,
+          regions: ts?.regions ?? 0,
+          median_addr: ts?.median_addr ?? 0,
+          has_postcode: idx?.has_postcode ? 'Yes' : 'No',
+          has_street: idx?.has_street ? 'Yes' : 'No',
+          bbox: `${row.bbox_min_lon.toFixed(1)}..${row.bbox_max_lon.toFixed(1)}, ${row.bbox_min_lat.toFixed(1)}..${row.bbox_max_lat.toFixed(1)}`,
+        },
+        geometry: {
+          type: 'Polygon' as const,
+          coordinates: [[
+            [row.bbox_min_lon, row.bbox_min_lat],
+            [row.bbox_max_lon, row.bbox_min_lat],
+            [row.bbox_max_lon, row.bbox_max_lat],
+            [row.bbox_min_lon, row.bbox_max_lat],
+            [row.bbox_min_lon, row.bbox_min_lat],
+          ]],
+        },
+      }
+    })
+    mapView.addGeoJSONLayer('coverage', { type: 'FeatureCollection', features }, {
+      fillColor: getMarkerColor('primary'),
+      fillOpacity: 0.15,
+      lineColor: getMarkerColor('primary'),
+      lineWidth: 1.5,
+      visible: showCoverage,
+      popupFn: (p) => `
+        <div class="popup-mono">
+          <div class="popup-mono-title">${p.country}</div>
+          <div>Addresses: <b>${Number(p.addresses).toLocaleString()}</b></div>
+          <div>Tiles: <b>${Number(p.tiles).toLocaleString()}</b></div>
+          <div>Cities: <b>${Number(p.cities).toLocaleString()}</b></div>
+          <div>Postcodes: <b>${p.postcodes > 0 ? Number(p.postcodes).toLocaleString() : '-'}</b></div>
+          <div>Regions: <b>${p.regions > 0 ? p.regions : '-'}</b></div>
+          <div>Median/tile: <b>${Number(p.median_addr).toLocaleString()}</b></div>
+          <div>Street index: <b>${p.has_street}</b></div>
+          <div>Postcode index: <b>${p.has_postcode}</b></div>
+          <div>Bbox: <b>${p.bbox}</b></div>
+        </div>
+      `,
+    })
   }
 
   function zoomToCountry(row: ManifestRow) {
