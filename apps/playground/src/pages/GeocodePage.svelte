@@ -1,7 +1,7 @@
 <script lang="ts">
   import {
     queryObjects, tilePath, prefetchCountry, isCountryCached, onCacheLog, getTileSource, isTileCached,
-    SearchCache, rankBySimilarity,
+    SearchCache, rankBySimilarity, jaccardSimilarity,
     getParser, NUMBER_FIRST,
     esc, toArr, ms, addStep, updateLastStep,
   } from '@walkthru-earth/geocoding-core'
@@ -220,20 +220,33 @@
     }
   }
 
-  /** Rank suggestions: boost matches for selected city, then by similarity.
+  /** Score how well a label matches the query.
+   *  Rewards exact match, then word-boundary containment, then prefix closeness.
+   *  Avoids Jaccard's bias against longer strings that contain the query as a word. */
+  function suggestionScore(label: string, query: string): number {
+    const l = label.toLowerCase()
+    const q = query.toLowerCase()
+    if (l === q) return 100                                   // exact match
+    // Query appears as a whole word (bounded by space or start/end)
+    const wordRe = new RegExp(`(?:^|\\s)${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:\\s|$)`)
+    if (wordRe.test(l)) return 80                             // "via cave di peperino" matches "via cave"
+    if (l.startsWith(q)) return 60 + (1 / l.length)           // prefix match, shorter = better
+    if (l.includes(q)) return 40                              // substring match
+    return jaccardSimilarity(q, l) * 30                       // fallback to bigram similarity
+  }
+
+  /** Rank suggestions: boost matches for selected city, then by relevance.
    *  Uses both primary_city name AND tile overlap so streets like "via delle cave"
    *  that exist in Roma but have primary_city "Vecchiano" still get boosted. */
   function rankSuggestions(items: SuggestRow[], query: string): SuggestRow[] {
     if (items.length <= 1) return items
     const cityName = selectedCity?.city?.toLowerCase() ?? ''
-    const ranked = rankBySimilarity(items, query, s => s.label)
-    if (!cityName) return ranked
 
     // Partition: city matches first (by name or tile overlap), then the rest
     const inCity: SuggestRow[] = []
     const other: SuggestRow[] = []
-    for (const s of ranked) {
-      const nameMatch = s.primary_city && s.primary_city.toLowerCase() === cityName
+    for (const s of items) {
+      const nameMatch = cityName && s.primary_city && s.primary_city.toLowerCase() === cityName
       const tileMatch = selectedCityTiles && s.tiles && toArr(s.tiles).some(t => selectedCityTiles.has(t))
       if (nameMatch || tileMatch) {
         inCity.push(s)
@@ -241,7 +254,12 @@
         other.push(s)
       }
     }
-    return [...inCity, ...other]
+
+    // Sort each group by relevance score
+    const byScore = (a: SuggestRow, b: SuggestRow) => suggestionScore(b.label, query) - suggestionScore(a.label, query)
+    inCity.sort(byScore)
+    other.sort(byScore)
+    return cityName ? [...inCity, ...other] : [...inCity, ...other].sort(byScore)
   }
 
   /** Address/postcode autocomplete ,DuckDB SQL on cached tables with debounce */
