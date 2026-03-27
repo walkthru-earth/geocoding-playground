@@ -1,24 +1,41 @@
 # Geocoding Playground
 
-A browser-based geocoder powered by [DuckDB-WASM](https://duckdb.org/docs/api/wasm/overview) and [Overture Maps](https://overturemaps.org/) address data. No backend required — all 469M+ addresses are queried directly from Parquet files via HTTP range requests.
+[![Live Demo](https://img.shields.io/badge/demo-walkthru.earth-22c55e)](https://walkthru.earth/geocoding-playground/)
+
+A browser-based geocoder powered by [DuckDB-WASM](https://duckdb.org/docs/api/wasm/overview) and [Overture Maps](https://overturemaps.org/) address data. No backend required, all 469M+ addresses are queried directly from Parquet files via HTTP range requests.
 
 ## Features
 
-- **Forward Geocoding** — search by street, postcode, or address across 39 countries
-- **Reverse Geocoding** — find nearest addresses by clicking the map or entering coordinates
-- **Country-aware parsing** — dedicated address parsers for NL, US, DE, FR, IT, ES, BR, AU, CA, JP with format-specific logic
-- **Three-tier caching** — WASM init → country prefetch → tile LRU for sub-second queries
-- **Overture release selector** — switch between available Overture Maps releases from the navbar
-- **Interactive map** — MapLibre GL with H3 tile overlays and result markers
+- **Forward Geocoding** - search by street, postcode, or address across 39 countries
+- **Reverse Geocoding** - find nearest addresses by clicking the map or entering coordinates
+- **Country-aware parsing** - dedicated address parsers for NL, US, DE, FR, IT, ES, BR, AU, CA, JP with format-specific logic
+- **Three-tier caching** - WASM init, country prefetch, tile LRU for sub-second queries
+- **Overture release selector** - switch between available Overture Maps releases from the navbar
+- **Interactive map** - MapLibre GL with H3 tile overlays and result markers
+- **Light and dark mode** - follows system preference with manual toggle
+
+## Project Structure
+
+This is a pnpm monorepo with two packages:
+
+```
+packages/core/       @walkthru-earth/geocoding-core   Pure TS library (framework-agnostic)
+apps/playground/     playground                        Svelte 5 UI consuming the core library
+```
+
+**`@walkthru-earth/geocoding-core`** contains all geocoding logic: DuckDB-WASM wrapper, address parsing, search algorithms, caching, and type definitions. It can be used with any framework (React, Vue, Next.js, etc.).
+
+**`playground`** is the Svelte 5 UI that demonstrates the core library with an interactive map, split-pane layout, and data visualizations.
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Framework | Svelte 5 + TypeScript |
-| Build | Vite |
+| Core library | TypeScript (ESM, framework-agnostic) |
+| UI framework | Svelte 5 |
+| Build | Vite 8 (Rolldown) |
 | Database | DuckDB-WASM (in-browser) |
-| Styling | Tailwind CSS + DaisyUI |
+| Styling | Tailwind CSS 4 + DaisyUI 5 |
 | Map | MapLibre GL |
 | Geo indexing | H3 (Uber) |
 | Data | Overture Maps addresses (Parquet on S3) |
@@ -30,14 +47,21 @@ pnpm install
 pnpm dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173).
+Open [http://localhost:5173/geocoding-playground/](http://localhost:5173/geocoding-playground/).
+
+### Building
+
+```bash
+pnpm build       # builds core library, then playground
+pnpm preview     # preview production build
+```
 
 ## How It Works
 
-1. **WASM Init** (~2-4s) — loads DuckDB + extensions (httpfs, spatial, h3), caches global tile index and manifest
-2. **Country Prefetch** (~3-8s) — when a country is selected, loads city/postcode/street indexes into in-memory tables
-3. **Query** — parses input using country-specific parser, narrows to relevant H3 tiles, queries Parquet files with filter pushdown
-4. **Tile Cache** — fetched tiles are kept in-memory (LRU, 4M address budget) for instant repeat queries
+1. **WASM Init** (~2-4s) - loads DuckDB + extensions (httpfs, spatial, h3), caches global tile index and manifest
+2. **Country Prefetch** (~3-8s) - when a country is selected, loads city/postcode/street indexes into in-memory tables
+3. **Query** - parses input using country-specific parser, narrows to relevant H3 tiles, queries Parquet files with filter pushdown
+4. **Tile Cache** - fetched tiles are kept in-memory (LRU, 4M address budget) for instant repeat queries
 
 ## Data Source
 
@@ -45,6 +69,6 @@ Address data is sourced from [Overture Maps](https://overturemaps.org/) and serv
 
 ## License
 
-This project is licensed under [CC-BY 4.0](./LICENSE) — Walkthru.Earth.
+This project is licensed under [CC-BY 4.0](./LICENSE). Walkthru.Earth.
 
 Overture Maps address data is available under [CDLA-Permissive 2.0](https://cdla.dev/permissive-2-0/) or [ODbL 1.0](https://opendatacommons.org/licenses/odbl/) where derived from OpenStreetMap. See [Overture Maps Attribution](https://docs.overturemaps.org/attribution/) for country-specific requirements.
