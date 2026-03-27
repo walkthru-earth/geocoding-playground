@@ -99,7 +99,7 @@
     return getParser(cc).extractPostcode(q.trim()) !== null
   }
 
-  onCacheLog((msg) => { cacheInfo = msg })
+  onCacheLog((msg: string) => { cacheInfo = msg })
 
   $effect(() => { loadCountries() })
 
@@ -114,7 +114,7 @@
       FROM _manifest
       ORDER BY country
     `)
-    countries = rows.map(r => r.country)
+    countries = rows.map((r: { country: string }) => r.country)
   }
 
   /** Called when user picks a country ,prefetch indexes progressively.
@@ -149,7 +149,7 @@
   async function prefetchCountryProgressive(cc: string) {
     if (isCountryCached(cc)) { citiesReady = true; return }
     await prefetchCountry(cc, {
-      onCitiesReady: (count) => {
+      onCitiesReady: (count: number) => {
         citiesReady = true
         cacheInfo = `${cc}: ${count} cities ready ,loading streets & postcodes...`
       },
@@ -164,7 +164,7 @@
     const cacheKey = `${selectedCountry}:${cityQuery.toLowerCase()}`
     const cached = cityCache.get(cacheKey)
     if (cached) {
-      cities = rankBySimilarity(cached, cityQuery, c => c.city)
+      cities = rankBySimilarity(cached, cityQuery, (c: CityRow) => c.city)
       return
     }
 
@@ -184,7 +184,7 @@
         ORDER BY addr_count DESC LIMIT 20
       `)
       cityCache.set(cacheKey, result)
-      cities = rankBySimilarity(result, cityQuery, c => c.city)
+      cities = rankBySimilarity(result, cityQuery, (c: CityRow) => c.city)
     } catch (e: any) {
       error = e.message
     } finally {
@@ -238,7 +238,7 @@
     const other: SuggestRow[] = []
     for (const s of items) {
       const nameMatch = cityName && s.primary_city && s.primary_city.toLowerCase() === cityName
-      const tileMatch = selectedCityTiles && s.tiles && toArr(s.tiles).some(t => selectedCityTiles.has(t))
+      const tileMatch = selectedCityTiles && s.tiles && toArr(s.tiles).some((t: string) => selectedCityTiles.has(t))
       if (nameMatch || tileMatch) {
         inCity.push(s)
       } else {
@@ -309,7 +309,7 @@
             WHERE lower(postcode) LIKE '${esc(q)}%'
             ORDER BY ${pcBoost}addr_count DESC LIMIT 15
           `)
-          rows.forEach(r => result.push({ type: 'postcode', label: r.postcode, tiles: r.tiles, addr_count: r.addr_count }))
+          rows.forEach((r: { postcode: string; tiles: string[]; addr_count: number }) => result.push({ type: 'postcode', label: r.postcode, tiles: r.tiles, addr_count: r.addr_count }))
         }
 
         // Search streets using the street part (without house number)
@@ -325,7 +325,7 @@
             WHERE street_lower LIKE '${esc(streetQ)}%'
             ORDER BY ${cityBoost}addr_count DESC LIMIT 15
           `)
-          rows.forEach(r => result.push({ type: 'street', label: r.street_lower, tiles: r.tiles, addr_count: r.addr_count, primary_city: r.primary_city }))
+          rows.forEach((r: { street_lower: string; tiles: string[]; addr_count: number; primary_city: string }) => result.push({ type: 'street', label: r.street_lower, tiles: r.tiles, addr_count: r.addr_count, primary_city: r.primary_city }))
         } catch { /* street table not available */ }
       }
 
@@ -350,12 +350,12 @@
     if (selectedSuggestion) {
       const tiles = toArr(selectedSuggestion.tiles)
       if (selectedCity && selectedCityTiles) {
-        const intersected = tiles.filter(t => selectedCityTiles.has(t))
+        const intersected = tiles.filter((t: string) => selectedCityTiles.has(t))
         if (intersected.length > 0) return { tiles: intersected, source: `${selectedSuggestion.type} ∩ city` }
       }
       return { tiles, source: `${selectedSuggestion.type} "${selectedSuggestion.label}"` }
     }
-    if (selectedCityTiles) return { tiles: [...selectedCityTiles], source: `city "${selectedCity!.city}"` }
+    if (selectedCityTiles) return { tiles: [...selectedCityTiles] as string[], source: `city "${selectedCity!.city}"` }
     return { tiles: [], source: 'none' }
   }
 
@@ -746,7 +746,7 @@
               {@const tiles = toArr(s.tiles)}
               {@const tileCount = tiles.length}
               {@const cityNameMatch = selectedCity && s.primary_city && s.primary_city.toLowerCase() === selectedCity.city.toLowerCase()}
-              {@const cityTileMatch = !cityNameMatch && selectedCityTiles && s.tiles && tiles.some(t => selectedCityTiles.has(t))}
+              {@const cityTileMatch = !cityNameMatch && selectedCityTiles && s.tiles && tiles.some((t: string) => selectedCityTiles.has(t))}
               {@const isInCity = cityNameMatch || cityTileMatch}
               <li>
                 <button class="flex items-center gap-1.5 min-w-0" onclick={() => selectSuggestion(s)}>

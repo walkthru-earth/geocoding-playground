@@ -127,10 +127,10 @@
       }
 
       // Sort tiles: most matching cells first (tile closest to query point)
-      tileResults.sort((a, b) => (cellsByParent.get(b.h3_parent)?.length ?? 0) - (cellsByParent.get(a.h3_parent)?.length ?? 0))
+      tileResults.sort((a: { h3_parent: string }, b: { h3_parent: string }) => (cellsByParent.get(b.h3_parent)?.length ?? 0) - (cellsByParent.get(a.h3_parent)?.length ?? 0))
 
       updateLast(`Step 2  Found ${tileResults.length} tile(s) in index, sorted by proximity (${ms(t0)})`, 'done')
-      tileResults.forEach(t => {
+      tileResults.forEach((t: { country: string; h3_parent: string; address_count: number }) => {
         const cells = cellsByParent.get(t.h3_parent) ?? []
         const cached = isTileCached(t.country, t.h3_parent)
         log(`        ${t.country}/${t.h3_parent} ,${t.address_count.toLocaleString()} addr, ${cells.length} cell(s)${cached ? ' [cached]' : ''}`)

@@ -41,11 +41,11 @@ jobs:
       - name: Lint
         run: biome ci .
 
-      - name: Type check
-        run: pnpm check
-
       - name: Build core
         run: pnpm --filter @walkthru-earth/geocoding-core build
+
+      - name: Type check
+        run: pnpm check
 
       - name: Build playground
         run: pnpm --filter playground build

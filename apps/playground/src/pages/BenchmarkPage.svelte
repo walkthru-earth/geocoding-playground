@@ -240,9 +240,9 @@
           const res = await query(sql)
           result.timeMs = Math.round(performance.now() - t0)
           result.rows = res.rows.length
-          result.sample = res.rows.slice(0, 3).map(row => {
+          result.sample = res.rows.slice(0, 3).map((row: any[]) => {
             const obj: any = {}
-            res.columns.forEach((col, i) => { obj[col] = row[i] })
+            res.columns.forEach((col: string, i: number) => { obj[col] = row[i] })
             return obj
           })
         } catch (e: any) {
