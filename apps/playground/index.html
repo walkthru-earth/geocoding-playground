@@ -3,9 +3,57 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#121212" media="(prefers-color-scheme: dark)" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
     <meta name="theme-color" content="#FAFAF8" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#121212" media="(prefers-color-scheme: dark)" />
+
+    <title>Geocoding Playground | walkthru.earth</title>
+    <meta name="description" content="Browser-based geocoder powered by DuckDB-WASM and Overture Maps. Search 469M+ addresses directly from Parquet files, no backend required." />
+    <meta name="keywords" content="geocoding, DuckDB WASM, Overture Maps, address search, reverse geocoding, Parquet, browser geocoder, open data" />
+    <meta name="author" content="walkthru.earth" />
+    <link rel="canonical" href="https://walkthru.earth/geocoding-playground/" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Geocoding Playground | walkthru.earth" />
+    <meta property="og:description" content="Browser-based geocoder powered by DuckDB-WASM and Overture Maps. Search 469M+ addresses directly from Parquet files, no backend required." />
+    <meta property="og:url" content="https://walkthru.earth/geocoding-playground/" />
+    <meta property="og:site_name" content="walkthru.earth" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:image" content="https://walkthru.earth/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Geocoding Playground | walkthru.earth" />
+    <meta name="twitter:description" content="Browser-based geocoder powered by DuckDB-WASM and Overture Maps. Search 469M+ addresses directly from Parquet files, no backend required." />
+    <meta name="twitter:creator" content="@walkthru_earth" />
+    <meta name="twitter:image" content="https://walkthru.earth/og-image.png" />
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Geocoding Playground",
+        "url": "https://walkthru.earth/geocoding-playground/",
+        "description": "Browser-based geocoder powered by DuckDB-WASM and Overture Maps. Search 469M+ addresses directly from Parquet files, no backend required.",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Any",
+        "author": {
+          "@type": "Organization",
+          "name": "walkthru.earth",
+          "url": "https://walkthru.earth"
+        },
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        }
+      }
+    </script>
+
     <script>
       // Apply saved theme before first paint to avoid flash
       const t = localStorage.getItem('theme');
@@ -15,7 +63,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <title>Geocoding Playground</title>
     <!-- maplibre-gl externalized due to Vite 8 Rolldown minification bug (maplibre/maplibre-gl-js#7339) -->
     <script type="importmap">
       { "imports": { "maplibre-gl": "https://esm.sh/maplibre-gl@5.21.1" } }

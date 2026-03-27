@@ -394,16 +394,16 @@
                   <div class="text-xs opacity-40">{file.desc}</div>
                 </td>
                 <td class="text-right font-mono text-xs">
-                  {#if s3?.error}<span class="text-error">{s3.error}</span>{:else}{s3?.fetchMs ?? '—'}ms{/if}
+                  {#if s3?.error}<span class="text-error">{s3.error}</span>{:else}{s3?.fetchMs ?? '-'}ms{/if}
                 </td>
                 <td class="text-right font-mono text-xs" class:text-success={winner === 's3-direct'}>
-                  {#if s3?.error}<span class="text-error">—</span>{:else}{s3?.queryMs ?? '—'}ms{/if}
+                  {#if s3?.error}<span class="text-error">-</span>{:else}{s3?.queryMs ?? '-'}ms{/if}
                 </td>
                 <td class="text-right font-mono text-xs">
-                  {#if sc?.error}<span class="text-error">{sc.error}</span>{:else}{sc?.fetchMs ?? '—'}ms{/if}
+                  {#if sc?.error}<span class="text-error">{sc.error}</span>{:else}{sc?.fetchMs ?? '-'}ms{/if}
                 </td>
                 <td class="text-right font-mono text-xs" class:text-success={winner === 'source-coop'}>
-                  {#if sc?.error}<span class="text-error">—</span>{:else}{sc?.queryMs ?? '—'}ms{/if}
+                  {#if sc?.error}<span class="text-error">-</span>{:else}{sc?.queryMs ?? '-'}ms{/if}
                 </td>
                 <td>
                   {#if winner !== 'tie' && diff > 50}

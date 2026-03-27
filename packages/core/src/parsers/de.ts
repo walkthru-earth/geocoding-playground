@@ -31,7 +31,7 @@ export class DEParser extends GenericParser {
 
     // Strip known city names that might trail (user typed "Berlin" etc.)
     // We don't have a city list here, but if the postcode was found,
-    // the last token after number extraction is likely a city — skip it
+    // the last token after number extraction is likely a city ,skip it
     // only if it's a single capitalized word and we already have a street
     const street = remaining.length > 0 ? remaining.join(' ') : undefined
 

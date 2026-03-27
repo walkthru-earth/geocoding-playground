@@ -19,7 +19,7 @@
     mobileMapHeight = '40dvh',
   }: Props = $props()
 
-  // svelte-ignore state_referenced_locally — intentional: capture initial value only
+  // svelte-ignore state_referenced_locally ,intentional: capture initial value only
   let splitPct = $state(initialSplit)
   let dragging = $state(false)
   let container: HTMLDivElement
@@ -63,7 +63,7 @@
 </script>
 
 <!--
-  Single container — each snippet rendered exactly once.
+  Single container ,each snippet rendered exactly once.
   CSS flex-direction switches between column (mobile) and row (desktop).
   This avoids double-rendering the map which breaks bind:this.
 -->

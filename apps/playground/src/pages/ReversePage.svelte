@@ -55,14 +55,14 @@
     steps = []
     mapView?.clearResultMarkers()
 
-    // Only fly to point when triggered from button (not map click — map already moved)
+    // Only fly to point when triggered from button (not map click ,map already moved)
     // clearResultMarkers above already cleans the old markers
 
     const totalT0 = performance.now()
     try {
       // Step 1: Compute H3 cells for the search area
       // Res-5 cells are ~10km across. For radius ≤ 2km, a single center cell
-      // always covers the entire search area — no grid_disk needed.
+      // always covers the entire search area ,no grid_disk needed.
       // grid_disk only needed for very large radius (>5km).
       let t0 = performance.now()
       const needDisk = radius > 5000
@@ -85,7 +85,7 @@
               h3_h3_to_string(h3_latlng_to_cell(${lat}, ${lon}, 5)) AS cell_hex`
       )
 
-      // Group cells by their parent tile — each cell belongs to exactly one tile
+      // Group cells by their parent tile ,each cell belongs to exactly one tile
       // Track both BIGINT (for SQL WHERE) and hex (for map visualization)
       const cellsByParent = new Map<string, string[]>()
       const cellBigintsByParent = new Map<string, string[]>()
@@ -112,7 +112,7 @@
       `)
 
       if (tileResults.length === 0) {
-        updateLast('Step 2  No tiles found — this location has no address coverage', 'error')
+        updateLast('Step 2  No tiles found ,this location has no address coverage', 'error')
         error = 'No address coverage at this location.'
         return
       }
@@ -124,7 +124,7 @@
       tileResults.forEach(t => {
         const cells = cellsByParent.get(t.h3_parent) ?? []
         const cached = isTileCached(t.country, t.h3_parent)
-        log(`        ${t.country}/${t.h3_parent} — ${t.address_count.toLocaleString()} addr, ${cells.length} cell(s)${cached ? ' [cached]' : ''}`)
+        log(`        ${t.country}/${t.h3_parent} ,${t.address_count.toLocaleString()} addr, ${cells.length} cell(s)${cached ? ' [cached]' : ''}`)
       })
 
       // Show H3 grid on map (cells + tile boundaries)
@@ -132,17 +132,17 @@
       const skippedTiles = new Set<string>()
       showH3OnMap(cellsByParent, tileResults, queriedTiles, skippedTiles)
 
-      // Step 3: Query each tile — use filter pushdown on remote file for uncached tiles
+      // Step 3: Query each tile ,use filter pushdown on remote file for uncached tiles
       for (let i = 0; i < tileResults.length; i++) {
         const { country, h3_parent, address_count } = tileResults[i]
         const tileCells = cellsByParent.get(h3_parent) ?? []
         const tileCellBigints = cellBigintsByParent.get(h3_parent) ?? []
 
         t0 = performance.now()
-        // Use BIGINT values for WHERE — enables row-group min/max pushdown
+        // Use BIGINT values for WHERE ,enables row-group min/max pushdown
         const cellList = tileCellBigints.join(',')
         const cached = isTileCached(country, h3_parent)
-        log(`Step 3  Tile ${i + 1}/${tileResults.length}: ${h3_parent} — ${cached ? 'cached' : 'remote pushdown'}, ${tileCells.length} cell(s)...`, 'loading')
+        log(`Step 3  Tile ${i + 1}/${tileResults.length}: ${h3_parent} ,${cached ? 'cached' : 'remote pushdown'}, ${tileCells.length} cell(s)...`, 'loading')
 
         let tileAddresses: AddressRow[] = []
         try {
@@ -176,7 +176,7 @@
         } catch (tileErr: any) {
           console.warn(`[reverse] Tile ${h3_parent} failed:`, tileErr.message)
           updateLast(
-            `Step 3  Tile ${i + 1}/${tileResults.length}: ${h3_parent} — failed (${ms(t0)})`,
+            `Step 3  Tile ${i + 1}/${tileResults.length}: ${h3_parent} ,failed (${ms(t0)})`,
             'error'
           )
           continue
@@ -186,7 +186,7 @@
 
         results = [...results, ...tileAddresses].sort((a, b) => (a.distance_m ?? 0) - (b.distance_m ?? 0)).slice(0, resultLimit)
         updateLast(
-          `Step 3  Tile ${i + 1}/${tileResults.length}: ${h3_parent} — ${tileAddresses.length} nearby (${ms(t0)})`,
+          `Step 3  Tile ${i + 1}/${tileResults.length}: ${h3_parent} ,${tileAddresses.length} nearby (${ms(t0)})`,
           'done'
         )
 

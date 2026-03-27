@@ -1,6 +1,6 @@
 import * as duckdb from '@duckdb/duckdb-wasm'
 
-// Public HTTPS URL — works reliably for all file sizes in DuckDB-WASM.
+// Public HTTPS URL ,works reliably for all file sizes in DuckDB-WASM.
 // S3 protocol fails on large files (416 Range Not Satisfiable) in WASM httpfs.
 const DATA_ROOT = 'https://s3.us-west-2.amazonaws.com/us-west-2.opendata.source.coop/walkthru-earth/indices/addresses-index/v1'
 const DEFAULT_RELEASE = '2026-03-18.0'
@@ -15,7 +15,7 @@ export function getRelease(): string {
   return currentRelease
 }
 
-/** List of known releases — discovered from _manifest after init. */
+/** List of known releases ,discovered from _manifest after init. */
 export let availableReleases: string[] = [DEFAULT_RELEASE]
 
 type ReleaseChangeCallback = (release: string) => void
@@ -260,7 +260,7 @@ export function isTileCached(country: string, h3Parent: string): boolean {
 // ── Country cache ──────────────────────────────────────────
 // When a country is selected, we prefetch ALL its index data
 // into DuckDB in-memory tables. All autocomplete queries hit
-// these cached tables — zero network latency.
+// these cached tables ,zero network latency.
 
 const cachedCountries = new Set<string>()
 let cacheCallbacks: ((msg: string) => void)[] = []
@@ -292,7 +292,7 @@ export interface PrefetchOptions {
  * Called once when user selects a country. ~1-3s total.
  *
  * Creates: _cities_{CC}, _postcodes_{CC}, _streets_{CC}
- * All autocomplete queries hit these tables — zero network latency.
+ * All autocomplete queries hit these tables ,zero network latency.
  * Enriched columns: primary_city, centroid, bbox available for UX.
  */
 export async function prefetchCountry(cc: string, opts?: PrefetchOptions): Promise<{ cities: number; postcodes: number; streets: number }> {
@@ -304,7 +304,7 @@ export async function prefetchCountry(cc: string, opts?: PrefetchOptions): Promi
 
   const t0 = performance.now()
 
-  // Phase 1: Cities — fast, unlocks city search immediately
+  // Phase 1: Cities ,fast, unlocks city search immediately
   cacheLog(`${cc}: loading cities...`)
   try {
     await queryObjects(`
@@ -328,7 +328,7 @@ export async function prefetchCountry(cc: string, opts?: PrefetchOptions): Promi
   cacheLog(`${cc}: ${cities} cities cached`)
   opts?.onCitiesReady?.(cities)
 
-  // Phase 2: Postcodes + Streets — loaded after cities to keep city search responsive
+  // Phase 2: Postcodes + Streets ,loaded after cities to keep city search responsive
   let postcodes = 0
   try {
     cacheLog(`${cc}: loading postcodes...`)

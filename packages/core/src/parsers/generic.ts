@@ -2,7 +2,7 @@ import type { CountryParser, ParsedAddress } from '../address-parser'
 import { POSTCODE_RE, NUMBER_FIRST, buildDefaultWhere } from '../address-parser'
 
 /**
- * Generic parser — works for any country using shared constants.
+ * Generic parser ,works for any country using shared constants.
  * Serves as the fallback and base for country-specific parsers.
  */
 export class GenericParser implements CountryParser {
@@ -57,7 +57,7 @@ export class GenericParser implements CountryParser {
       }
     }
 
-    // No number detected — treat as street name
+    // No number detected ,treat as street name
     return { street: input.trim() }
   }
 

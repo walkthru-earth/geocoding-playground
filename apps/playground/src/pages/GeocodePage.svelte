@@ -111,7 +111,7 @@
     countries = rows.map(r => r.country)
   }
 
-  /** Called when user picks a country — prefetch indexes progressively.
+  /** Called when user picks a country ,prefetch indexes progressively.
    *  Cities load first → city field unlocks → streets/postcodes load in background. */
   async function onCountryChange() {
     selectedCity = null
@@ -145,13 +145,13 @@
     await prefetchCountry(cc, {
       onCitiesReady: (count) => {
         citiesReady = true
-        cacheInfo = `${cc}: ${count} cities ready — loading streets & postcodes...`
+        cacheInfo = `${cc}: ${count} cities ready ,loading streets & postcodes...`
       },
     })
   }
 
 
-  /** City autocomplete — DuckDB SQL on cached in-memory table */
+  /** City autocomplete ,DuckDB SQL on cached in-memory table */
   async function searchCities() {
     if (!selectedCountry || cityQuery.length < 2) { cities = []; return }
 
@@ -226,7 +226,7 @@
     return [...inCity, ...other]
   }
 
-  /** Address/postcode autocomplete — DuckDB SQL on cached tables with debounce */
+  /** Address/postcode autocomplete ,DuckDB SQL on cached tables with debounce */
   function autocomplete() {
     if (!selectedCountry || addressQuery.length < 2) { suggestions = []; return }
     if (suggestTimer) clearTimeout(suggestTimer)
@@ -357,7 +357,7 @@
     const city = cityResults[0]
     selectedCity = city
     cityQuery = city.city
-    updateLast(`Step 2  ${city.city} — ${toArr(city.tiles).length} tile(s), ${city.addr_count.toLocaleString()} addr (${ms(t0)})`, 'done')
+    updateLast(`Step 2  ${city.city} ,${toArr(city.tiles).length} tile(s), ${city.addr_count.toLocaleString()} addr (${ms(t0)})`, 'done')
 
     // Narrow via postcode or street index (from cache)
     t0 = performance.now()
@@ -513,7 +513,7 @@
         }
         const tile = tiles[i]
         const t0 = performance.now()
-        log(`        ${tile} — querying...`, 'loading')
+        log(`        ${tile} ,querying...`, 'loading')
 
         let tileResults: AddressRow[] = []
         try {
@@ -540,15 +540,15 @@
           `)
         } catch (tileErr: any) {
           console.warn(`[geocode] Tile ${tile} failed:`, tileErr.message)
-          updateLast(`        ${tile} — failed (${ms(t0)})`, 'error')
+          updateLast(`        ${tile} ,failed (${ms(t0)})`, 'error')
           continue
         }
 
         results = [...results, ...tileResults].slice(0, limit)
         remaining = limit - results.length
-        updateLast(`        ${tile} — ${tileResults.length} match${tileResults.length !== 1 ? 'es' : ''} (${ms(t0)})`, 'done')
+        updateLast(`        ${tile} ,${tileResults.length} match${tileResults.length !== 1 ? 'es' : ''} (${ms(t0)})`, 'done')
 
-        // Update map progressively — only auto-fit on first batch
+        // Update map progressively ,only auto-fit on first batch
         updateMapMarkers(i === 0)
       }
 

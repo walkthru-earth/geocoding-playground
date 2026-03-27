@@ -6,7 +6,7 @@ import { esc } from '../address-parser'
  * JP address parser.
  *
  * Japanese addresses: kanji/hiragana street names, chome-banchi-go numbering.
- * Overture has 0% postcode coverage for JP — skip postcode in WHERE.
+ * Overture has 0% postcode coverage for JP ,skip postcode in WHERE.
  *
  * "本郷 1-2-3" → street=本郷, number=1-2-3
  * "本郷" → street=本郷
@@ -36,7 +36,7 @@ export class JPParser extends GenericParser {
   }
 
   buildWhereClause(parsed: ParsedAddress): string {
-    // JP has no postcode data in Overture — never use postcode in WHERE
+    // JP has no postcode data in Overture ,never use postcode in WHERE
     const conditions: string[] = []
     if (parsed.street) {
       conditions.push(`lower(street) LIKE '${esc(parsed.street.toLowerCase())}%'`)

@@ -69,7 +69,7 @@ export const NUMBER_FIRST = new Set([
   'US', 'CA', 'AU', 'NZ', 'BR', 'MX', 'CL', 'CO', 'UY', 'SG', 'HK', 'TW', 'GB', 'IE',
 ])
 
-/** Default WHERE clause builder — reusable by all parsers */
+/** Default WHERE clause builder ,reusable by all parsers */
 export function buildDefaultWhere(parsed: ParsedAddress): string {
   const conditions: string[] = []
 

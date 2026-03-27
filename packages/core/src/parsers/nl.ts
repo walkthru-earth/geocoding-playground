@@ -5,7 +5,7 @@ import type { ParsedAddress } from '../address-parser'
  * NL address parser.
  *
  * Dutch addresses: street-first, 4-digit+letters postcode, "bis"/"hs" as unit.
- * "2e Nassaustraat" — ordinal prefix is part of street name, not a number.
+ * "2e Nassaustraat" ,ordinal prefix is part of street name, not a number.
  *
  * "Keizersgracht 185 bis 1016AG Amsterdam"
  *   → street=Keizersgracht, number=185, unit=bis, postcode=1016AG
@@ -25,7 +25,7 @@ export class NLParser extends GenericParser {
     // Step 2: Remove city name if it's the last word and not numeric
     // (cities are handled by the city selector, not needed in tile query)
 
-    // Step 3: Find house number — last numeric token (not ordinals like "2e")
+    // Step 3: Find house number ,last numeric token (not ordinals like "2e")
     let number: string | undefined
     let unit: string | undefined
     const NL_UNITS = new Set(['bis', 'hs', 'huis', 'boven', 'beneden', 'i', 'ii', 'iii', 'iv'])

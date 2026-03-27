@@ -17,7 +17,7 @@
   let totalAddresses = $derived(manifest.reduce((s, r) => s + r.address_count, 0))
   let totalTiles = $derived(manifest.reduce((s, r) => s + r.tile_count, 0))
   let totalCountries = $derived(manifest.length)
-  let release = $derived(manifest[0]?.overture_release ?? '—')
+  let release = $derived(manifest[0]?.overture_release ?? '-')
 
   let top10 = $derived(manifest.slice(0, 10))
   let maxCount = $derived(top10[0]?.address_count ?? 1)
@@ -156,7 +156,7 @@
             address_count: row.address_count,
             unique_cities: row.unique_cities,
             unique_postcodes: row.unique_postcodes,
-            primary_region: row.primary_region ?? '—',
+            primary_region: row.primary_region ?? '-',
           },
           geometry: { type: 'Polygon' as const, coordinates: [coords] },
         })
@@ -283,7 +283,7 @@
     <button role="tab" class="tab tab-sm md:tab-md whitespace-nowrap" class:tab-active={selectedTab === 'countries'} onclick={() => selectedTab = 'countries'}>Countries</button>
   </div>
 
-  <!-- Map — always mounted to avoid WebGL context loss on tab switch -->
+  <!-- Map ,always mounted to avoid WebGL context loss on tab switch -->
   <div class="card bg-base-200 shadow mb-6" class:hidden={selectedTab !== 'overview'}>
     <div class="card-body p-0 overflow-hidden rounded-2xl">
       <div class="flex items-center justify-between px-3 md:px-6 pt-3 md:pt-4 flex-wrap gap-2">
@@ -347,7 +347,7 @@
     <div class="card bg-base-200 shadow mb-6">
       <div class="card-body">
         <h2 class="card-title">Tile Size Distribution</h2>
-        <p class="text-sm text-base-content/50 mb-3">How many addresses per H3 tile — smaller tiles = faster queries</p>
+        <p class="text-sm text-base-content/50 mb-3">How many addresses per H3 tile ,smaller tiles = faster queries</p>
         <div class="flex flex-col gap-2 mt-2">
           {#each tileBuckets as b}
             <div class="flex items-center gap-3">
@@ -382,7 +382,7 @@
     <div class="card bg-base-200 shadow mb-6">
       <div class="card-body">
         <h2 class="card-title">Per-Country Tile Statistics</h2>
-        <p class="text-sm text-base-content/50 mb-2">From the cached tile_index — median is more representative than average for skewed distributions</p>
+        <p class="text-sm text-base-content/50 mb-2">From the cached tile_index ,median is more representative than average for skewed distributions</p>
         <div class="overflow-x-auto">
           <table class="table table-zebra table-xs">
             <thead>
@@ -402,7 +402,7 @@
             </thead>
             <tbody>
               {#each tileStats as row}
-                {@const skew = row.median_addr > 0 ? (row.avg_addr / row.median_addr).toFixed(1) : '—'}
+                {@const skew = row.median_addr > 0 ? (row.avg_addr / row.median_addr).toFixed(1) : '-'}
                 <tr>
                   <td class="font-mono font-bold">{row.country}</td>
                   <td class="text-right font-mono">{fmtFull(row.tiles)}</td>
@@ -417,8 +417,8 @@
                   <td class="text-right font-mono text-base-content/40">{fmtFull(row.min_addr)}</td>
                   <td class="text-right font-mono" class:text-warning={Number(skew) > 5}>{skew}x</td>
                   <td class="text-right font-mono">{fmt(row.total_cities)}</td>
-                  <td class="text-right font-mono">{row.total_postcodes > 0 ? fmt(row.total_postcodes) : '—'}</td>
-                  <td class="text-right font-mono">{row.regions > 0 ? row.regions : '—'}</td>
+                  <td class="text-right font-mono">{row.total_postcodes > 0 ? fmt(row.total_postcodes) : '-'}</td>
+                  <td class="text-right font-mono">{row.regions > 0 ? row.regions : '-'}</td>
                 </tr>
               {/each}
             </tbody>
@@ -431,7 +431,7 @@
     <div class="card bg-base-200 shadow mb-6">
       <div class="card-body">
         <h2 class="card-title">Tile Density Comparison</h2>
-        <p class="text-sm text-base-content/50 mb-3">Median addresses per tile — lower = faster browser queries</p>
+        <p class="text-sm text-base-content/50 mb-3">Median addresses per tile ,lower = faster browser queries</p>
         <div class="flex flex-col gap-1.5">
           {#each tileStats as row}
             <div class="flex items-center gap-2">
@@ -667,10 +667,10 @@
                       </span>
                     {/if}
                   </td>
-                  <td class="text-right font-mono">{ts ? fmt(ts.total_cities) : '—'}</td>
-                  <td class="text-right font-mono">{idx?.has_postcode ? fmt(idx.postcode_count) : '—'}</td>
-                  <td class="text-right font-mono">{idx?.has_street ? fmt(idx.street_count) : '—'}</td>
-                  <td class="text-right font-mono">{ts && ts.regions > 1 ? ts.regions : '—'}</td>
+                  <td class="text-right font-mono">{ts ? fmt(ts.total_cities) : '-'}</td>
+                  <td class="text-right font-mono">{idx?.has_postcode ? fmt(idx.postcode_count) : '-'}</td>
+                  <td class="text-right font-mono">{idx?.has_street ? fmt(idx.street_count) : '-'}</td>
+                  <td class="text-right font-mono">{ts && ts.regions > 1 ? ts.regions : '-'}</td>
                   <td class="text-xs text-base-content/50">
                     {row.bbox_min_lon.toFixed(1)}..{row.bbox_max_lon.toFixed(1)}, {row.bbox_min_lat.toFixed(1)}..{row.bbox_max_lat.toFixed(1)}
                   </td>

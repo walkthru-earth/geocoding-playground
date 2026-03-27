@@ -70,7 +70,7 @@ export class USParser extends GenericParser {
       'SQ', 'SQUARE', 'TRL', 'TRAIL', 'LOOP', 'PATH', 'PIKE', 'ALY', 'ALLEY',
     ])
 
-    // Find the last street suffix — everything up to and including it is the street name
+    // Find the last street suffix ,everything up to and including it is the street name
     let streetEnd = -1
     for (let i = remaining.length - 1; i >= 0; i--) {
       if (STREET_SUFFIXES.has(remaining[i].toUpperCase())) {
@@ -84,7 +84,7 @@ export class USParser extends GenericParser {
       // Street name includes everything up to the suffix
       street = remaining.slice(0, streetEnd + 1).join(' ')
     } else if (remaining.length > 0) {
-      // No suffix found — use all remaining as street (best guess)
+      // No suffix found ,use all remaining as street (best guess)
       street = remaining.join(' ')
     }
 
