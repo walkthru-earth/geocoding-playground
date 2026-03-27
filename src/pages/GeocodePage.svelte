@@ -310,14 +310,13 @@
 
     if (selectedSuggestion) {
       const tiles = toArr(selectedSuggestion.tiles)
-      if (selectedCity) {
-        const cityTiles = new Set(toArr(selectedCity.tiles))
-        const intersected = tiles.filter(t => cityTiles.has(t))
+      if (selectedCity && selectedCityTiles) {
+        const intersected = tiles.filter(t => selectedCityTiles.has(t))
         if (intersected.length > 0) return { tiles: intersected, source: `${selectedSuggestion.type} ∩ city` }
       }
       return { tiles, source: `${selectedSuggestion.type} "${selectedSuggestion.label}"` }
     }
-    if (selectedCity) return { tiles: toArr(selectedCity.tiles), source: `city "${selectedCity.city}"` }
+    if (selectedCityTiles) return { tiles: [...selectedCityTiles], source: `city "${selectedCity!.city}"` }
     return { tiles: [], source: 'none' }
   }
 
@@ -469,9 +468,8 @@
     }
 
     // Intersect with city tiles if city is selected
-    if (tiles.length > 0 && selectedCity) {
-      const cityTiles = new Set(toArr(selectedCity.tiles))
-      const intersected = tiles.filter(t => cityTiles.has(t))
+    if (tiles.length > 0 && selectedCityTiles) {
+      const intersected = tiles.filter(t => selectedCityTiles.has(t))
       if (intersected.length > 0 && intersected.length < tiles.length) {
         log(`Narrow  City "${selectedCity.city}" intersection: ${tiles.length} → ${intersected.length} tile(s)`, 'done')
         tiles = intersected
@@ -686,9 +684,10 @@
         {#if suggestions.length > 0}
           <ul class="menu bg-base-200 rounded-lg shadow-xl absolute z-50 w-full mt-1 max-h-60 overflow-y-auto border border-base-content/10">
             {#each suggestions as s}
-              {@const tileCount = toArr(s.tiles).length}
+              {@const tiles = toArr(s.tiles)}
+              {@const tileCount = tiles.length}
               {@const cityNameMatch = selectedCity && s.primary_city && s.primary_city.toLowerCase() === selectedCity.city.toLowerCase()}
-              {@const cityTileMatch = !cityNameMatch && selectedCityTiles && s.tiles && toArr(s.tiles).some(t => selectedCityTiles.has(t))}
+              {@const cityTileMatch = !cityNameMatch && selectedCityTiles && s.tiles && tiles.some(t => selectedCityTiles.has(t))}
               {@const isInCity = cityNameMatch || cityTileMatch}
               <li>
                 <button class="flex items-center gap-1.5 min-w-0" onclick={() => selectSuggestion(s)}>
@@ -731,7 +730,7 @@
           <span class="text-xs text-base-content/40 border border-base-content/10 rounded-lg px-2.5 py-1 leading-snug">{cacheInfo}</span>
         {/if}
         {#if selectedCity}
-          <span class="badge badge-sm badge-info whitespace-nowrap">{selectedCity.city} · {toArr(selectedCity.tiles).length} tiles</span>
+          <span class="badge badge-sm badge-info whitespace-nowrap">{selectedCity.city} · {selectedCityTiles?.size ?? 0} tiles</span>
         {/if}
         {#if selectedSuggestion}
           {@const sugTileCount = toArr(selectedSuggestion.tiles).length}
