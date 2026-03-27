@@ -327,6 +327,7 @@
   border: 1px solid var(--wt-popup-border);
   border-radius: 0.75rem;
   font-family: 'Quicksand', sans-serif;
+  padding: 20px 24px;
 }
 .driver-popover.wt-tour-popover .driver-popover-title {
   font-size: 1rem;
