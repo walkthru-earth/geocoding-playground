@@ -1,0 +1,160 @@
+@import "tailwindcss";
+@import "maplibre-gl/dist/maplibre-gl.css";
+@plugin "daisyui";
+
+/* ── Walkthru Earth theme ────────────────────────────────────
+   Earth green + warm amber on deep charcoal.                */
+@plugin "daisyui/theme" {
+  name: "walkthru";
+  default: true;
+  color-scheme: dark;
+
+  --color-base-100: oklch(0.145 0.004 165);
+  --color-base-200: oklch(0.178 0.004 165);
+  --color-base-300: oklch(0.223 0.004 165);
+  --color-base-content: oklch(0.935 0.006 90);
+
+  --color-primary: oklch(0.696 0.17 162);
+  --color-primary-content: oklch(0.985 0 0);
+
+  --color-secondary: oklch(0.73 0.16 65);
+  --color-secondary-content: oklch(0.145 0 0);
+
+  --color-accent: oklch(0.59 0.13 163);
+  --color-accent-content: oklch(0.985 0 0);
+
+  --color-neutral: oklch(0.269 0.004 165);
+  --color-neutral-content: oklch(0.935 0.006 90);
+
+  --color-info: oklch(0.72 0.13 230);
+  --color-info-content: oklch(0.145 0 0);
+  --color-success: oklch(0.696 0.17 162);
+  --color-success-content: oklch(0.145 0 0);
+  --color-warning: oklch(0.73 0.16 65);
+  --color-warning-content: oklch(0.145 0 0);
+  --color-error: oklch(0.63 0.2 25);
+  --color-error-content: oklch(0.985 0 0);
+
+  --radius-box: 0.75rem;
+  --radius-btn: 0.5rem;
+  --radius-field: 0.5rem;
+}
+
+/* ── Base ────────────────────────────────────────────────── */
+@layer base {
+  body {
+    @apply bg-base-100 text-base-content;
+    font-family: 'Quicksand', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* ── Refined scrollbars ──────────────────────────────────── */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: oklch(0.30 0.005 165) transparent;
+}
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: oklch(0.30 0.005 165);
+  border-radius: 3px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.40 0.01 165);
+}
+
+/* ── Pill navigation tabs ────────────────────────────────── */
+.nav-pill {
+  @apply px-3 py-1.5 text-[13px] md:px-5 md:py-2 md:text-[15px] font-semibold rounded-full transition-all duration-200 whitespace-nowrap;
+  @apply text-base-content/50 hover:text-base-content/80 hover:bg-base-content/[0.05];
+}
+.nav-pill.active {
+  @apply text-primary bg-primary/10;
+}
+
+/* ── Active state for hamburger menu items ───────────────── */
+.active-menu-item > button,
+.active-menu-item > a {
+  @apply text-primary bg-primary/10 font-bold;
+}
+
+/* ── Preset pill buttons ─────────────────────────────────── */
+.preset-pill {
+  @apply btn btn-xs md:btn-sm rounded-full transition-all;
+  @apply border-base-content/10 bg-base-content/[0.04];
+  @apply text-base-content/60;
+  @apply hover:bg-primary/10 hover:border-primary/20 hover:text-primary;
+}
+
+/* ── Input refinements ───────────────────────────────────── */
+.input {
+  @apply transition-all duration-200;
+}
+.input:focus {
+  border-color: oklch(0.696 0.17 162 / 0.5) !important;
+  box-shadow: 0 0 0 3px oklch(0.696 0.17 162 / 0.08);
+}
+.select:focus {
+  border-color: oklch(0.696 0.17 162 / 0.5) !important;
+  box-shadow: 0 0 0 3px oklch(0.696 0.17 162 / 0.08);
+}
+
+/* ── Subtle card surfaces ────────────────────────────────── */
+.card-surface {
+  @apply rounded-xl border border-base-content/[0.06] bg-base-200/50;
+}
+
+/* ── MapLibre popup theming ──────────────────────────────── */
+.maplibregl-popup-content {
+  background: oklch(0.178 0.004 165) !important;
+  color: oklch(0.935 0.006 90) !important;
+  border-radius: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.8rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  border: 1px solid oklch(0.935 0.006 90 / 0.08);
+}
+.maplibregl-popup-tip {
+  border-top-color: oklch(0.178 0.004 165) !important;
+}
+.maplibregl-popup-anchor-bottom .maplibregl-popup-tip {
+  border-top-color: oklch(0.178 0.004 165) !important;
+}
+.maplibregl-popup-anchor-top .maplibregl-popup-tip {
+  border-bottom-color: oklch(0.178 0.004 165) !important;
+}
+.maplibregl-popup-anchor-left .maplibregl-popup-tip {
+  border-right-color: oklch(0.178 0.004 165) !important;
+}
+.maplibregl-popup-anchor-right .maplibregl-popup-tip {
+  border-left-color: oklch(0.178 0.004 165) !important;
+}
+.maplibregl-popup-close-button {
+  color: oklch(0.935 0.006 90) !important;
+  font-size: 1.1rem;
+  padding: 2px 6px;
+}
+
+/* ── MapLibre nav controls ───────────────────────────────── */
+.maplibregl-ctrl-group {
+  background: oklch(0.178 0.004 165) !important;
+  border: 1px solid oklch(0.935 0.006 90 / 0.06) !important;
+  border-radius: 0.5rem !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+}
+.maplibregl-ctrl-group button {
+  border-color: oklch(0.935 0.006 90 / 0.06) !important;
+}
+.maplibregl-ctrl-group button + button {
+  border-top: 1px solid oklch(0.935 0.006 90 / 0.06) !important;
+}
+.maplibregl-ctrl button .maplibregl-ctrl-icon {
+  filter: invert(1) brightness(0.85);
+}
