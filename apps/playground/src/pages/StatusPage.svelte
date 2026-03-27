@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { queryObjects, dataPath, fmt, fmtFull } from '@walkthru-earth/geocoding-core'
+  import { queryObjects, dataPath, tilePath, fmt, fmtFull } from '@walkthru-earth/geocoding-core'
 
   function getMarkerColor(type: 'primary' | 'secondary'): string {
     const prop = type === 'primary' ? '--wt-marker-primary' : '--wt-marker-secondary'
@@ -8,6 +8,111 @@
   import type { ManifestRow, TileStatsRow, TileBucket, IndexAvailRow } from '@walkthru-earth/geocoding-core'
   import MapView from '../lib/MapView.svelte'
   import { cellToBoundary, isValidCell } from 'h3-js'
+
+  // ── Tile investigation modal ──────────────────────────────
+  interface TileInspect {
+    country: string
+    h3_parent: string
+    address_count: number
+    unique_cities: number
+    unique_postcodes: number
+    primary_region: string
+  }
+  interface TileDetail {
+    topStreets: { street: string; count: number }[]
+    topCities: { city: string; count: number }[]
+    topPostcodes: { postcode: string; count: number }[]
+    sampleAddresses: { full_address: string; street: string; number: string; unit: string; city: string; region: string; postcode: string; lat: number; lon: number }[]
+    totalRows: number
+    fileUrl: string
+    fetchMs: number
+  }
+
+  let inspectTile = $state<TileInspect | null>(null)
+  let inspectDetail = $state<TileDetail | null>(null)
+  let inspectLoading = $state(false)
+  let inspectError = $state('')
+
+  // Listen for investigate button clicks from popup HTML
+  function handleInvestigate(e: Event) {
+    const btn = (e.target as HTMLElement).closest('[data-investigate]') as HTMLElement | null
+    if (!btn) return
+    const country = btn.dataset.country!
+    const h3 = btn.dataset.h3!
+    const addrCount = Number(btn.dataset.addresses)
+    const cities = Number(btn.dataset.cities)
+    const postcodes = Number(btn.dataset.postcodes)
+    const region = btn.dataset.region!
+    investigateTile({ country, h3_parent: h3, address_count: addrCount, unique_cities: cities, unique_postcodes: postcodes, primary_region: region })
+  }
+
+  async function investigateTile(tile: TileInspect) {
+    inspectTile = tile
+    inspectDetail = null
+    inspectError = ''
+    inspectLoading = true
+
+    const url = tilePath(tile.country, tile.h3_parent)
+    const t0 = performance.now()
+
+    try {
+      const [topStreets, topCities, topPostcodes, sampleAddresses, countResult] = await Promise.all([
+        queryObjects<{ street: string; count: number }>(`
+          SELECT street, count(*)::INTEGER AS count
+          FROM read_parquet('${url}')
+          WHERE street IS NOT NULL AND street != ''
+          GROUP BY street ORDER BY count DESC LIMIT 15
+        `),
+        queryObjects<{ city: string; count: number }>(`
+          SELECT city, count(*)::INTEGER AS count
+          FROM read_parquet('${url}')
+          WHERE city IS NOT NULL AND city != ''
+          GROUP BY city ORDER BY count DESC LIMIT 15
+        `),
+        queryObjects<{ postcode: string; count: number }>(`
+          SELECT postcode, count(*)::INTEGER AS count
+          FROM read_parquet('${url}')
+          WHERE postcode IS NOT NULL AND postcode != ''
+          GROUP BY postcode ORDER BY count DESC LIMIT 15
+        `),
+        queryObjects<{ full_address: string; street: string; number: string; unit: string; city: string; region: string; postcode: string; lat: number; lon: number }>(`
+          SELECT full_address, street, number, unit, city, region, postcode,
+                 ST_Y(geometry) AS lat, ST_X(geometry) AS lon
+          FROM read_parquet('${url}')
+          USING SAMPLE 10
+        `),
+        queryObjects<{ total: number }>(`
+          SELECT count(*)::INTEGER AS total FROM read_parquet('${url}')
+        `),
+      ])
+
+      inspectDetail = {
+        topStreets,
+        topCities,
+        topPostcodes,
+        sampleAddresses,
+        totalRows: countResult[0]?.total ?? 0,
+        fileUrl: url,
+        fetchMs: Math.round(performance.now() - t0),
+      }
+    } catch (e: any) {
+      inspectError = e.message
+    } finally {
+      inspectLoading = false
+    }
+  }
+
+  function closeInspect() {
+    inspectTile = null
+    inspectDetail = null
+    inspectError = ''
+  }
+
+  // Event delegation for investigate buttons inside map popups
+  $effect(() => {
+    document.addEventListener('click', handleInvestigate)
+    return () => document.removeEventListener('click', handleInvestigate)
+  })
 
   let manifest = $state<ManifestRow[]>([])
   let tileStats = $state<TileStatsRow[]>([])
@@ -193,6 +298,16 @@
             <div>Cities: <b>${p.unique_cities}</b></div>
             <div>Postcodes: <b>${p.unique_postcodes}</b></div>
             <div>Region: <b>${p.primary_region}</b></div>
+            <button
+              data-investigate
+              data-country="${p.country}"
+              data-h3="${p.h3_parent}"
+              data-addresses="${p.address_count}"
+              data-cities="${p.unique_cities}"
+              data-postcodes="${p.unique_postcodes}"
+              data-region="${p.primary_region}"
+              style="margin-top:6px;padding:3px 10px;font-size:12px;border-radius:6px;background:var(--wt-marker-primary, #36d399);color:#fff;border:none;cursor:pointer;width:100%"
+            >Investigate</button>
           </div>
         `,
       })
@@ -749,4 +864,135 @@
       </div>
     </div>
   {/if}
+{/if}
+
+<!-- ═══════ TILE INVESTIGATE MODAL ═══════ -->
+{#if inspectTile}
+  <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+  <div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm" onclick={closeInspect}>
+    <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+    <div class="bg-base-100 rounded-2xl shadow-2xl w-[95vw] max-w-3xl max-h-[85vh] overflow-hidden flex flex-col" onclick={(e) => e.stopPropagation()}>
+      <!-- Header -->
+      <div class="flex items-center justify-between px-5 py-3 border-b border-base-content/10">
+        <div>
+          <h3 class="font-bold text-lg">{inspectTile.country} / {inspectTile.h3_parent}</h3>
+          <p class="text-sm text-base-content/50">
+            {inspectTile.address_count.toLocaleString()} addresses, {inspectTile.unique_cities} cities, {inspectTile.unique_postcodes} postcodes
+            {#if inspectTile.primary_region !== '-'}, region: {inspectTile.primary_region}{/if}
+          </p>
+        </div>
+        <button class="btn btn-ghost btn-sm btn-square" onclick={closeInspect}>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Body -->
+      <div class="flex-1 overflow-y-auto p-5 scrollbar-thin">
+        {#if inspectLoading}
+          <div class="flex flex-col items-center justify-center py-12 gap-3">
+            <span class="loading loading-dots loading-lg text-primary"></span>
+            <p class="text-sm text-base-content/40">Querying tile Parquet file...</p>
+          </div>
+        {:else if inspectError}
+          <div role="alert" class="alert alert-error">{inspectError}</div>
+        {:else if inspectDetail}
+          <div class="text-xs text-base-content/40 mb-4">
+            {inspectDetail.totalRows.toLocaleString()} rows queried in {inspectDetail.fetchMs}ms
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <!-- Top Streets -->
+            <div>
+              <h4 class="font-bold text-sm mb-2">Top Streets</h4>
+              <div class="flex flex-col gap-1">
+                {#each inspectDetail.topStreets as s}
+                  <div class="flex items-center justify-between text-sm">
+                    <span class="truncate mr-2">{s.street}</span>
+                    <span class="font-mono text-base-content/50 shrink-0">{s.count.toLocaleString()}</span>
+                  </div>
+                {/each}
+                {#if inspectDetail.topStreets.length === 0}
+                  <span class="text-sm text-base-content/30">No street data</span>
+                {/if}
+              </div>
+            </div>
+
+            <!-- Top Cities -->
+            <div>
+              <h4 class="font-bold text-sm mb-2">Top Cities</h4>
+              <div class="flex flex-col gap-1">
+                {#each inspectDetail.topCities as c}
+                  <div class="flex items-center justify-between text-sm">
+                    <span class="truncate mr-2">{c.city}</span>
+                    <span class="font-mono text-base-content/50 shrink-0">{c.count.toLocaleString()}</span>
+                  </div>
+                {/each}
+                {#if inspectDetail.topCities.length === 0}
+                  <span class="text-sm text-base-content/30">No city data</span>
+                {/if}
+              </div>
+            </div>
+
+            <!-- Top Postcodes -->
+            <div>
+              <h4 class="font-bold text-sm mb-2">Top Postcodes</h4>
+              <div class="flex flex-col gap-1">
+                {#each inspectDetail.topPostcodes as p}
+                  <div class="flex items-center justify-between text-sm">
+                    <span class="truncate mr-2">{p.postcode}</span>
+                    <span class="font-mono text-base-content/50 shrink-0">{p.count.toLocaleString()}</span>
+                  </div>
+                {/each}
+                {#if inspectDetail.topPostcodes.length === 0}
+                  <span class="text-sm text-base-content/30">No postcode data</span>
+                {/if}
+              </div>
+            </div>
+          </div>
+
+          <!-- Sample Addresses -->
+          <h4 class="font-bold text-sm mb-2">Sample Addresses (random 10)</h4>
+          <div class="overflow-x-auto">
+            <table class="table table-sm">
+              <thead>
+                <tr class="text-base-content/40">
+                  <th>Address</th>
+                  <th>Street</th>
+                  <th>#</th>
+                  <th>Unit</th>
+                  <th>City</th>
+                  <th>Region</th>
+                  <th>Postcode</th>
+                  <th>Lat</th>
+                  <th>Lon</th>
+                </tr>
+              </thead>
+              <tbody>
+                {#each inspectDetail.sampleAddresses as a}
+                  <tr>
+                    <td class="max-w-[200px] truncate">{a.full_address}</td>
+                    <td>{a.street}</td>
+                    <td>{a.number}</td>
+                    <td>{a.unit ?? ''}</td>
+                    <td>{a.city}</td>
+                    <td>{a.region ?? ''}</td>
+                    <td class="font-mono">{a.postcode}</td>
+                    <td class="font-mono">{a.lat?.toFixed(5)}</td>
+                    <td class="font-mono">{a.lon?.toFixed(5)}</td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Parquet URL -->
+          <div class="mt-4 text-xs text-base-content/30 break-all">
+            Source: {inspectDetail.fileUrl}
+          </div>
+        {/if}
+      </div>
+    </div>
+  </div>
 {/if}
