@@ -340,16 +340,20 @@
   font-size: 0.75rem;
   opacity: 0.4;
 }
+.driver-popover.wt-tour-popover .driver-popover-footer button {
+  text-shadow: none;
+}
 .driver-popover.wt-tour-popover .driver-popover-prev-btn {
-  color: var(--wt-popup-fg);
-  opacity: 0.6;
+  color: var(--wt-popup-fg) !important;
+  background: transparent !important;
+  border: 1px solid var(--wt-popup-border) !important;
   border-radius: 0.5rem;
 }
 .driver-popover.wt-tour-popover .driver-popover-next-btn {
-  background: hsl(158 64% 42%);
-  color: white;
+  background: hsl(158 64% 42%) !important;
+  color: white !important;
+  border: none !important;
   border-radius: 0.5rem;
-  text-shadow: none;
 }
 .driver-popover.wt-tour-popover .driver-popover-close-btn {
   background: none;
