@@ -210,6 +210,20 @@ export async function queryObjects<T = Record<string, any>>(sql: string): Promis
   })
 }
 
+/**
+ * Like queryObjects, but clears HTTP/parquet caches and retries once on failure.
+ * Use this for queries that read remote parquet files directly (not cached tables).
+ */
+export async function queryObjectsWithRetry<T = Record<string, any>>(sql: string): Promise<T[]> {
+  try {
+    return await queryObjects<T>(sql)
+  } catch (e) {
+    console.warn('[duckdb] Remote query failed, clearing caches and retrying:', (e as Error).message?.slice(0, 120))
+    await clearHttpCache()
+    return await queryObjects<T>(sql)
+  }
+}
+
 // ── Tile cache ───────────────────────────────────────────
 // After fetching a geocoder tile, keep it as an in-memory table.
 // Subsequent queries in the same area skip the network entirely.

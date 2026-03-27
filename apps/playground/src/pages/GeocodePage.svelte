@@ -1,6 +1,6 @@
 <script lang="ts">
   import {
-    queryObjects, tilePath, prefetchCountry, isCountryCached, onCacheLog, getTileSource, isTileCached,
+    queryObjects, queryObjectsWithRetry, tilePath, prefetchCountry, isCountryCached, onCacheLog, getTileSource, isTileCached,
     SearchCache, rankBySimilarity, jaccardSimilarity,
     getParser, NUMBER_FIRST,
     esc, toArr, ms, addStep, updateLastStep,
@@ -562,15 +562,18 @@
           // If query has specific filters, use direct remote read (filter pushdown = less data)
           // Otherwise, cache the full tile for subsequent queries
           let src: string
+          let useRetry = false
           if (isTileCached(cc, tile)) {
             src = await getTileSource(cc, tile)
           } else if (hasSpecificFilters) {
             src = `read_parquet('${tilePath(cc, tile)}')`
+            useRetry = true
           } else {
             src = await getTileSource(cc, tile)
           }
 
-          tileResults = await queryObjects<AddressRow>(`
+          const queryFn = useRetry ? queryObjectsWithRetry : queryObjects
+          tileResults = await queryFn<AddressRow>(`
             SELECT full_address, street, number, city, region, postcode,
                    ST_Y(geometry) AS lat,
                    ST_X(geometry) AS lon,

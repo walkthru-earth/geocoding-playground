@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { queryObjects, dataPath, tilePath, getTileSource, isTileCached, ms, addStep, updateLastStep } from '@walkthru-earth/geocoding-core'
+  import { queryObjects, queryObjectsWithRetry, dataPath, tilePath, getTileSource, isTileCached, ms, addStep, updateLastStep } from '@walkthru-earth/geocoding-core'
   import type { AddressRow, StepEntry } from '@walkthru-earth/geocoding-core'
   import MapView from '../lib/MapView.svelte'
   import SplitPane from '../lib/components/SplitPane.svelte'
@@ -161,7 +161,8 @@
             ? await getTileSource(country, h3_parent)
             : `read_parquet('${tilePath(country, h3_parent)}')`
 
-          tileAddresses = await queryObjects<AddressRow>(`
+          const queryFn = cached ? queryObjects : queryObjectsWithRetry
+          tileAddresses = await queryFn<AddressRow>(`
             WITH addr AS (
               SELECT
                 full_address, street, number, city, region, postcode,

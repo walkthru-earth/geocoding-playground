@@ -28,6 +28,7 @@ export {
   tilePath,
   query,
   queryObjects,
+  queryObjectsWithRetry,
   getTileSource,
   isTileCached,
   prefetchCountry,
