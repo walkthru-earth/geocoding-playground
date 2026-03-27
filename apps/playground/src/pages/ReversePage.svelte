@@ -7,6 +7,15 @@
   import ResultsTable from '../lib/components/ResultsTable.svelte'
   import maplibregl from 'maplibre-gl'
   import { cellToBoundary } from 'h3-js'
+  import { shouldShowTour, showNavTour } from '../lib/tour'
+
+  // Show welcome tour on first visit
+  $effect(() => {
+    if (shouldShowTour()) {
+      const timer = setTimeout(() => showNavTour(), 800)
+      return () => clearTimeout(timer)
+    }
+  })
 
   let lat = $state(40.4168)
   let lon = $state(-3.7038)

@@ -10,6 +10,7 @@
   import SplitPane from '../lib/components/SplitPane.svelte'
   import StepLog from '../lib/components/StepLog.svelte'
   import ResultsTable from '../lib/components/ResultsTable.svelte'
+  import { shouldShowTour, startGeocodeTour, highlightCountryFirst } from '../lib/tour'
 
   const presetsByCountry: Record<string, { label: string; city: string; query: string }[]> = {
     NL: [
@@ -101,6 +102,20 @@
   onCacheLog((msg) => { cacheInfo = msg })
 
   $effect(() => { loadCountries() })
+
+  // Auto-start guided tour on first visit
+  $effect(() => {
+    if (shouldShowTour()) {
+      // Small delay so the page has rendered
+      const timer = setTimeout(() => startGeocodeTour(), 600)
+      return () => clearTimeout(timer)
+    }
+  })
+
+  /** When user clicks a disabled field, nudge them to pick a country first. */
+  function onDisabledFieldClick() {
+    if (!selectedCountry) highlightCountryFirst()
+  }
 
   async function loadCountries() {
     const rows = await queryObjects<{ country: string }>(`
@@ -617,7 +632,12 @@
     <!-- Header row -->
     <div class="flex items-center gap-2 md:gap-3 flex-wrap">
       <h2 class="text-lg md:text-xl font-bold tracking-tight flex-1 min-w-0">Forward Geocode</h2>
-      <select class="select select-bordered select-sm md:select-md w-28 md:w-40" bind:value={selectedCountry} onchange={onCountryChange}>
+      <button class="btn btn-ghost btn-xs btn-circle opacity-40 hover:opacity-100" onclick={startGeocodeTour} aria-label="Show guided tour">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </button>
+      <select id="tour-country-select" class="select select-bordered select-sm md:select-md w-28 md:w-40" bind:value={selectedCountry} onchange={onCountryChange}>
         <option value="">Country...</option>
         {#each countries as c}
           <option value={c}>{c}{isCountryCached(c) ? ' ✓' : ''}</option>
@@ -634,7 +654,7 @@
 
     <!-- Presets -->
     {#if activePresets.length > 0}
-      <div class="flex gap-2 flex-wrap">
+      <div id="tour-presets" class="flex gap-2 flex-wrap">
         {#each activePresets as p}
           <button class="preset-pill" onclick={() => runPreset(p)} disabled={searching || prefetching}>{p.label}</button>
         {/each}
@@ -642,11 +662,13 @@
     {/if}
 
     <!-- Search fields -->
+    <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
     <div class="space-y-3">
-      <div class="relative">
+      <div class="relative" onclick={onDisabledFieldClick}>
         <input
           type="text"
           class="input input-bordered input-sm md:input-md w-full"
+          id="tour-city-input"
           placeholder="City (optional)..."
           bind:value={cityQuery}
           oninput={() => searchCities()}
@@ -670,10 +692,11 @@
         {/if}
       </div>
 
-      <div class="relative">
+      <div class="relative" onclick={onDisabledFieldClick}>
         <input
           type="text"
           class="input input-bordered input-sm md:input-md w-full"
+          id="tour-address-input"
           placeholder="Street, postcode, or address..."
           bind:value={addressQuery}
           oninput={() => { selectedSuggestion = null; autocomplete() }}
@@ -715,7 +738,7 @@
           <option value={50}>50</option>
           <option value={100}>100</option>
         </select>
-        <button class="btn btn-primary btn-sm md:btn-md rounded-full flex-1" onclick={search} disabled={!selectedCountry || addressQuery.length < 2 || searching || prefetching}>
+        <button id="tour-search-btn" class="btn btn-primary btn-sm md:btn-md rounded-full flex-1" onclick={search} disabled={!selectedCountry || addressQuery.length < 2 || searching || prefetching}>
           {#if searching}
             <span class="loading loading-spinner loading-sm"></span>
           {:else}

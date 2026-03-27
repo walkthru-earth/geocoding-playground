@@ -12,6 +12,7 @@
   "dependencies": {
     "@duckdb/duckdb-wasm": "1.33.1-dev41.0",
     "@walkthru-earth/geocoding-core": "workspace:*",
+    "driver.js": "^1.4.0",
     "h3-js": "^4.4.0",
     "maplibre-gl": "^5.21.1",
     "posthog-js": "^1.364.1"
