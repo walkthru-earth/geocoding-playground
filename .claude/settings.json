@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(pnpm *)",
+      "Bash(pnpx *)",
+      "Bash(biome *)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git branch*)",
+      "Bash(git show *)",
+      "Bash(ls *)",
+      "Bash(wc *)",
+      "Bash(mkdir *)",
+      "Bash(cat *)",
+      "Bash(* --version)",
+      "Bash(* --help)",
+      "Read",
+      "Write",
+      "Edit",
+      "Glob",
+      "Grep",
+      "mcp__motherduck__execute_query",
+      "mcp__motherduck__list_databases",
+      "mcp__motherduck__list_tables",
+      "mcp__motherduck__list_columns",
+      "WebFetch(domain:duckdb.org)",
+      "WebFetch(domain:docs.overturemaps.org)",
+      "WebFetch(domain:h3geo.org)",
+      "WebFetch(domain:biomejs.dev)",
+      "WebFetch(domain:maplibre.org)",
+      "WebFetch(domain:daisyui.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:code.claude.com)",
+      "WebSearch"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(git push --force*)",
+      "Bash(git reset --hard*)",
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Read(.env*)",
+      "Read(**/credentials*)",
+      "Read(**/*secret*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/enforce-pnpm.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

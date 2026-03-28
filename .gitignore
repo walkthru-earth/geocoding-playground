@@ -23,3 +23,10 @@ dist-ssr
 *.sln
 *.sw?
 _study/
+
+# Playwright
+apps/playground/test-results/
+apps/playground/playwright-report/
+
+# Claude Code (keep .claude/ and CLAUDE.md in repo, exclude local settings)
+.claude/settings.local.json

@@ -1,0 +1,31 @@
+---
+paths:
+  - "apps/playground/**/*.svelte"
+  - "apps/playground/**/*.ts"
+---
+# Playground App Rules
+
+Svelte 5 app with reactive variables ($state, $derived, $effect). Uses Tailwind 4 + DaisyUI 5 + MapLibre GL.
+
+## Pages
+- `GeocodePage.svelte` - Forward geocoding (country -> city -> address search with autocomplete)
+- `ReversePage.svelte` - Reverse geocoding (click map -> nearest addresses via H3 grid)
+- `StatusPage.svelte` - Data coverage overview, cache info, release switcher
+- `BenchmarkPage.svelte` - Performance testing
+
+## Components
+- `MapView.svelte` - MapLibre GL wrapper, light/dark basemaps (CartoDB), auto-resize
+- `ResultsTable.svelte` - Tabular result display
+- `SplitPane.svelte` - Draggable split pane
+- `StepLog.svelte` - Execution step log for transparency
+
+## Conventions
+- All geocoding logic lives in core, not in Svelte components
+- The app injects query functions into the autocomplete engine via `AutocompleteQueryFns`
+- Debounced autocomplete (150ms)
+- Theme switching persists to localStorage
+- PostHog analytics is optional, gated by env vars
+
+## Build
+- Must build core first: `pnpm --filter @walkthru-earth/geocoding-core build`
+- svelte-check depends on core's dist/index.d.ts existing

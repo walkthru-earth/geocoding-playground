@@ -1,0 +1,83 @@
+# Walkthru Earth Geocoding Playground
+
+## Commands
+```
+pnpm dev              # Start Svelte dev server (playground)
+pnpm build            # Build core THEN playground (order matters)
+pnpm check            # svelte-check + tsc
+pnpm lint             # Biome check
+pnpm lint:fix         # Biome check --write
+pnpm format           # Biome format --write
+pnpm test             # Run core unit tests (Vitest)
+pnpm test:coverage    # Unit tests with coverage report
+pnpm test:e2e         # Run Playwright e2e tests (builds + serves playground)
+```
+
+Core only: `pnpm --filter @walkthru-earth/geocoding-core build`
+
+### Testing
+
+- **Unit tests** (`packages/core/`): Vitest. Run with `pnpm test`. Config at `packages/core/vitest.config.ts`.
+- **E2E tests** (`apps/playground/e2e/`): Playwright (Chromium). Run with `pnpm test:e2e`. Config at `apps/playground/playwright.config.ts`. Tests hit live S3 data, so they need network access and can be slow on first run.
+- **Pre-commit hook**: Runs lint-staged + type-check + build. Unit and e2e tests run in CI only.
+
+**This project uses pnpm exclusively. Never use npm or npx.** Use `pnpm` and `pnpx` instead. A PreToolUse hook will block npm/npx commands automatically.
+
+## Architecture
+
+pnpm monorepo with two packages:
+
+- `packages/core/` - `@walkthru-earth/geocoding-core`. Framework-agnostic TS library. DuckDB-WASM wrapper, address parsing, autocomplete engine, search/ranking. Built with Vite + vite-plugin-dts.
+- `apps/playground/` - Svelte 5 UI. Tailwind 4 + DaisyUI 5 + MapLibre GL. Consumes core as `workspace:*` dependency.
+
+The core package is designed to work with React, Vue, Next.js, or any framework.
+
+## Upstream Pipeline
+
+The data pipeline lives in a separate repo: `walkthru-earth/walkthru-overture-index`.
+Key files: `sql/addresses.sql` (DuckDB 1.5 SQL) + `geocoder.py` (Python flatten + S3 upload).
+Pipeline processes 469M Overture Maps addresses into partitioned GeoParquet tiles on S3.
+
+## Data on S3
+
+Base URL: `https://s3.us-west-2.amazonaws.com/us-west-2.opendata.source.coop/walkthru-earth/indices/addresses-index/v1/release=2026-03-18.0/`
+
+Key files:
+- `manifest.parquet` - 39 countries (3 KB)
+- `tile_index.parquet` - 17,499 tiles (561 KB)
+- `city_index/XX.parquet` - per-country cities
+- `postcode_index/XX.parquet` - per-country postcodes
+- `street_index/XX.parquet` - per-country streets
+- `number_index/country=XX/data_0.parquet` - house numbers (Hive path, not yet flattened)
+- `geocoder/country=XX/h3/YYY.parquet` - address tiles (0.5-48 MB)
+
+## Key Conventions
+
+- **Build order**: Always build core before playground (`pnpm build` handles this)
+- **HTTPS, not s3://**: DuckDB-WASM uses plain HTTPS for all data access (s3:// fails with 416 on large files)
+- **h3_index as BIGINT**: Not VARCHAR hex. 46% smaller, enables row-group pushdown
+- **Per-country index files**: Not global. Avoids 73 MB footer overhead in WASM
+- **NUMBER_FIRST countries**: US, CA, AU, NZ, BR, MX, CL, CO, UY, SG, HK, TW, GB, IE (house number before street)
+- **Street-first countries**: NL, DE, FR, IT, AT, CH, ES, PT, BE + Nordic + Baltic + Balkans
+
+## Investigating Data Issues
+
+Use MotherDuck MCP (`mcp__motherduck__execute_query`) or DuckDB CLI to query live S3 parquet files.
+Never guess data shapes. Always verify against real data.
+
+Example: check a country's city index:
+```sql
+SELECT city, region, addr_count, len(tiles) AS tile_count
+FROM read_parquet('...BASE_URL.../city_index/NL.parquet')
+ORDER BY addr_count DESC LIMIT 10;
+```
+
+See `_study/` for detailed architecture docs, data profiles, and issue history.
+
+## Watch Out For
+
+- `_study/` is gitignored. It contains design docs, not code.
+- DuckDB-WASM caches HTTP metadata, Parquet footers, and file pages. After S3 file updates, stale cache causes 416 errors. The core handles this with `clearHttpCache()` + retry.
+- FR has no region in Overture (depth-1 only). `LEFT(postcode, 3)` grouping separates overseas territories.
+- IT, JP, TW, CO have no postcode index (Overture has no postcode data for these).
+- number_index still uses Hive path `country=XX/data_0.parquet` (flatten not yet run).
