@@ -62,6 +62,10 @@ describe('classifyInput', () => {
       expect(classifyInput('本郷', 'JP').mode).toBe('street')
     })
 
+    it('JP: kanji street + number is ready mode (CJK chars count double)', () => {
+      expect(classifyInput('本郷 150', 'JP').mode).toBe('ready')
+    })
+
     it('IT: via aldo moro is street mode', () => {
       expect(classifyInput('via aldo moro', 'IT').mode).toBe('street')
     })

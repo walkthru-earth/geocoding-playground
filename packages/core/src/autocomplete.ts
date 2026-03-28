@@ -56,8 +56,19 @@ export interface TileResolutionResult {
   source: string
 }
 
-/** Minimum street length to transition from street mode to ready mode */
+/** Minimum street length to transition from street mode to ready mode.
+ * CJK characters (kanji/kana) carry much more information per character
+ * than Latin letters, so we count them double. "本郷" (2 chars) scores 4,
+ * meeting the threshold, while "rue" (3 chars) scores 3 and stays in street mode. */
 const MIN_STREET_LEN_FOR_READY = 4
+
+// U+3000–U+9FFF covers CJK Unified Ideographs, Hiragana, Katakana, and CJK symbols
+const CJK_RE = /[\u3000-\u9fff]/g
+
+function streetSpecificity(street: string): number {
+  const cjkCount = (street.match(CJK_RE) || []).length
+  return street.length + cjkCount // CJK chars counted double
+}
 
 // ── Input Classification ─────────────────────────────────────
 
@@ -115,7 +126,8 @@ function determineMode(
 
   // Street + number present, but only "ready" if street is specific enough.
   // Short prefixes like "rue" (3 chars) stay in street mode for instant suggestions.
-  if (parsed.street && parsed.number && parsed.street.length >= MIN_STREET_LEN_FOR_READY) return 'ready'
+  // CJK characters count double since 2 kanji = a fully specific JP street name.
+  if (parsed.street && parsed.number && streetSpecificity(parsed.street) >= MIN_STREET_LEN_FOR_READY) return 'ready'
 
   // If parser found a full postcode, prioritize postcode mode
   if (parsed.postcode) return 'postcode'
