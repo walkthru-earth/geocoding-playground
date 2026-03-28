@@ -24,7 +24,9 @@ dist-ssr
 *.sw?
 _study/
 
-# Playwright
+# Test artifacts
+packages/core/coverage/
+packages/core/test-results.json
 apps/playground/test-results/
 apps/playground/playwright-report/
 
