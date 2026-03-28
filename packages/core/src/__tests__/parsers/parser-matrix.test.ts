@@ -161,6 +161,110 @@ describe('GenericParser countries', () => {
 
 // ── buildWhereClause ────────────────────────────────────────
 
+// ── Additional real-world parsing scenarios from _study docs ──
+
+describe('Extended parser scenarios', () => {
+  // AU slash unit notation (3/45 George Street)
+  it('AU: "3/45 george street" extracts unit and number', () => {
+    const parser = getParser('AU')
+    const result = parser.parseAddress('3/45 george street')
+    expect(result.number).toBe('45')
+    expect(result.street?.toLowerCase()).toContain('george street')
+  })
+
+  // US: ZIP+4 extraction
+  it('US: "10465-1234" extracts ZIP+4 as postcode', () => {
+    const parser = getParser('US')
+    const result = parser.parseAddress('10465-1234')
+    expect(result.postcode).toBe('10465-1234')
+  })
+
+  // US: full address with ZIP
+  it('US: "1041 logan ave 10465" extracts number, street, and postcode', () => {
+    const parser = getParser('US')
+    const result = parser.parseAddress('1041 logan ave 10465')
+    expect(result.number).toBe('1041')
+    expect(result.postcode).toBe('10465')
+  })
+
+  // NL: full address with postcode
+  it('NL: "keizersgracht 185 1016AG" extracts all parts', () => {
+    const parser = getParser('NL')
+    const result = parser.parseAddress('keizersgracht 185 1016AG')
+    expect(result.street).toBe('keizersgracht')
+    expect(result.number).toBe('185')
+    expect(result.postcode).toBe('1016AG')
+  })
+
+  // CA: progressive FSA to full postcode
+  it('CA: "K1A 0A0" extracts full Canadian postcode', () => {
+    const parser = getParser('CA')
+    const result = parser.parseAddress('K1A 0A0')
+    expect(result.postcode).toBe('K1A 0A0')
+  })
+
+  it('CA: "123 King Street K1A 0A0" extracts number, street, and postcode', () => {
+    const parser = getParser('CA')
+    const result = parser.parseAddress('123 King Street K1A 0A0')
+    expect(result.number).toBe('123')
+    expect(result.postcode).toBe('K1A 0A0')
+  })
+
+  // BR: CEP format
+  it('BR: "avenida paulista 1234" extracts street and number', () => {
+    const parser = getParser('BR')
+    const result = parser.parseAddress('avenida paulista 1234')
+    expect(result.number).toBe('1234')
+  })
+
+  // DE: multi-word street names (real data uses ß, not ss)
+  it('DE: "unter den linden 5" preserves multi-word street', () => {
+    const parser = getParser('DE')
+    const result = parser.parseAddress('unter den linden 5')
+    expect(result.street?.toLowerCase()).toContain('unter den linden')
+    expect(result.number).toBe('5')
+  })
+
+  it('DE: "hauptstraße 10" parses ß character correctly', () => {
+    const parser = getParser('DE')
+    const result = parser.parseAddress('hauptstraße 10')
+    expect(result.street?.toLowerCase()).toContain('hauptstraße')
+    expect(result.number).toBe('10')
+  })
+
+  // ES: street + number + postcode
+  it('ES: "calle gran via 12 28013" extracts all parts', () => {
+    const parser = getParser('ES')
+    const result = parser.parseAddress('calle gran via 12 28013')
+    expect(result.number).toBe('12')
+    expect(result.postcode).toBe('28013')
+  })
+
+  // IT: no postcode in Overture, but parser handles it
+  it('IT: "via del corso 12" is street + number only', () => {
+    const parser = getParser('IT')
+    const result = parser.parseAddress('via del corso 12')
+    expect(result.number).toBe('12')
+    expect(result.postcode).toBeUndefined()
+  })
+
+  // JP: kanji with dash notation
+  it('JP: kanji street with dash number', () => {
+    const parser = getParser('JP')
+    const result = parser.parseAddress('本郷 1-2-3')
+    expect(result.street).toBe('本郷')
+    expect(result.number).toBe('1-2-3')
+  })
+
+  // NL: ordinal streets preserved
+  it('NL: "2e nassaustraat 10" parses ordinal street with number', () => {
+    const parser = getParser('NL')
+    const result = parser.parseAddress('2e nassaustraat 10')
+    expect(result.street?.toLowerCase()).toContain('nassaustraat')
+    expect(result.number).toBe('10')
+  })
+})
+
 describe('buildWhereClause', () => {
   it.each(['US', 'NL', 'DE', 'FR', 'BR', 'JP', 'AU', 'CA', 'ES', 'IT', 'PL', 'AT'])('%s: generates valid SQL', (cc) => {
     const parser = getParser(cc)
