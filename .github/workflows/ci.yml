@@ -60,8 +60,16 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Build core
+        run: pnpm --filter @walkthru-earth/geocoding-core build
+
       - name: Run unit tests with coverage
-        run: pnpm --filter @walkthru-earth/geocoding-core test:coverage -- --reporter=default --reporter=json --outputFile=test-results.json
+        working-directory: packages/core
+        run: pnpm vitest run --coverage --reporter=default --reporter=json --outputFile=test-results.json
+
+      - name: Generate test summary
+        if: always()
+        run: node .github/scripts/test-summary.mjs packages/core/test-results.json packages/core/coverage
 
       - name: Coverage PR comment
         if: github.event_name == 'pull_request'
