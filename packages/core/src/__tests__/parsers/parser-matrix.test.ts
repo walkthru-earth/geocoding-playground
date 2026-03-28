@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { getParser, NUMBER_FIRST } from '../../address-parser'
+import { stripJPCoordZone } from '../../parsers/jp'
 
 // ── Test fixture type ───────────────────────────────────────
 
@@ -64,7 +65,10 @@ const customParserCases: ParserCase[] = [
   { cc: 'BR', input: '01305-000', expected: { postcode: '01305-000' } },
 
   // JP: street-first, 7-digit postcode
-  { cc: 'JP', input: '本郷 1-2-3', expected: { street: '本郷', number: '1-2-3' } },
+  // "1-2-3" = chome-banchi-go. Parser extracts banchi (2nd segment) because
+  // chome is in the street field and go isn't in Overture data (ISJ block-level).
+  { cc: 'JP', input: '本郷 1-2-3', expected: { street: '本郷', number: '2' } },
+  { cc: 'JP', input: '本郷 100', expected: { street: '本郷', number: '100' } },
   { cc: 'JP', input: '100-0001', expected: { postcode: '100-0001' } },
 
   // AU: number-first, 4-digit postcode, slash unit notation
@@ -261,12 +265,34 @@ describe('Extended parser scenarios', () => {
     expect(result.postcode).toBeUndefined()
   })
 
-  // JP: kanji with dash notation
-  it('JP: kanji street with dash number', () => {
+  // JP: chome-banchi-go notation. Parser extracts only banchi (2nd segment)
+  // because chome is in Overture's street field and go isn't in ISJ data.
+  it('JP: "本郷 1-2-3" extracts banchi (2nd segment)', () => {
     const parser = getParser('JP')
     const result = parser.parseAddress('本郷 1-2-3')
     expect(result.street).toBe('本郷')
-    expect(result.number).toBe('1-2-3')
+    expect(result.number).toBe('2')
+  })
+
+  it('JP: "本郷 1-2" extracts banchi from 2-segment', () => {
+    const parser = getParser('JP')
+    const result = parser.parseAddress('本郷 1-2')
+    expect(result.street).toBe('本郷')
+    expect(result.number).toBe('2')
+  })
+
+  it('JP: plain lot number "本郷 362" stays as-is', () => {
+    const parser = getParser('JP')
+    const result = parser.parseAddress('本郷 362')
+    expect(result.street).toBe('本郷')
+    expect(result.number).toBe('362')
+  })
+
+  it('JP: street-only "本郷" has no number', () => {
+    const parser = getParser('JP')
+    const result = parser.parseAddress('本郷')
+    expect(result.street).toBe('本郷')
+    expect(result.number).toBeUndefined()
   })
 
   // FR: full address with postcode
@@ -343,5 +369,36 @@ describe('buildWhereClause', () => {
     const sql = parser.buildWhereClause(parsed)
     expect(sql).toBeTruthy()
     expect(sql).not.toBe('1=1')
+  })
+
+  // JP uses split_part to strip MLIT coordinate zone from number field
+  it('JP: buildWhereClause uses split_part for number matching', () => {
+    const parser = getParser('JP')
+    const parsed = parser.parseAddress('本郷 362')
+    const sql = parser.buildWhereClause(parsed)
+    expect(sql).toContain("lower(street) LIKE '本郷%'")
+    expect(sql).toContain("split_part(number, '-', 1) = '362'")
+    // Must NOT use plain "number = '362'" (would miss "362-9" in data)
+    expect(sql).not.toContain("number = '362'")
+  })
+})
+
+// ── JP coordinate zone stripping ──────────────────────────────
+
+describe('stripJPCoordZone', () => {
+  it('strips trailing zone from "362-9"', () => {
+    expect(stripJPCoordZone('362-9')).toBe('362')
+  })
+
+  it('strips trailing zone from "1000-12"', () => {
+    expect(stripJPCoordZone('1000-12')).toBe('1000')
+  })
+
+  it('returns plain number unchanged', () => {
+    expect(stripJPCoordZone('362')).toBe('362')
+  })
+
+  it('returns empty string unchanged', () => {
+    expect(stripJPCoordZone('')).toBe('')
   })
 })

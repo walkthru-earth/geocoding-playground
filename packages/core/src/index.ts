@@ -41,6 +41,7 @@ export {
   switchRelease,
   tilePath,
 } from './duckdb'
+export { stripJPCoordZone } from './parsers/jp'
 
 // ── Search ───────────────────────────────────────────────────
 export {
