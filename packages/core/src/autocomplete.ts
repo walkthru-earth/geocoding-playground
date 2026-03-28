@@ -180,19 +180,23 @@ const PARTIAL_POSTCODE_RE: Record<string, RegExp> = {
 
 /**
  * Strip leading/trailing house number from query to get the street
- * part for autocomplete. Respects NUMBER_FIRST convention.
+ * part for autocomplete.
+ *
+ * Leading number is always stripped: users in any country may type
+ * "12 rue de rivoli" or "5 hauptstraße". Trailing number is stripped
+ * for street-first countries ("keizersgracht 185").
  */
 export function extractStreetQuery(input: string, cc: string): string {
   const tokens = input.trim().split(/\s+/).filter(Boolean)
   if (tokens.length <= 1) return input.trim()
 
-  if (NUMBER_FIRST.has(cc)) {
-    // US-style: "25109 Cypress St" -> strip leading number
-    if (/^\d+[a-z]?$/i.test(tokens[0])) {
-      return tokens.slice(1).join(' ')
-    }
-  } else {
-    // EU-style: "Keizersgracht 185" -> strip trailing number
+  // Always strip leading number (user may type house number first in any country)
+  if (/^\d+[a-z]?$/i.test(tokens[0])) {
+    return tokens.slice(1).join(' ')
+  }
+
+  // Strip trailing number for street-first countries
+  if (!NUMBER_FIRST.has(cc)) {
     const last = tokens[tokens.length - 1]
     if (/^\d+[a-z]?$/i.test(last)) {
       return tokens.slice(0, -1).join(' ')

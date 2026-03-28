@@ -257,7 +257,7 @@ describe('classifyInput', () => {
     })
   })
 
-  describe('street query extraction for NUMBER_FIRST vs street-first', () => {
+  describe('street query extraction: leading number always stripped', () => {
     it('US: strips leading number', () => {
       expect(classifyInput('1041 logan ave', 'US').streetQuery).toBe('logan ave')
     })
@@ -270,23 +270,36 @@ describe('classifyInput', () => {
       expect(classifyInput('kleiststraße 116', 'DE').streetQuery).toBe('kleiststraße')
     })
 
+    it('DE: strips leading number (generic, user types number first)', () => {
+      expect(classifyInput('5 hauptstraße', 'DE').streetQuery).toBe('hauptstraße')
+    })
+
     it('AU: strips leading number', () => {
       expect(classifyInput('196 condamine street', 'AU').streetQuery).toBe('condamine street')
     })
 
     it('FR: preserves multi-word street', () => {
-      const c = classifyInput('rue de rivoli', 'FR')
-      expect(c.streetQuery).toBe('rue de rivoli')
+      expect(classifyInput('rue de rivoli', 'FR').streetQuery).toBe('rue de rivoli')
     })
 
-    it('FR: street query uses parsed street (strips leading number)', () => {
-      // FR parser extracts leading number, so streetQuery = parsed.street
+    it('FR: strips leading number', () => {
       expect(classifyInput('12 rue de rivoli', 'FR').streetQuery).toBe('rue de rivoli')
     })
 
-    it('FR: short street query from parsed street', () => {
-      // "12 rue" → parsed.street = "rue", used as streetQuery
+    it('FR: short street query from leading number', () => {
       expect(classifyInput('12 rue', 'FR').streetQuery).toBe('rue')
+    })
+
+    it('AT: strips leading number (generic parser, street-first country)', () => {
+      expect(classifyInput('5 hauptstraße', 'AT').streetQuery).toBe('hauptstraße')
+    })
+
+    it('PL: strips leading number (generic parser)', () => {
+      expect(classifyInput('10 marszałkowska', 'PL').streetQuery).toBe('marszałkowska')
+    })
+
+    it('IT: strips trailing number', () => {
+      expect(classifyInput('via del corso 12', 'IT').streetQuery).toBe('via del corso')
     })
 
     it('FR: boulevard haussmann street query', () => {
