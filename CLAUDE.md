@@ -76,6 +76,28 @@ ORDER BY addr_count DESC LIMIT 10;
 
 See `_study/` for detailed architecture docs, data profiles, and issue history.
 
+## Code Safety Rules
+
+### SQL interpolation
+- All user-facing string values MUST go through `esc()` before interpolation into SQL
+- Country codes MUST be validated with `validateCC(cc)` at every SQL builder entry point. Never interpolate `cc` into table names or URLs without it
+- Tile IDs MUST be validated against `/^[0-9a-f]+$/i` before interpolation into parquet URLs
+- Array values from query results (like `cityTiles`) MUST be escaped individually: `tiles.map(t => esc(t))`, not joined raw
+
+### HTML in map popups
+- All address data inserted into popup HTML MUST use `htmlEsc()`. Address strings from Overture can contain `&`, `<`, `>`, or quotes
+
+### Hot-path allocations
+- Never allocate `Set`, `Map`, `RegExp`, or large objects inside `parseAddress()` or `classifyInput()`. These run on every keystroke. Hoist to module scope as constants
+- The `PARTIAL_POSTCODE_RE` map in autocomplete.ts is already hoisted for this reason
+
+### Async race conditions
+- Any async function triggered by user interaction (search, autocomplete, map click) MUST use a generation counter pattern: `const gen = ++searchGen` at the top, `if (gen !== searchGen) return` after each `await`
+- Use separate counters for independent flows (e.g., `searchGen` for search, `autoGen` for autocomplete)
+
+### Defaults and constants
+- When the same default value exists in multiple files (e.g., default page), keep them in sync. Grep for the value after changing it
+
 ## Watch Out For
 
 - `_study/` is gitignored. It contains design docs, not code.
