@@ -74,9 +74,9 @@ describe('buildAddressSQL', () => {
 })
 
 describe('buildNumberIndexSQL', () => {
-  it('uses number_index Hive path', () => {
+  it('uses flat number_index path', () => {
     const sql = buildNumberIndexSQL('NL', 'keizersgracht')
-    expect(sql).toContain('number_index/country=NL/data_0.parquet')
+    expect(sql).toContain('number_index/NL.parquet')
     expect(sql).toContain("street_lower = 'keizersgracht'")
   })
 })

@@ -32,7 +32,7 @@ https://s3.us-west-2.amazonaws.com/us-west-2.opendata.source.coop/walkthru-earth
    - City issues: `city_index/XX.parquet`
    - Street issues: `street_index/XX.parquet`
    - Postcode issues: `postcode_index/XX.parquet`
-   - Number issues: `number_index/country=XX/data_0.parquet` (Hive path!)
+   - Number issues: `number_index/XX.parquet`
    - Tile data: `geocoder/country=XX/h3/HEXHASH.parquet`
    - Global stats: `manifest.parquet`, `tile_index.parquet`
 
@@ -55,5 +55,5 @@ https://s3.us-west-2.amazonaws.com/us-west-2.opendata.source.coop/walkthru-earth
 ## Known Gotchas
 - IT, JP, TW, CO have no postcode_index (404)
 - FR has no region (depth-1 address_levels only)
-- number_index uses Hive path: `country=XX/data_0.parquet`
+- JP numbers in raw Overture are "banchi-coordZone", pipeline strips the zone suffix
 - City index uses per-country flat files, not global

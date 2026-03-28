@@ -463,7 +463,7 @@ export function buildAddressSQL(cc: string, street: string, numberPrefix: string
 export function buildNumberIndexSQL(cc: string, street: string): string {
   validateCC(cc)
   return `SELECT street_lower, numbers
-    FROM read_parquet('${dataPath(`number_index/country=${cc}/data_0.parquet`)}')
+    FROM read_parquet('${dataPath(`number_index/${cc}.parquet`)}')
     WHERE street_lower = '${esc(street.toLowerCase())}'
     LIMIT 1`
 }

@@ -22,14 +22,13 @@ https://s3.us-west-2.amazonaws.com/us-west-2.opendata.source.coop/walkthru-earth
 **Simulate fixes**: Create temp table, run proposed query, verify single-row output
 
 ## File paths
-- Flat files: `city_index/XX.parquet`, `street_index/XX.parquet`, `postcode_index/XX.parquet`
-- Hive paths (not yet flattened): `number_index/country=XX/data_0.parquet`
+- Flat files: `city_index/XX.parquet`, `street_index/XX.parquet`, `postcode_index/XX.parquet`, `number_index/XX.parquet`
 - Tiles: `geocoder/country=XX/h3/HEXHASH.parquet`
 
 ## Known data gaps (verified 2026-03-28)
 - IT, JP, TW, CO: no postcode_index (Overture has no postcode data)
 - FR: no region (depth-1 only). LEFT(postcode, 3) separates overseas territories
-- number_index uses Hive paths (flatten not yet run for this index)
+- JP numbers in raw Overture are "banchi-coordZone" (e.g., "362-9"). Pipeline strips the zone suffix
 
 ## Cross-country validation
 After fixing one country, always check 2-3 other countries for the same pattern.

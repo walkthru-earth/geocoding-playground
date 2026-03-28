@@ -50,7 +50,7 @@ Key files:
 - `city_index/XX.parquet` - per-country cities
 - `postcode_index/XX.parquet` - per-country postcodes
 - `street_index/XX.parquet` - per-country streets
-- `number_index/country=XX/data_0.parquet` - house numbers (Hive path, not yet flattened)
+- `number_index/XX.parquet` - per-country house numbers
 - `geocoder/country=XX/h3/YYY.parquet` - address tiles (0.5-48 MB)
 
 ## Key Conventions
@@ -104,4 +104,4 @@ See `_study/` for detailed architecture docs, data profiles, and issue history.
 - DuckDB-WASM caches HTTP metadata, Parquet footers, and file pages. After S3 file updates, stale cache causes 416 errors. The core handles this with `clearHttpCache()` + retry.
 - FR has no region in Overture (depth-1 only). `LEFT(postcode, 3)` grouping separates overseas territories.
 - IT, JP, TW, CO have no postcode index (Overture has no postcode data for these).
-- number_index still uses Hive path `country=XX/data_0.parquet` (flatten not yet run).
+- JP numbers in Overture are "banchi-coordZone" (e.g., "362-9"). The pipeline strips the zone suffix. The parser uses split_part for matching.

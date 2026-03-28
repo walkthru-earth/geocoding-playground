@@ -26,7 +26,7 @@ Query tool: `mcp__motherduck__execute_query` (DuckDB SQL syntax)
 - `city_index/XX.parquet` - per-country cities (flat file)
 - `postcode_index/XX.parquet` - per-country postcodes (flat file)
 - `street_index/XX.parquet` - per-country streets (flat file)
-- `number_index/country=XX/data_0.parquet` - house numbers (Hive path!)
+- `number_index/XX.parquet` - per-country house numbers
 - `geocoder/country=XX/h3/HEXHASH.parquet` - address tiles
 
 ## Investigation protocol
