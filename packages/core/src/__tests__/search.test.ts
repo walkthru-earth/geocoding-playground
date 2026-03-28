@@ -370,4 +370,29 @@ describe('searchCities: edge cases from data profile', () => {
     const result = searchCities(cities, 'gdansk')
     expect(result.length).toBe(1)
   })
+
+  it('finds merged "Paris" after arrondissement normalization', () => {
+    // After DuckDB load-time normalization, arrondissements are merged into a single entry
+    const cities: CityRecord[] = [
+      { city: 'Paris', tiles: ['841fb47ffffffff'], addr_count: 152331 },
+      { city: 'Villeparisis', tiles: ['t2'], addr_count: 6181 },
+      { city: 'Cormeilles-en-Parisis', tiles: ['t3'], addr_count: 7051 },
+    ]
+    const result = searchCities(cities, 'paris')
+    expect(result[0].city).toBe('Paris')
+    expect(result[0].addr_count).toBe(152331)
+  })
+
+  it('finds merged "Lyon" and "Marseille" after normalization', () => {
+    const cities: CityRecord[] = [
+      { city: 'Lyon', tiles: ['t1'], addr_count: 32920 },
+      { city: 'Marseille', tiles: ['t2'], addr_count: 93943 },
+      { city: 'Sainte-Foy-lès-Lyon', tiles: ['t3'], addr_count: 3132 },
+    ]
+    const lyon = searchCities(cities, 'lyon')
+    expect(lyon[0].city).toBe('Lyon')
+    const marseille = searchCities(cities, 'marseille')
+    expect(marseille[0].city).toBe('Marseille')
+    expect(marseille[0].addr_count).toBe(93943)
+  })
 })

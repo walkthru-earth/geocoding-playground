@@ -432,18 +432,51 @@ export async function prefetchCountry(
   try {
     await queryRemoteWithRetry(`
       CREATE OR REPLACE TABLE _cities_${cc} AS
-      SELECT region, city, tiles, addr_count,
-             bbox_min_lon_e6, bbox_max_lon_e6, bbox_min_lat_e6, bbox_max_lat_e6
+      SELECT region,
+             CASE
+                 WHEN city LIKE 'Paris % Arrondissement' THEN 'Paris'
+                 WHEN city LIKE 'Lyon % Arrondissement' THEN 'Lyon'
+                 WHEN city LIKE 'Marseille % Arrondissement' THEN 'Marseille'
+                 ELSE city
+             END AS city,
+             list_distinct(flatten(list(tiles))) AS tiles,
+             sum(addr_count)::INTEGER AS addr_count,
+             COALESCE(min(bbox_min_lon_e6), 0) AS bbox_min_lon_e6,
+             COALESCE(max(bbox_max_lon_e6), 0) AS bbox_max_lon_e6,
+             COALESCE(min(bbox_min_lat_e6), 0) AS bbox_min_lat_e6,
+             COALESCE(max(bbox_max_lat_e6), 0) AS bbox_max_lat_e6
       FROM read_parquet('${dataPath(`city_index/${cc}.parquet`)}')
+      GROUP BY region,
+               CASE
+                   WHEN city LIKE 'Paris % Arrondissement' THEN 'Paris'
+                   WHEN city LIKE 'Lyon % Arrondissement' THEN 'Lyon'
+                   WHEN city LIKE 'Marseille % Arrondissement' THEN 'Marseille'
+                   ELSE city
+               END
     `)
   } catch {
     await queryRemoteWithRetry(`
       CREATE OR REPLACE TABLE _cities_${cc} AS
-      SELECT region, city, tiles, addr_count,
+      SELECT region,
+             CASE
+                 WHEN city LIKE 'Paris % Arrondissement' THEN 'Paris'
+                 WHEN city LIKE 'Lyon % Arrondissement' THEN 'Lyon'
+                 WHEN city LIKE 'Marseille % Arrondissement' THEN 'Marseille'
+                 ELSE city
+             END AS city,
+             list_distinct(flatten(list(tiles))) AS tiles,
+             sum(addr_count)::INTEGER AS addr_count,
              0 AS bbox_min_lon_e6, 0 AS bbox_max_lon_e6,
              0 AS bbox_min_lat_e6, 0 AS bbox_max_lat_e6
       FROM read_parquet('${dataPath('city_index.parquet')}')
       WHERE country = '${cc}'
+      GROUP BY region,
+               CASE
+                   WHEN city LIKE 'Paris % Arrondissement' THEN 'Paris'
+                   WHEN city LIKE 'Lyon % Arrondissement' THEN 'Lyon'
+                   WHEN city LIKE 'Marseille % Arrondissement' THEN 'Marseille'
+                   ELSE city
+               END
     `)
   }
   const cRows = await queryObjects<{ c: number }>(`SELECT count(*)::INTEGER AS c FROM _cities_${cc}`)

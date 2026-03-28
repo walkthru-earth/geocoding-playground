@@ -45,6 +45,17 @@ const customParserCases: ParserCase[] = [
   // FR: number-first (12 Rue de Rivoli), 5-digit postcode, arrondissement stripping
   { cc: 'FR', input: '12 Rue de Rivoli', expected: { number: '12', street: 'Rue de Rivoli' } },
   { cc: 'FR', input: '75001', expected: { postcode: '75001' } },
+  {
+    cc: 'FR',
+    input: '55 Rue du Faubourg Saint-Honoré',
+    expected: { number: '55', street: 'Rue du Faubourg Saint-Honoré' },
+  },
+  {
+    cc: 'FR',
+    input: '1 Avenue des Champs-Élysées 75008',
+    expected: { number: '1', street: 'Avenue des Champs-Élysées', postcode: '75008' },
+  },
+  { cc: 'FR', input: '10 Boulevard Haussmann', expected: { number: '10', street: 'Boulevard Haussmann' } },
 
   // BR: street-first in Overture data (Rua Augusta 1234), CEP postcode
   { cc: 'BR', input: 'Rua Augusta 1234', expected: { street: 'Rua Augusta', number: '1234' } },
@@ -254,6 +265,64 @@ describe('Extended parser scenarios', () => {
     const result = parser.parseAddress('本郷 1-2-3')
     expect(result.street).toBe('本郷')
     expect(result.number).toBe('1-2-3')
+  })
+
+  // FR: full address with postcode
+  it('FR: "12 rue de rivoli 75001" extracts number, street, and postcode', () => {
+    const parser = getParser('FR')
+    const result = parser.parseAddress('12 rue de rivoli 75001')
+    expect(result.number).toBe('12')
+    expect(result.street?.toLowerCase()).toContain('rue de rivoli')
+    expect(result.postcode).toBe('75001')
+  })
+
+  // FR: arrondissement stripping
+  it('FR: strips arrondissement suffix from input', () => {
+    const parser = getParser('FR')
+    const result = parser.parseAddress('12 Rue de Rivoli Paris 1er Arrondissement')
+    expect(result.number).toBe('12')
+    expect(result.street).toBe('Rue de Rivoli Paris')
+    // "1er" and "Arrondissement" should be stripped
+    expect(result.street).not.toContain('Arrondissement')
+    expect(result.street).not.toMatch(/\b1er\b/)
+  })
+
+  it('FR: strips numeric arrondissement (8e) from input', () => {
+    const parser = getParser('FR')
+    const result = parser.parseAddress('55 Rue du Faubourg Saint-Honoré 8e Arrondissement')
+    expect(result.number).toBe('55')
+    expect(result.street).not.toContain('8e')
+    expect(result.street).not.toContain('Arrondissement')
+  })
+
+  // FR: multi-word street types
+  it('FR: "3 Place de la Concorde 75008" handles Place type', () => {
+    const parser = getParser('FR')
+    const result = parser.parseAddress('3 Place de la Concorde 75008')
+    expect(result.number).toBe('3')
+    expect(result.postcode).toBe('75008')
+  })
+
+  it('FR: "24 Quai du Louvre" handles Quai type', () => {
+    const parser = getParser('FR')
+    const result = parser.parseAddress('24 Quai du Louvre')
+    expect(result.number).toBe('24')
+    expect(result.street).toBe('Quai du Louvre')
+  })
+
+  // FR: Lyon and Marseille addresses
+  it('FR: "45 Cours Charlemagne 69002" Lyon address', () => {
+    const parser = getParser('FR')
+    const result = parser.parseAddress('45 Cours Charlemagne 69002')
+    expect(result.number).toBe('45')
+    expect(result.postcode).toBe('69002')
+  })
+
+  it('FR: "80 Rue de la République 13002" Marseille address', () => {
+    const parser = getParser('FR')
+    const result = parser.parseAddress('80 Rue de la République 13002')
+    expect(result.number).toBe('80')
+    expect(result.postcode).toBe('13002')
   })
 
   // NL: ordinal streets preserved

@@ -148,6 +148,25 @@ describe('classifyInput', () => {
       expect(c.parsed.number).toBe('7')
     })
 
+    it('FR: 12 rue de rivoli 75001 (full address with postcode)', () => {
+      const c = classifyInput('12 rue de rivoli 75001', 'FR')
+      expect(c.mode).toBe('ready')
+      expect(c.parsed.number).toBe('12')
+      expect(c.parsed.postcode).toBe('75001')
+    })
+
+    it('FR: 55 rue du faubourg saint-honoré (multi-word street)', () => {
+      const c = classifyInput('55 rue du faubourg saint-honoré', 'FR')
+      expect(c.mode).toBe('ready')
+      expect(c.parsed.number).toBe('55')
+    })
+
+    it('FR: 1 avenue des champs-élysées (hyphenated street)', () => {
+      const c = classifyInput('1 avenue des champs-élysées', 'FR')
+      expect(c.mode).toBe('ready')
+      expect(c.parsed.number).toBe('1')
+    })
+
     it('AU: 196 condamine street (NUMBER_FIRST)', () => {
       const c = classifyInput('196 condamine street', 'AU')
       expect(c.mode).toBe('ready')
@@ -190,6 +209,18 @@ describe('classifyInput', () => {
       expect(classifyInput('keizersgracht 1', 'NL').mode).toBe('ready')
     })
 
+    it('FR: "750" is postcode, "75001" is postcode, "12 rue" is ready', () => {
+      expect(classifyInput('750', 'FR').mode).toBe('postcode')
+      expect(classifyInput('75001', 'FR').mode).toBe('postcode')
+      expect(classifyInput('12 rue', 'FR').mode).toBe('ready')
+    })
+
+    it('FR: "rue" is street, "rue de" is street, "12 rue de rivoli" is ready', () => {
+      expect(classifyInput('rue', 'FR').mode).toBe('street')
+      expect(classifyInput('rue de', 'FR').mode).toBe('street')
+      expect(classifyInput('12 rue de rivoli', 'FR').mode).toBe('ready')
+    })
+
     it('CA: partial FSA "M3N" is postcode detection', () => {
       const c = classifyInput('M3N', 'CA')
       // M3N is a partial Canadian FSA, should trigger postcode detection
@@ -217,6 +248,16 @@ describe('classifyInput', () => {
     it('FR: preserves multi-word street', () => {
       const c = classifyInput('rue de rivoli', 'FR')
       expect(c.streetQuery).toBe('rue de rivoli')
+    })
+
+    it('FR: street query keeps leading number (FR is street-first in extractStreetQuery)', () => {
+      // FR parser is number-first for parseAddress, but FR is NOT in NUMBER_FIRST set
+      // so extractStreetQuery treats it as street-first and does not strip leading number
+      expect(classifyInput('12 rue de rivoli', 'FR').streetQuery).toBe('12 rue de rivoli')
+    })
+
+    it('FR: boulevard haussmann street query', () => {
+      expect(classifyInput('boulevard haussmann', 'FR').streetQuery).toBe('boulevard haussmann')
     })
   })
 
