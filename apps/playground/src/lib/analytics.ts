@@ -33,3 +33,9 @@ function trackPageView() {
     page,
   })
 }
+
+/** Capture a custom event. No-op if PostHog is not initialized. */
+export function track(event: string, properties?: Record<string, unknown>) {
+  if (!initialized) return
+  posthog.capture(event, properties)
+}

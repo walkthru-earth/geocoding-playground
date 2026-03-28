@@ -14,6 +14,7 @@
   import StepLog from '../lib/components/StepLog.svelte'
   import ResultsTable from '../lib/components/ResultsTable.svelte'
   import { startGeocodeTour } from '../lib/tour'
+  import { track } from '../lib/analytics'
 
   const presetsByCountry: Record<string, { label: string; city: string; query: string }[]> = {
     NL: [
@@ -181,6 +182,7 @@
     mapView?.clearResultMarkers()
 
     if (!selectedCountry) return
+    track('country_selected', { country: selectedCountry })
 
     if (isCountryCached(selectedCountry)) {
       citiesReady = true
@@ -241,6 +243,7 @@
   }
 
   function selectCity(city: CityRow) {
+    track('city_selected', { city: city.city, region: city.region, country: selectedCountry })
     selectedCity = city
     cityQuery = city.city
     cities = []
@@ -285,6 +288,7 @@
       suggestions = results
     } catch (e: any) {
       console.warn('[autocomplete]', e.message)
+      track('autocomplete_error', { country: selectedCountry, error: e.message })
       suggestions = []
     } finally {
       loadingSuggestions = false
@@ -292,6 +296,7 @@
   }
 
   function selectSuggestion(s: SuggestRow) {
+    track('suggestion_selected', { type: s.type, country: selectedCountry })
     selectedSuggestion = s
     addressQuery = s.label
     suggestions = []
@@ -310,6 +315,7 @@
   async function runPreset(preset: { label: string; city: string; query: string }) {
     const cc = selectedCountry
     if (!cc) return
+    track('preset_clicked', { preset: preset.label, country: cc })
 
     steps = []
     error = ''
@@ -534,10 +540,20 @@
 
       searchTime = performance.now() - totalT0
       log(`Done    ${results.length} results, total: ${ms(totalT0)}`, 'done')
+      track('forward_geocode_search', {
+        country: cc,
+        result_count: results.length,
+        duration_ms: Math.round(searchTime),
+        tile_count: tiles.length,
+        has_postcode: !!parsed.postcode,
+        has_street: !!parsed.street,
+        has_number: !!parsed.number,
+      })
     } catch (e: any) {
       console.error('[geocode]', e)
       error = e.message
       log(`Error: ${e.message}`, 'error')
+      track('forward_geocode_error', { country: cc, error: e.message })
     } finally {
       searching = false
     }

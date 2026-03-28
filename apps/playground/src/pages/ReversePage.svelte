@@ -8,6 +8,7 @@
   import maplibregl from 'maplibre-gl'
   import { cellToBoundary } from 'h3-js'
   import { shouldShowTour, showNavTour } from '../lib/tour'
+  import { track } from '../lib/analytics'
 
   // Show welcome tour on first visit
   $effect(() => {
@@ -54,6 +55,7 @@
         .addTo(map)
 
       map.flyTo({ center: e.lngLat, zoom: Math.max(map.getZoom(), 14), duration: 800 })
+      track('map_clicked', { lat, lon })
       search()
     })
   }
@@ -224,10 +226,19 @@
 
       searchTime = performance.now() - totalT0
       log(`Done    ${results.length} results, total: ${ms(totalT0)}`, 'done')
+      track('reverse_geocode_search', {
+        lat,
+        lon,
+        radius_m: radius,
+        result_count: results.length,
+        duration_ms: Math.round(searchTime),
+        tiles_queried: queriedTiles.size,
+      })
     } catch (e: any) {
       console.error('[reverse] Error:', e)
       error = e.message
       log(`Error: ${e.message}`, 'error')
+      track('reverse_geocode_error', { lat, lon, error: e.message })
     } finally {
       searching = false
     }
@@ -332,6 +343,7 @@
   }
 
   function setPreset(name: string, lt: number, ln: number) {
+    track('preset_clicked', { preset: name, lat: lt, lon: ln })
     lat = lt
     lon = ln
     mapView?.flyTo(ln, lt, 16)
