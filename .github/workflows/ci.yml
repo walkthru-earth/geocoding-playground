@@ -97,11 +97,11 @@ jobs:
 
       - name: Install Playwright Chromium
         working-directory: apps/playground
-        run: pnpx playwright install chromium --with-deps
+        run: pnpm exec playwright install chromium --with-deps
 
       - name: Run E2E tests
         working-directory: apps/playground
-        run: pnpx playwright test
+        run: pnpm exec playwright test
 
       - name: E2E test report PR comment
         if: github.event_name == 'pull_request' && always()
