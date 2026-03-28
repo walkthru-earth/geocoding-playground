@@ -2,9 +2,10 @@ import { expect, test } from '@playwright/test'
 
 test.describe('Forward Geocode', () => {
   test.beforeEach(async ({ page }) => {
-    // Dismiss the Driver.js onboarding tour
+    // Dismiss all Driver.js tours so overlays don't block interactions
     await page.addInitScript(() => {
       localStorage.setItem('geocode-tour-seen', '1')
+      localStorage.setItem('geocode-reverse-hint-seen', '1')
     })
 
     // Load app at root, wait for DuckDB, then click Geocode pill

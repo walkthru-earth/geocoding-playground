@@ -1,10 +1,11 @@
 import { expect, test } from '@playwright/test'
 
 test.describe('Navigation', () => {
-  // Dismiss the Driver.js onboarding tour before each test
+  // Dismiss all Driver.js tours so overlays don't block interactions
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
       localStorage.setItem('geocode-tour-seen', '1')
+      localStorage.setItem('geocode-reverse-hint-seen', '1')
     })
   })
 
