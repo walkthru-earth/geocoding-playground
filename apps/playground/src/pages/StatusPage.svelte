@@ -795,6 +795,24 @@
                 <td>DuckDB SQL on prefetched in-memory tables for city, street, and postcode search</td>
                 <td><span class="badge badge-success badge-sm">deployed</span></td>
               </tr>
+              <tr>
+                <td>Mixed ß/ss street names</td>
+                <td class="font-mono text-sm">DE, AT, CH</td>
+                <td>DE/AT use ß (108K streets), CH uses ss (17.5K streets), 29 DE entries inconsistently use ss. JS normalizer handles both, SQL path does not yet.</td>
+                <td><a href="https://github.com/walkthru-earth/geocoding-playground/issues/4" class="link link-primary text-sm" target="_blank">#4</a></td>
+              </tr>
+              <tr>
+                <td>Accent-insensitive search</td>
+                <td class="font-mono text-sm">DE, FR, BR, PL, Nordic, Balkans</td>
+                <td>Users typing without accents (munchen, sao paulo, lodz) need normalization to match accented data. JS normalizer deployed, SQL path pending.</td>
+                <td><a href="https://github.com/walkthru-earth/geocoding-playground/issues/5" class="link link-primary text-sm" target="_blank">#5</a></td>
+              </tr>
+              <tr>
+                <td>DuckDB LIKE ignores NOACCENT collation</td>
+                <td class="font-mono text-sm">all countries</td>
+                <td>LIKE/ILIKE queries cannot use NOACCENT collation natively. Tracked upstream at duckdb/duckdb#604.</td>
+                <td><a href="https://github.com/walkthru-earth/geocoding-playground/issues/6" class="link link-primary text-sm" target="_blank">#6</a></td>
+              </tr>
             </tbody>
           </table>
         </div>
