@@ -316,14 +316,6 @@
       fillOpacity: 0.1,
       lineColor: ['match', ['get', 'status'], 'queried', '#22c55e', 'skipped', '#64748b', '#eab308'] as any,
       lineWidth: 1.5,
-      popupFn: (p) => `
-        <div class="popup-mono">
-          <div class="popup-mono-title">${p.country} / ${p.h3_parent}</div>
-          <div>Addresses: <b>${Number(p.address_count).toLocaleString()}</b></div>
-          <div>Matching cells: <b>${p.cells}</b></div>
-          <div>Status: <b style="color: ${p.status === 'queried' ? '#22c55e' : p.status === 'skipped' ? '#64748b' : '#eab308'}">${p.status}</b></div>
-        </div>
-      `,
     })
   }
 

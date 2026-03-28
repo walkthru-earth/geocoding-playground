@@ -80,7 +80,7 @@
   let citiesReady = $state(false)
   let error = $state('')
   let searchTime = $state(0)
-  let limit = $state(10)
+  let limit = $state(5)
   let steps = $state<StepEntry[]>([])
   let cacheInfo = $state('')
   let mapView = $state<MapView>()
@@ -691,10 +691,11 @@
 
       <div class="relative flex gap-2">
         <select class="select select-bordered select-sm md:select-md w-20 md:w-24" bind:value={limit}>
+          <option value={5}>5</option>
           <option value={10}>10</option>
-          <option value={25}>25</option>
-          <option value={50}>50</option>
-          <option value={100}>100</option>
+          <option value={20}>20</option>
+          <option value={40}>40</option>
+          <option value={80}>80</option>
         </select>
         <button id="tour-search-btn" class="btn btn-primary btn-sm md:btn-md rounded-full flex-1" onclick={search} disabled={!selectedCountry || addressQuery.length < 2 || searching || prefetching}>
           {#if searching}

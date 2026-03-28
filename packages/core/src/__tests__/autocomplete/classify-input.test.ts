@@ -142,7 +142,7 @@ describe('classifyInput', () => {
       expect(c.parsed.number).toBe('116')
     })
 
-    it('FR: 7 rue tourneux (number-first format)', () => {
+    it('FR: 7 rue tourneux (number-first format, street >= 4 chars)', () => {
       const c = classifyInput('7 rue tourneux', 'FR')
       expect(c.mode).toBe('ready')
       expect(c.parsed.number).toBe('7')
@@ -153,6 +153,26 @@ describe('classifyInput', () => {
       expect(c.mode).toBe('ready')
       expect(c.parsed.number).toBe('12')
       expect(c.parsed.postcode).toBe('75001')
+    })
+
+    it('FR: 12 rue (short street stays in street mode for 2-step narrowing)', () => {
+      const c = classifyInput('12 rue', 'FR')
+      // "rue" is only 3 chars, too generic for address lookup
+      // Stay in street mode so user gets instant suggestions
+      expect(c.mode).toBe('street')
+      expect(c.parsed.number).toBe('12')
+      expect(c.parsed.street).toBe('rue')
+    })
+
+    it('IT: via 12 (short street type stays in street mode)', () => {
+      const c = classifyInput('via 12', 'IT')
+      expect(c.mode).toBe('street')
+      expect(c.parsed.number).toBe('12')
+    })
+
+    it('DE: am 5 (short prefix stays in street mode)', () => {
+      const c = classifyInput('am 5', 'DE')
+      expect(c.mode).toBe('street')
     })
 
     it('FR: 55 rue du faubourg saint-honoré (multi-word street)', () => {
@@ -209,10 +229,19 @@ describe('classifyInput', () => {
       expect(classifyInput('keizersgracht 1', 'NL').mode).toBe('ready')
     })
 
-    it('FR: "750" is postcode, "75001" is postcode, "12 rue" is ready', () => {
+    it('FR: "750" is postcode, "75001" is postcode, "12 rue" is street (2-step)', () => {
       expect(classifyInput('750', 'FR').mode).toBe('postcode')
       expect(classifyInput('75001', 'FR').mode).toBe('postcode')
-      expect(classifyInput('12 rue', 'FR').mode).toBe('ready')
+      // "12 rue" stays in street mode because "rue" (3 chars) is too generic
+      expect(classifyInput('12 rue', 'FR').mode).toBe('street')
+    })
+
+    it('FR: progressive narrowing "12 rue" → "12 rue de" → "12 rue de rivoli"', () => {
+      // Step 1: short street type → street mode (instant suggestions)
+      expect(classifyInput('12 rue', 'FR').mode).toBe('street')
+      // Step 2: longer street → ready mode (address lookup)
+      expect(classifyInput('12 rue de', 'FR').mode).toBe('ready')
+      expect(classifyInput('12 rue de rivoli', 'FR').mode).toBe('ready')
     })
 
     it('FR: "rue" is street, "rue de" is street, "12 rue de rivoli" is ready', () => {
@@ -250,10 +279,14 @@ describe('classifyInput', () => {
       expect(c.streetQuery).toBe('rue de rivoli')
     })
 
-    it('FR: street query keeps leading number (FR is street-first in extractStreetQuery)', () => {
-      // FR parser is number-first for parseAddress, but FR is NOT in NUMBER_FIRST set
-      // so extractStreetQuery treats it as street-first and does not strip leading number
-      expect(classifyInput('12 rue de rivoli', 'FR').streetQuery).toBe('12 rue de rivoli')
+    it('FR: street query uses parsed street (strips leading number)', () => {
+      // FR parser extracts leading number, so streetQuery = parsed.street
+      expect(classifyInput('12 rue de rivoli', 'FR').streetQuery).toBe('rue de rivoli')
+    })
+
+    it('FR: short street query from parsed street', () => {
+      // "12 rue" → parsed.street = "rue", used as streetQuery
+      expect(classifyInput('12 rue', 'FR').streetQuery).toBe('rue')
     })
 
     it('FR: boulevard haussmann street query', () => {

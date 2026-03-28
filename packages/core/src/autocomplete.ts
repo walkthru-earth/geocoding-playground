@@ -82,8 +82,10 @@ export function classifyInput(input: string, cc: string): InputClassification {
   const hasPostcode = !!parsed.postcode
   const hasNumber = !!parsed.number
 
-  // Extract the street query part (strip number for autocomplete)
-  const streetQuery = extractStreetQuery(raw, cc)
+  // Extract the street query part (strip number for autocomplete).
+  // When the parser found both street and number, prefer parsed.street
+  // since it handles FR-style number-first input without needing NUMBER_FIRST.
+  const streetQuery = parsed.street && parsed.number ? parsed.street : extractStreetQuery(raw, cc)
 
   // Determine mode
   const mode = determineMode(raw, cc, parsed, streetQuery)
@@ -109,7 +111,10 @@ function determineMode(
   if (tokens.length === 0) return 'ready'
 
   // If parser found both street and number, user has a complete address
-  if (parsed.street && parsed.number) return 'ready'
+  // But only if the street is specific enough to narrow results.
+  // Short streets like "rue" (3 chars) stay in street mode so the user
+  // gets instant suggestions before committing to an address lookup.
+  if (parsed.street && parsed.number && parsed.street.length >= 4) return 'ready'
 
   // If parser found a full postcode, prioritize postcode mode
   if (parsed.postcode) return 'postcode'

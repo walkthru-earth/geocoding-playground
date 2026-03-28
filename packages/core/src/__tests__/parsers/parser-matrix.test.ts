@@ -43,8 +43,10 @@ const customParserCases: ParserCase[] = [
   { cc: 'DE', input: 'Hauptstrasse', expected: { street: 'Hauptstrasse' } },
 
   // FR: number-first (12 Rue de Rivoli), 5-digit postcode, arrondissement stripping
+  // Also handles trailing numbers (data format: "Rue de Rivoli 12")
   { cc: 'FR', input: '12 Rue de Rivoli', expected: { number: '12', street: 'Rue de Rivoli' } },
   { cc: 'FR', input: '75001', expected: { postcode: '75001' } },
+  { cc: 'FR', input: "Rue de l'Eglise 12", expected: { number: '12', street: "Rue de l'Eglise" } },
   {
     cc: 'FR',
     input: '55 Rue du Faubourg Saint-Honoré',
