@@ -17,15 +17,20 @@
   "sideEffects": false,
   "scripts": {
     "build": "vite build",
-    "dev": "vite build --watch"
+    "dev": "vite build --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "peerDependencies": {
     "@duckdb/duckdb-wasm": ">=1.28.0"
   },
   "devDependencies": {
     "@duckdb/duckdb-wasm": "1.33.1-dev41.0",
-    "vite-plugin-dts": "5.0.0-beta.6",
+    "@vitest/coverage-v8": "^4.1.2",
+    "typescript": "~6.0.2",
     "vite": "^8.0.3",
-    "typescript": "~6.0.2"
+    "vite-plugin-dts": "5.0.0-beta.6",
+    "vitest": "^4.1.2"
   }
 }
