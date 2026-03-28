@@ -2,7 +2,7 @@
   import {
     queryObjects, queryObjectsWithRetry, tilePath, prefetchCountry, isCountryCached, onCacheLog, getTileSource, isTileCached,
     SearchCache, rankBySimilarity,
-    getParser,
+    getParser, stripJPCoordZone,
     esc, toArr, ms, addStep, updateLastStep, htmlEsc,
     // Smart autocomplete (core)
     suggest, classifyInput, resolveTiles, rankSuggestions,
@@ -132,8 +132,16 @@
         if (rows.length === 0) return []
 
         const prefix = numberPrefix.toLowerCase()
+        const isJP = cc === 'JP'
+
+        // JP numbers in the index are "banchi-coordZone" (e.g., "362-9") where
+        // the suffix is an MLIT survey grid zone, not a real address part.
+        // Strip it before matching and displaying.
         const matched = toArr(rows[0].numbers)
+          .map((n: string) => isJP ? stripJPCoordZone(n) : n)
           .filter((n: string) => n.toLowerCase().startsWith(prefix))
+          // Deduplicate: after stripping coord zones, "362-7" and "362-9" both become "362"
+          .filter((n: string, i: number, arr: string[]) => arr.indexOf(n) === i)
           .slice(0, 10)
 
         return matched.map((n: string) => ({
@@ -152,19 +160,23 @@
 
   $effect(() => { loadCountries() })
 
-  // When the user interacts with the map (click, zoom, pan) thinking it's reverse geocoding,
-  // guide them to the Reverse page. Only shown once.
+  // When the user interacts with the map (click or user-initiated zoom) thinking
+  // it's reverse geocoding, guide them to the Reverse page. Only shown once.
+  // We check originalEvent to ignore programmatic zooms (fitBounds, flyTo).
   $effect(() => {
     const map = mapView?.getMap()
     if (!map) return
-    function onMapInteraction() {
+    function onMapClick() {
       if (shouldShowReverseHint()) showReverseGeocodingHint()
     }
-    map.on('click', onMapInteraction)
-    map.on('zoomstart', onMapInteraction)
+    function onUserZoom(e: { originalEvent?: Event }) {
+      if (e.originalEvent && shouldShowReverseHint()) showReverseGeocodingHint()
+    }
+    map.on('click', onMapClick)
+    map.on('zoomstart', onUserZoom)
     return () => {
-      map.off('click', onMapInteraction)
-      map.off('zoomstart', onMapInteraction)
+      map.off('click', onMapClick)
+      map.off('zoomstart', onUserZoom)
     }
   })
 
