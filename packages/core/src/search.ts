@@ -60,7 +60,7 @@ function bigrams(str: string): Set<string> {
 export function jaccardSimilarity(a: string, b: string): number {
   const bgA = bigrams(a)
   const bgB = bigrams(b)
-  if (bgA.size === 0 && bgB.size === 0) return 0
+  if (bgA.size === 0 && bgB.size === 0) return 1
 
   let intersection = 0
   for (const bg of bgA) {

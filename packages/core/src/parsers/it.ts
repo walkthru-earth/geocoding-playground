@@ -51,7 +51,7 @@ export class ITParser extends GenericParser {
 
     return (
       parsed.tokens
-        .filter((t) => t.length > 0)
+        .filter((t) => t.length > 1)
         .map((t) => `full_address ILIKE '%${esc(t)}%'`)
         .join(' AND ') || '1=1'
     )

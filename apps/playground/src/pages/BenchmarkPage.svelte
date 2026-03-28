@@ -109,6 +109,7 @@
   async function runCdnBenchmark() {
     cdnRunning = true
     cdnResults = []
+    logs = []
     log('=== CDN LATENCY BENCHMARK ===')
 
     for (const file of CDN_TEST_FILES) {

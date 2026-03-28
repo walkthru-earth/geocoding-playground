@@ -1,6 +1,8 @@
 import type { ParsedAddress } from '../address-parser'
 import { GenericParser } from './generic'
 
+const NL_UNITS = new Set(['bis', 'hs', 'huis', 'boven', 'beneden', 'i', 'ii', 'iii', 'iv'])
+
 /**
  * NL address parser.
  *
@@ -30,7 +32,6 @@ export class NLParser extends GenericParser {
     // Step 3: Find house number ,last numeric token (not ordinals like "2e")
     let number: string | undefined
     let unit: string | undefined
-    const NL_UNITS = new Set(['bis', 'hs', 'huis', 'boven', 'beneden', 'i', 'ii', 'iii', 'iv'])
 
     for (let i = remaining.length - 1; i >= 0; i--) {
       const t = remaining[i]

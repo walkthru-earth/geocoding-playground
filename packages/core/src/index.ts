@@ -66,4 +66,4 @@ export type {
   TileStatsRow,
 } from './types'
 // ── Utilities ────────────────────────────────────────────────
-export { addStep, esc, fmt, fmtFull, formatSize, ms, toArr, updateLastStep } from './utils'
+export { addStep, esc, fmt, fmtFull, formatSize, htmlEsc, ms, toArr, updateLastStep, validateCC } from './utils'

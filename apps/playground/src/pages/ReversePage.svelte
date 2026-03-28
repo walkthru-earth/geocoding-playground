@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { queryObjects, queryObjectsWithRetry, dataPath, tilePath, getTileSource, isTileCached, ms, addStep, updateLastStep } from '@walkthru-earth/geocoding-core'
+  import { queryObjects, queryObjectsWithRetry, dataPath, tilePath, getTileSource, isTileCached, ms, addStep, updateLastStep, htmlEsc } from '@walkthru-earth/geocoding-core'
   import type { AddressRow, StepEntry } from '@walkthru-earth/geocoding-core'
   import MapView from '../lib/MapView.svelte'
   import SplitPane from '../lib/components/SplitPane.svelte'
@@ -27,6 +27,7 @@
   let searchTime = $state(0)
   let steps = $state<StepEntry[]>([])
   let mapView = $state<MapView>()
+  let searchGen = 0
 
   function log(text: string, status?: StepEntry['status']) {
     steps = addStep(steps, text, status)
@@ -58,6 +59,7 @@
   }
 
   async function search() {
+    const gen = ++searchGen
     searching = true
     error = ''
     results = []
@@ -94,6 +96,8 @@
               h3_h3_to_string(h3_latlng_to_cell(${lat}, ${lon}, 5)) AS cell_hex`
       )
 
+      if (gen !== searchGen) return
+
       // Group cells by their parent tile ,each cell belongs to exactly one tile
       // Track both BIGINT (for SQL WHERE) and hex (for map visualization)
       const cellsByParent = new Map<string, string[]>()
@@ -120,6 +124,7 @@
         WHERE h3_parent IN (${parentList})
       `)
 
+      if (gen !== searchGen) return
       if (tileResults.length === 0) {
         updateLast('Step 2  No tiles found ,this location has no address coverage', 'error')
         error = 'No address coverage at this location.'
@@ -192,6 +197,7 @@
           continue
         }
 
+        if (gen !== searchGen) return
         queriedTiles.add(h3_parent)
 
         results = [...results, ...tileAddresses].sort((a, b) => (a.distance_m ?? 0) - (b.distance_m ?? 0)).slice(0, resultLimit)
@@ -234,11 +240,11 @@
   function resultPopupHtml(r: AddressRow, idx: number): string {
     const dist = r.distance_m ?? 0
     const distStr = dist < 1000 ? `${Math.round(dist)}m` : `${(dist / 1000).toFixed(1)}km`
-    const parts = [r.city, r.postcode].filter(Boolean).join(' · ')
+    const parts = [r.city, r.postcode].filter(Boolean).map(s => htmlEsc(s!)).join(' · ')
     return `<div class="popup-body">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
         <span class="popup-badge ${idx === 0 ? 'popup-badge-primary' : 'popup-badge-secondary'}">${idx + 1}</span>
-        <span class="popup-title">${r.full_address}</span>
+        <span class="popup-title">${htmlEsc(r.full_address)}</span>
       </div>
       ${parts ? `<div class="popup-subtitle">${parts}</div>` : ''}
       <div style="display:flex;align-items:center;gap:8px;margin-left:2rem;margin-top:2px">

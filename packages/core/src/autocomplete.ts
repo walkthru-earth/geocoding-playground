@@ -15,7 +15,7 @@ import { getParser, NUMBER_FIRST } from './address-parser'
 import { dataPath, tilePath } from './duckdb'
 import { jaccardSimilarity, type SearchCache } from './search'
 import type { CityRow, SuggestRow } from './types'
-import { esc, toArr } from './utils'
+import { esc, toArr, validateCC } from './utils'
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -56,6 +56,9 @@ export interface TileResolutionResult {
   source: string
 }
 
+/** Minimum street length to transition from street mode to ready mode */
+const MIN_STREET_LEN_FOR_READY = 4
+
 // ── Input Classification ─────────────────────────────────────
 
 /**
@@ -63,6 +66,7 @@ export interface TileResolutionResult {
  * Determines what the user is typing and what autocomplete mode to use.
  */
 export function classifyInput(input: string, cc: string): InputClassification {
+  validateCC(cc)
   const raw = input.trim()
   if (!raw) {
     return {
@@ -82,9 +86,8 @@ export function classifyInput(input: string, cc: string): InputClassification {
   const hasPostcode = !!parsed.postcode
   const hasNumber = !!parsed.number
 
-  // Extract the street query part (strip number for autocomplete).
-  // When the parser found both street and number, prefer parsed.street
-  // since it handles FR-style number-first input without needing NUMBER_FIRST.
+  // Prefer parsed.street when parser found both street and number
+  // (handles FR-style number-first without needing NUMBER_FIRST)
   const streetQuery = parsed.street && parsed.number ? parsed.street : extractStreetQuery(raw, cc)
 
   // Determine mode
@@ -110,11 +113,9 @@ function determineMode(
   const tokens = raw.split(/\s+/).filter(Boolean)
   if (tokens.length === 0) return 'ready'
 
-  // If parser found both street and number, user has a complete address
-  // But only if the street is specific enough to narrow results.
-  // Short streets like "rue" (3 chars) stay in street mode so the user
-  // gets instant suggestions before committing to an address lookup.
-  if (parsed.street && parsed.number && parsed.street.length >= 4) return 'ready'
+  // Street + number present, but only "ready" if street is specific enough.
+  // Short prefixes like "rue" (3 chars) stay in street mode for instant suggestions.
+  if (parsed.street && parsed.number && parsed.street.length >= MIN_STREET_LEN_FOR_READY) return 'ready'
 
   // If parser found a full postcode, prioritize postcode mode
   if (parsed.postcode) return 'postcode'
@@ -148,31 +149,31 @@ function looksLikePartialPostcode(input: string, cc: string): boolean {
   const s = input.trim()
   if (!s) return false
 
-  // Country-specific partial postcode patterns
-  const partials: Record<string, RegExp> = {
-    US: /^\d{1,5}$/, // 1-5 digits
-    DE: /^\d{1,5}$/,
-    FR: /^\d{1,5}$/,
-    ES: /^\d{1,5}$/,
-    IT: /^\d{1,5}$/,
-    NL: /^\d{1,4}[a-z]{0,2}$/i, // 1-4 digits + optional letters
-    CA: /^[a-z]\d[a-z]?(\s?\d[a-z]\d)?$/i, // partial FSA or full
-    BR: /^\d{1,5}(-?\d{0,3})?$/,
-    AU: /^\d{1,4}$/,
-    JP: /^\d{1,3}(-?\d{0,4})?$/,
-    CH: /^\d{1,4}$/,
-    AT: /^\d{1,4}$/,
-    BE: /^\d{1,4}$/,
-    DK: /^\d{1,4}$/,
-    NO: /^\d{1,4}$/,
-    FI: /^\d{1,5}$/,
-    PT: /^\d{1,4}(-?\d{0,3})?$/,
-    PL: /^\d{1,2}(-?\d{0,3})?$/,
-  }
-
-  const re = partials[cc]
-  if (!re) return /^\d+$/.test(s) // fallback: any digits
+  const re = PARTIAL_POSTCODE_RE[cc]
+  if (!re) return /^\d+$/.test(s)
   return re.test(s)
+}
+
+/** Partial postcode patterns per country (hoisted to avoid per-call allocation) */
+const PARTIAL_POSTCODE_RE: Record<string, RegExp> = {
+  US: /^\d{1,5}$/,
+  DE: /^\d{1,5}$/,
+  FR: /^\d{1,5}$/,
+  ES: /^\d{1,5}$/,
+  IT: /^\d{1,5}$/,
+  NL: /^\d{1,4}[a-z]{0,2}$/i,
+  CA: /^[a-z]\d[a-z]?(\s?\d[a-z]\d)?$/i,
+  BR: /^\d{1,5}(-?\d{0,3})?$/,
+  AU: /^\d{1,4}$/,
+  JP: /^\d{1,3}(-?\d{0,4})?$/,
+  CH: /^\d{1,4}$/,
+  AT: /^\d{1,4}$/,
+  BE: /^\d{1,4}$/,
+  DK: /^\d{1,4}$/,
+  NO: /^\d{1,4}$/,
+  FI: /^\d{1,5}$/,
+  PT: /^\d{1,4}(-?\d{0,3})?$/,
+  PL: /^\d{1,2}(-?\d{0,3})?$/,
 }
 
 // ── Street Query Extraction ──────────────────────────────────
@@ -385,7 +386,9 @@ export function resolveTiles(
  * Returns the full SQL string for queryObjects.
  */
 export function buildPostcodeSQL(cc: string, query: string, cityTiles: string[]): string {
-  const boost = cityTiles.length > 0 ? `list_has_any(tiles, ['${cityTiles.join("','")}']::VARCHAR[]) DESC, ` : ''
+  validateCC(cc)
+  const boost =
+    cityTiles.length > 0 ? `list_has_any(tiles, ['${cityTiles.map((t) => esc(t)).join("','")}']::VARCHAR[]) DESC, ` : ''
   return `SELECT postcode, tiles, addr_count FROM _postcodes_${cc}
     WHERE lower(postcode) LIKE '${esc(query.toLowerCase())}%'
     ORDER BY ${boost}addr_count DESC LIMIT 15`
@@ -396,7 +399,9 @@ export function buildPostcodeSQL(cc: string, query: string, cityTiles: string[])
  * Returns the full SQL string for queryObjects.
  */
 export function buildStreetSQL(cc: string, query: string, cityTiles: string[]): string {
-  const boost = cityTiles.length > 0 ? `list_has_any(tiles, ['${cityTiles.join("','")}']::VARCHAR[]) DESC, ` : ''
+  validateCC(cc)
+  const boost =
+    cityTiles.length > 0 ? `list_has_any(tiles, ['${cityTiles.map((t) => esc(t)).join("','")}']::VARCHAR[]) DESC, ` : ''
   return `SELECT street_lower, tiles, addr_count, primary_city FROM _streets_${cc}
     WHERE street_lower LIKE '${esc(query.toLowerCase())}%'
     ORDER BY ${boost}addr_count DESC LIMIT 15`
@@ -406,6 +411,7 @@ export function buildStreetSQL(cc: string, query: string, cityTiles: string[]): 
  * Build SQL for narrowing tiles by postcode (exact or prefix match).
  */
 export function buildPostcodeNarrowSQL(cc: string, postcode: string): string {
+  validateCC(cc)
   return `SELECT postcode, tiles, addr_count FROM _postcodes_${cc}
     WHERE lower(postcode) = '${esc(postcode.toLowerCase())}'
     LIMIT 1`
@@ -415,6 +421,7 @@ export function buildPostcodeNarrowSQL(cc: string, postcode: string): string {
  * Build SQL for narrowing tiles by street (exact then prefix fallback).
  */
 export function buildStreetNarrowSQL(cc: string, street: string, exact: boolean): string {
+  validateCC(cc)
   const op = exact ? '=' : 'LIKE'
   const val = exact ? `'${esc(street.toLowerCase())}'` : `'${esc(street.toLowerCase())}%'`
   return `SELECT street_lower, tiles, addr_count FROM _streets_${cc}
@@ -427,7 +434,11 @@ export function buildStreetNarrowSQL(cc: string, street: string, exact: boolean)
  * distinct house numbers matching a street + number prefix.
  * Groups by number to deduplicate units (185A, 185B -> one "185" row).
  */
+const TILE_RE = /^[0-9a-f]+$/i
+
 export function buildAddressSQL(cc: string, street: string, numberPrefix: string, tile: string): string {
+  validateCC(cc)
+  if (!TILE_RE.test(tile)) throw new Error(`Invalid tile id: ${tile}`)
   return `SELECT DISTINCT number, street, city, postcode
     FROM read_parquet('${tilePath(cc, tile)}')
     WHERE lower(street) = '${esc(street.toLowerCase())}'
@@ -446,6 +457,7 @@ export function buildAddressSQL(cc: string, street: string, numberPrefix: string
  * for that street across the entire country.
  */
 export function buildNumberIndexSQL(cc: string, street: string): string {
+  validateCC(cc)
   return `SELECT street_lower, numbers
     FROM read_parquet('${dataPath(`number_index/country=${cc}/data_0.parquet`)}')
     WHERE street_lower = '${esc(street.toLowerCase())}'

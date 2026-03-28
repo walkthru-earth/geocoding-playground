@@ -62,6 +62,43 @@ const US_STATE_CODES = new Set([
 
 const UNIT_INDICATORS = new Set(['APT', 'UNIT', 'STE', 'SUITE', 'FL', 'FLOOR', 'RM', 'ROOM', 'BLDG', 'LOT'])
 
+const STREET_SUFFIXES = new Set([
+  'ST',
+  'STREET',
+  'AVE',
+  'AVENUE',
+  'BLVD',
+  'BOULEVARD',
+  'DR',
+  'DRIVE',
+  'RD',
+  'ROAD',
+  'LN',
+  'LANE',
+  'CT',
+  'COURT',
+  'PL',
+  'PLACE',
+  'WAY',
+  'CIR',
+  'CIRCLE',
+  'TER',
+  'TERRACE',
+  'PKWY',
+  'PARKWAY',
+  'HWY',
+  'HIGHWAY',
+  'SQ',
+  'SQUARE',
+  'TRL',
+  'TRAIL',
+  'LOOP',
+  'PATH',
+  'PIKE',
+  'ALY',
+  'ALLEY',
+])
+
 /**
  * US address parser.
  *
@@ -113,44 +150,6 @@ export class USParser extends GenericParser {
     }
 
     // Step 5: Try to identify street vs city/neighborhood noise
-    // Common US street suffixes help identify where the street name ends
-    const STREET_SUFFIXES = new Set([
-      'ST',
-      'STREET',
-      'AVE',
-      'AVENUE',
-      'BLVD',
-      'BOULEVARD',
-      'DR',
-      'DRIVE',
-      'RD',
-      'ROAD',
-      'LN',
-      'LANE',
-      'CT',
-      'COURT',
-      'PL',
-      'PLACE',
-      'WAY',
-      'CIR',
-      'CIRCLE',
-      'TER',
-      'TERRACE',
-      'PKWY',
-      'PARKWAY',
-      'HWY',
-      'HIGHWAY',
-      'SQ',
-      'SQUARE',
-      'TRL',
-      'TRAIL',
-      'LOOP',
-      'PATH',
-      'PIKE',
-      'ALY',
-      'ALLEY',
-    ])
-
     // Find the last street suffix ,everything up to and including it is the street name
     let streetEnd = -1
     for (let i = remaining.length - 1; i >= 0; i--) {

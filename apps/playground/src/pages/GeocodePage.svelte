@@ -3,7 +3,7 @@
     queryObjects, queryObjectsWithRetry, tilePath, prefetchCountry, isCountryCached, onCacheLog, getTileSource, isTileCached,
     SearchCache, rankBySimilarity,
     getParser,
-    esc, toArr, ms, addStep, updateLastStep,
+    esc, toArr, ms, addStep, updateLastStep, htmlEsc,
     // Smart autocomplete (core)
     suggest, classifyInput, resolveTiles, rankSuggestions,
     buildPostcodeSQL, buildStreetSQL, buildPostcodeNarrowSQL, buildStreetNarrowSQL, buildNumberIndexSQL,
@@ -86,8 +86,14 @@
   let mapView = $state<MapView>()
 
   let suggestTimer: ReturnType<typeof setTimeout> | null = null
+  let searchGen = 0
+  let autoGen = 0
   const cityCache = new SearchCache<CityRow[]>()
   const suggestCache = new SearchCache<SuggestRow[]>()
+
+  $effect(() => {
+    return () => { if (suggestTimer) clearTimeout(suggestTimer) }
+  })
 
   function log(text: string, status?: StepEntry['status']) {
     steps = addStep(steps, text, status)
@@ -263,6 +269,7 @@
   async function doAutocomplete() {
     if (!isCountryCached(selectedCountry)) return
 
+    const gen = ++autoGen
     loadingSuggestions = true
     try {
       const { classification, suggestions: results } = await suggest(
@@ -273,6 +280,7 @@
         autoQueryFns,
         suggestCache,
       )
+      if (gen !== autoGen) return
       lastClassification = classification
       suggestions = results
     } catch (e: any) {
@@ -343,7 +351,8 @@
     // Narrow via postcode or street index (from cache)
     t0 = performance.now()
     const q = preset.query.toLowerCase()
-    if (classifyInput(q, cc).hasPostcode || classifyInput(q, cc).mode === 'postcode') {
+    const cls = classifyInput(q, cc)
+    if (cls.hasPostcode || cls.mode === 'postcode') {
       log(`Step 3  Narrowing via postcodes for "${q}"...`, 'loading')
       const rows = await queryObjects<{ postcode: string; tiles: string[]; addr_count: number }>(`
         SELECT postcode, tiles, addr_count FROM _postcodes_${cc}
@@ -380,6 +389,7 @@
 
   async function searchDirect() {
     if (addressQuery.length < 2) return
+    const gen = ++searchGen
     searching = true
     error = ''
     results = []
@@ -472,6 +482,7 @@
 
     try {
       for (let i = 0; i < tiles.length; i++) {
+        if (gen !== searchGen) return
         if (remaining <= 0) {
           log(`        Limit reached, skipping ${tiles.length - i} tile(s)`, 'done')
           break
@@ -512,6 +523,7 @@
           continue
         }
 
+        if (gen !== searchGen) return
         results = [...results, ...tileResults].slice(0, limit)
         remaining = limit - results.length
         updateLast(`        ${tile} ,${tileResults.length} match${tileResults.length !== 1 ? 'es' : ''} (${ms(t0)})`, 'done')
@@ -534,11 +546,11 @@
   let userNavigated = false
 
   function resultPopupHtml(r: AddressRow, idx: number): string {
-    const parts = [r.city, r.postcode].filter(Boolean).join(' · ')
+    const parts = [r.city, r.postcode].filter(Boolean).map(s => htmlEsc(s!)).join(' · ')
     return `<div class="popup-body">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
         <span class="popup-badge popup-badge-primary">${idx + 1}</span>
-        <span class="popup-title">${r.full_address}</span>
+        <span class="popup-title">${htmlEsc(r.full_address)}</span>
       </div>
       ${parts ? `<div class="popup-subtitle">${parts}</div>` : ''}
       <div class="popup-coords">${r.lat?.toFixed(5)}, ${r.lon?.toFixed(5)}</div>

@@ -37,10 +37,23 @@ export function esc(s: string): string {
   return s.replace(/'/g, "''")
 }
 
+/** Escape HTML special characters for safe insertion into innerHTML */
+export function htmlEsc(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
+const CC_RE = /^[A-Z]{2}$/
+
+/** Validate a 2-letter uppercase country code. Throws on invalid input. */
+export function validateCC(cc: string): void {
+  if (!CC_RE.test(cc)) throw new Error(`Invalid country code: ${cc}`)
+}
+
 // ── Data conversion ─────────────────────────────────────────
 
 /** Normalize Arrow/DuckDB array values to plain JS string arrays */
 export function toArr(v: unknown): string[] {
+  if (v == null) return []
   return Array.isArray(v) ? v : Array.from(v as Iterable<string>)
 }
 

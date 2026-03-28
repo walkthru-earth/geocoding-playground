@@ -27,7 +27,7 @@ export function initAnalytics() {
 }
 
 function trackPageView() {
-  const page = window.location.hash.slice(1) || 'status'
+  const page = window.location.hash.slice(1) || 'reverse'
   posthog.capture('$pageview', {
     $current_url: window.location.href,
     page,

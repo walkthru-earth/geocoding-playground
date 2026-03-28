@@ -118,8 +118,8 @@ describe('jaccardSimilarity', () => {
     expect(jaccardSimilarity('ab', 'cd')).toBe(0)
   })
 
-  it('returns 0 for single-char strings (no bigrams)', () => {
-    expect(jaccardSimilarity('a', 'a')).toBe(0)
+  it('returns 1 for single-char strings (identical empty bigram sets)', () => {
+    expect(jaccardSimilarity('a', 'a')).toBe(1)
   })
 
   it('is case-insensitive', () => {

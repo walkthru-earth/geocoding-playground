@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { initDuckDB, getRelease, availableReleases, switchRelease, onReleaseChange } from '@walkthru-earth/geocoding-core'
+  import { initDuckDB, getRelease, availableReleases, switchRelease } from '@walkthru-earth/geocoding-core'
   import { initAnalytics } from './lib/analytics'
   import ReversePage from './pages/ReversePage.svelte'
   import GeocodePage from './pages/GeocodePage.svelte'

@@ -66,8 +66,8 @@ describe('buildStreetNarrowSQL', () => {
 
 describe('buildAddressSQL', () => {
   it('uses tile URL and filters by street + number prefix', () => {
-    const sql = buildAddressSQL('NL', 'keizersgracht', '18', 't1')
-    expect(sql).toContain('example.com/geocoder/country=NL/h3/t1.parquet')
+    const sql = buildAddressSQL('NL', 'keizersgracht', '18', '841fb47ffffffff')
+    expect(sql).toContain('example.com/geocoder/country=NL/h3/841fb47ffffffff.parquet')
     expect(sql).toContain("lower(street) = 'keizersgracht'")
     expect(sql).toContain("number LIKE '18%'")
   })

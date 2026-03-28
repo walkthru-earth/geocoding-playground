@@ -8,6 +8,8 @@ import { GenericParser } from './generic'
  * "12 Rue de Rivoli, 75001 Paris 1er Arrondissement"
  *   → number=12, street=Rue de Rivoli, postcode=75001
  */
+const HOUSE_NUM_RE = /^\d+[a-z]?$/i
+
 export class FRParser extends GenericParser {
   constructor() {
     super('FR')
@@ -21,21 +23,18 @@ export class FRParser extends GenericParser {
     const pcResult = this.extractPostcode(raw)
     let remaining = (pcResult ? pcResult.remainder : raw).split(/[\s,]+/).filter(Boolean)
 
-    // House number: first token if numeric (user input: "12 rue de rivoli")
+    // Leading number: "12 rue de rivoli"
     let number: string | undefined
-    if (remaining.length > 1 && /^\d+[a-z]?$/i.test(remaining[0])) {
+    if (remaining.length > 1 && HOUSE_NUM_RE.test(remaining[0])) {
       number = remaining.shift()!
     }
 
     // Strip arrondissement info: "Paris 8e Arrondissement" or "8e" or "1er"
     remaining = remaining.filter((t) => !/^\d{1,2}e(r)?$/i.test(t) && t.toLowerCase() !== 'arrondissement')
 
-    // Also check trailing number (data format: "rue de l'eglise 12")
-    if (!number && remaining.length > 1) {
-      const last = remaining[remaining.length - 1]
-      if (/^\d+[a-z]?$/i.test(last)) {
-        number = remaining.pop()!
-      }
+    // Trailing number: "rue de l'eglise 12" (data format)
+    if (!number && remaining.length > 1 && HOUSE_NUM_RE.test(remaining[remaining.length - 1])) {
+      number = remaining.pop()!
     }
 
     const street = remaining.length > 0 ? remaining.join(' ') : undefined
