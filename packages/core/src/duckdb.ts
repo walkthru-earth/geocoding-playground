@@ -203,9 +203,23 @@ export async function clearHttpCache(): Promise<void> {
 }
 
 /**
+ * Append a cache-busting query parameter to all URLs in a SQL string.
+ * DuckDB-WASM uses fetch() internally, and the browser HTTP cache may
+ * serve stale responses even after DuckDB's in-memory caches are cleared.
+ * Adding ?_cb=<timestamp> forces the browser to make a fresh request.
+ */
+function bustUrlCache(sql: string): string {
+  const cb = `_cb=${Date.now()}`
+  return sql.replace(/(read_parquet\(['"])([^'"]+)(['"]\))/g, (_match, pre, url, post) => {
+    const sep = url.includes('?') ? '&' : '?'
+    return `${pre}${url}${sep}${cb}${post}`
+  })
+}
+
+/**
  * Run a SQL statement that reads remote parquet files.
- * On failure, clears all HTTP/parquet caches and retries once.
- * This handles stale browser-cached S3 metadata after file updates.
+ * On failure, clears all HTTP/parquet caches and retries once
+ * with cache-busted URLs to bypass stale browser HTTP cache.
  */
 async function queryRemoteWithRetry(sql: string): Promise<void> {
   const c = await getConnection()
@@ -214,7 +228,7 @@ async function queryRemoteWithRetry(sql: string): Promise<void> {
   } catch (e) {
     console.warn('[duckdb] Remote query failed, clearing caches and retrying:', (e as Error).message?.slice(0, 120))
     await clearHttpCache()
-    await c.query(sql)
+    await c.query(bustUrlCache(sql))
   }
 }
 
@@ -256,6 +270,7 @@ export async function queryObjects<T = Record<string, any>>(sql: string): Promis
 
 /**
  * Like queryObjects, but clears HTTP/parquet caches and retries once on failure.
+ * Retries with cache-busted URLs to bypass stale browser HTTP cache.
  * Use this for queries that read remote parquet files directly (not cached tables).
  */
 export async function queryObjectsWithRetry<T = Record<string, any>>(sql: string): Promise<T[]> {
@@ -264,7 +279,7 @@ export async function queryObjectsWithRetry<T = Record<string, any>>(sql: string
   } catch (e) {
     console.warn('[duckdb] Remote query failed, clearing caches and retrying:', (e as Error).message?.slice(0, 120))
     await clearHttpCache()
-    return await queryObjects<T>(sql)
+    return await queryObjects<T>(bustUrlCache(sql))
   }
 }
 

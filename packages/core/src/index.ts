@@ -7,6 +7,7 @@ export { buildDefaultWhere, getParser, NUMBER_FIRST, POSTCODE_RE } from './addre
 export type { AutocompleteQueryFns, InputClassification, TileResolutionResult } from './autocomplete'
 export {
   buildAddressSQL,
+  buildNumberIndexSQL,
   buildPostcodeNarrowSQL,
   buildPostcodeSQL,
   buildStreetNarrowSQL,

@@ -6,7 +6,7 @@
     esc, toArr, ms, addStep, updateLastStep,
     // Smart autocomplete (core)
     suggest, classifyInput, resolveTiles, rankSuggestions,
-    buildPostcodeSQL, buildStreetSQL, buildPostcodeNarrowSQL, buildStreetNarrowSQL,
+    buildPostcodeSQL, buildStreetSQL, buildPostcodeNarrowSQL, buildStreetNarrowSQL, buildNumberIndexSQL,
   } from '@walkthru-earth/geocoding-core'
   import type { CityRow, SuggestRow, AddressRow, StepEntry, AutocompleteQueryFns, InputClassification } from '@walkthru-earth/geocoding-core'
   import MapView from '../lib/MapView.svelte'
@@ -117,27 +117,23 @@
     },
     async queryAddresses(cc: string, street: string, numberPrefix: string, tiles: string[]): Promise<SuggestRow[]> {
       try {
-        // ONLY query tiles already cached in WASM memory (instant, no network)
-        // This respects the index architecture: autocomplete uses lightweight indexes,
-        // tile data is only queried after a search has cached it.
-        const cachedTile = tiles.find((t: string) => isTileCached(cc, t))
-        if (!cachedTile) return [] // No cached tiles, caller will show street fallback
+        // Query number_index via HTTP range request (~150 KB with row-group pushdown).
+        // The number_index stores all distinct house numbers per street as a sorted array.
+        // DuckDB-WASM fetches only the row group containing this street, not the whole file.
+        const sql = buildNumberIndexSQL(cc, street)
+        const rows = await queryObjects<{ street_lower: string; numbers: string[] }>(sql)
+        if (rows.length === 0) return []
 
-        const src = await getTileSource(cc, cachedTile)
-        const rows = await queryObjects<{ number: string; street: string; city: string; postcode: string }>(`
-          SELECT DISTINCT number, street, city, postcode
-          FROM ${src}
-          WHERE lower(street) = '${esc(street.toLowerCase())}'
-            AND number LIKE '${esc(numberPrefix)}%'
-          ORDER BY number
-          LIMIT 10
-        `)
-        return rows.map((r: { number: string; street: string; city: string; postcode: string }) => ({
+        const prefix = numberPrefix.toLowerCase()
+        const matched = toArr(rows[0].numbers)
+          .filter((n: string) => n.toLowerCase().startsWith(prefix))
+          .slice(0, 10)
+
+        return matched.map((n: string) => ({
           type: 'address' as const,
-          label: `${r.street} ${r.number}`,
-          tiles: [cachedTile],
+          label: `${street} ${n}`,
+          tiles,
           addr_count: 1,
-          primary_city: r.city,
         }))
       } catch { return [] }
     },

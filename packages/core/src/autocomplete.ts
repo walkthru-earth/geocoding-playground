@@ -12,7 +12,7 @@
 
 import type { ParsedAddress } from './address-parser'
 import { getParser, NUMBER_FIRST } from './address-parser'
-import { tilePath } from './duckdb'
+import { dataPath, tilePath } from './duckdb'
 import { jaccardSimilarity, type SearchCache } from './search'
 import type { CityRow, SuggestRow } from './types'
 import { esc, toArr } from './utils'
@@ -42,9 +42,10 @@ export interface AutocompleteQueryFns {
   queryPostcodes(cc: string, query: string, cityTiles: string[]): Promise<SuggestRow[]>
   queryStreets(cc: string, query: string, cityTiles: string[]): Promise<SuggestRow[]>
   /**
-   * Query cached tile data for address-level suggestions (street + number prefix).
-   * Should ONLY query tiles already cached in WASM memory, never fetch remote.
-   * Returns empty if no cached tiles are available.
+   * Query number_index for address-level suggestions (street + number prefix).
+   * Uses HTTP range requests with row-group pushdown on the number_index file,
+   * fetching only ~150 KB per query instead of full tiles (0.5-15 MB).
+   * Falls back to cached tile data if the number_index query fails.
    */
   queryAddresses(cc: string, street: string, numberPrefix: string, tiles: string[]): Promise<SuggestRow[]>
 }
@@ -428,4 +429,20 @@ export function buildAddressSQL(cc: string, street: string, numberPrefix: string
       AND number LIKE '${esc(numberPrefix)}%'
     ORDER BY number
     LIMIT 15`
+}
+
+/**
+ * Build SQL for querying the number_index via HTTP range requests.
+ * The number_index stores (street_lower, numbers[]) sorted by street_lower
+ * with ROW_GROUP_SIZE 2000, enabling DuckDB-WASM to use row-group pushdown
+ * and fetch only ~150 KB per query instead of full tiles (0.5-15 MB).
+ *
+ * The numbers column is a sorted VARCHAR[] of all distinct house numbers
+ * for that street across the entire country.
+ */
+export function buildNumberIndexSQL(cc: string, street: string): string {
+  return `SELECT street_lower, numbers
+    FROM read_parquet('${dataPath(`number_index/country=${cc}/data_0.parquet`)}')
+    WHERE street_lower = '${esc(street.toLowerCase())}'
+    LIMIT 1`
 }
