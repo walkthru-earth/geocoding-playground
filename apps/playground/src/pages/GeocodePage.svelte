@@ -59,7 +59,9 @@
       { label: 'King St Toronto', city: 'Toronto', query: 'king street' },
     ],
     JP: [
-      { label: '本郷', city: '岐阜市', query: '本郷' },
+      { label: '本郷 岐阜', city: '岐阜市', query: '本郷' },
+      { label: '篠原町 浜松', city: '浜松市中央区', query: '篠原町' },
+      { label: '原町 新宿', city: '新宿区', query: '原町' },
     ],
   }
 
