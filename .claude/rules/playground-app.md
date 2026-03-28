@@ -23,6 +23,8 @@ Svelte 5 app with reactive variables ($state, $derived, $effect). Uses Tailwind 
 - All geocoding logic lives in core, not in Svelte components
 - The app injects query functions into the autocomplete engine via `AutocompleteQueryFns`
 - Debounced autocomplete (150ms)
+- Async search flows use generation counters (`searchGen`, `autoGen`) to discard stale results from superseded requests
+- Map popup HTML uses `htmlEsc()` from core for all user-facing data
 - Theme switching persists to localStorage
 - PostHog analytics is optional, gated by env vars
 

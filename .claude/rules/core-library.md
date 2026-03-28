@@ -12,11 +12,14 @@ This is `@walkthru-earth/geocoding-core`, a framework-agnostic library. Zero UI 
 - `search.ts` - SearchCache<T> (LRU+TTL), jaccardSimilarity(), array search (sub-ms)
 - `address-parser.ts` - 10 country parsers + GenericParser, POSTCODE_RE, NUMBER_FIRST
 - `types.ts` - AddressRow, CityRow, SuggestRow, ManifestRow, index types
-- `utils.ts` - fmt(), esc(), toArr(), step logging
+- `utils.ts` - fmt(), esc(), htmlEsc(), validateCC(), toArr(), step logging
 
 ## Key patterns
 - All SQL uses HTTPS URLs, never s3://
 - SQL strings use `esc()` for single-quote escaping (prevent injection)
+- `validateCC(cc)` asserts `/^[A-Z]{2}$/` at every SQL builder entry point (prevents table name injection)
+- Tile IDs validated against `/^[0-9a-f]+$/i` before interpolation into URLs
+- `htmlEsc()` used in all map popup HTML templates (prevents XSS from address data)
 - Autocomplete never fetches remote data. Only queries what is already cached in WASM memory
 - Country prefetch is progressive: cities first (Phase 1, unlocks UI), then postcodes, then streets
 - Tile cache uses LRU eviction at ~4M address budget
