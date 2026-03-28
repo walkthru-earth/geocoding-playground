@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json"
+    "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
     "@duckdb/duckdb-wasm": "1.33.1-dev41.0",
@@ -18,6 +20,7 @@
     "posthog-js": "^1.364.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@sveltejs/vite-plugin-svelte": "^7.0.0",
     "@tailwindcss/vite": "^4.2.2",
     "@tsconfig/svelte": "^5.0.8",
