@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addStep, esc, fmt, fmtFull, formatSize, toArr, updateLastStep } from '../utils'
+import { addStep, esc, fmt, fmtFull, formatSize, toArr, updateLastStep, validateCC } from '../utils'
 
 describe('fmt', () => {
   it.each([
@@ -52,6 +52,32 @@ describe('esc', () => {
   })
 })
 
+describe('validateCC', () => {
+  it('accepts valid 2-letter uppercase codes', () => {
+    expect(() => validateCC('US')).not.toThrow()
+    expect(() => validateCC('NL')).not.toThrow()
+    expect(() => validateCC('FR')).not.toThrow()
+  })
+
+  it('rejects lowercase', () => {
+    expect(() => validateCC('us')).toThrow('Invalid country code')
+  })
+
+  it('rejects too long or too short', () => {
+    expect(() => validateCC('USA')).toThrow('Invalid country code')
+    expect(() => validateCC('U')).toThrow('Invalid country code')
+  })
+
+  it('rejects non-alpha', () => {
+    expect(() => validateCC('12')).toThrow('Invalid country code')
+    expect(() => validateCC("A'")).toThrow('Invalid country code')
+  })
+
+  it('rejects empty string', () => {
+    expect(() => validateCC('')).toThrow('Invalid country code')
+  })
+})
+
 describe('toArr', () => {
   it('passes arrays through', () => {
     expect(toArr(['a', 'b'])).toEqual(['a', 'b'])
@@ -65,6 +91,14 @@ describe('toArr', () => {
       },
     }
     expect(toArr(iterable)).toEqual(['x', 'y'])
+  })
+
+  it('returns empty array for null', () => {
+    expect(toArr(null)).toEqual([])
+  })
+
+  it('returns empty array for undefined', () => {
+    expect(toArr(undefined)).toEqual([])
   })
 })
 
