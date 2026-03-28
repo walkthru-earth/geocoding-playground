@@ -619,7 +619,7 @@
 
     <!-- Presets -->
     {#if activePresets.length > 0}
-      <div id="tour-presets" class="flex gap-2 flex-wrap">
+      <div id="tour-presets" class="flex gap-2 overflow-x-auto scrollbar-thin pb-1">
         {#each activePresets as p}
           <button class="preset-pill" onclick={() => runPreset(p)} disabled={searching || prefetching}>{p.label}</button>
         {/each}

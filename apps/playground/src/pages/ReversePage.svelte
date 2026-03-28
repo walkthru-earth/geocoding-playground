@@ -382,7 +382,7 @@
     </div>
 
     <!-- Presets -->
-    <div class="flex gap-2 flex-wrap">
+    <div class="flex gap-2 overflow-x-auto scrollbar-thin pb-1">
       <button class="preset-pill" onclick={() => setPreset('Puerta del Sol', 40.4168, -3.7038)}>Puerta del Sol</button>
       <button class="preset-pill" onclick={() => setPreset('Times Square', 40.7580, -73.9855)}>Times Sq</button>
       <button class="preset-pill" onclick={() => setPreset('Champs-Élysées', 48.8698, 2.3078)}>Champs-Élysées</button>

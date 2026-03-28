@@ -169,7 +169,7 @@
 
 /* ── Preset pill buttons ─────────────────────────────────── */
 .preset-pill {
-  @apply btn btn-xs md:btn-sm rounded-full transition-all;
+  @apply btn btn-xs md:btn-sm rounded-full transition-all shrink-0;
   @apply border-base-content/10 bg-base-content/[0.04];
   @apply text-base-content/60;
   @apply hover:bg-primary/10 hover:border-primary/20 hover:text-primary;
