@@ -24,9 +24,10 @@ dist-ssr
 *.sw?
 _study/
 
-# Test artifacts
+# Test output (all test artifacts consolidated here)
+test-output/
+# Legacy locations (in case of direct runs)
 packages/core/coverage/
-packages/core/test-results.json
 apps/playground/test-results/
 apps/playground/playwright-report/
 

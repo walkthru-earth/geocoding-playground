@@ -13,6 +13,7 @@
     "test": "pnpm --filter @walkthru-earth/geocoding-core test",
     "test:coverage": "pnpm --filter @walkthru-earth/geocoding-core test:coverage",
     "test:e2e": "pnpm --filter playground test:e2e",
+    "test:validate": "node .github/scripts/validate-parsers.mjs",
     "prepare": "husky"
   },
   "lint-staged": {

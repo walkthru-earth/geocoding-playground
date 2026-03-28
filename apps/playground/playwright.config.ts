@@ -4,7 +4,11 @@ export default defineConfig({
   testDir: 'e2e',
   timeout: 120_000,
   retries: 1,
-  reporter: [['html'], ['json', { outputFile: 'test-results/results.json' }]],
+  outputDir: '../../test-output/e2e/artifacts',
+  reporter: [
+    ['html', { outputFolder: '../../test-output/e2e/report' }],
+    ['json', { outputFile: '../../test-output/e2e/results.json' }],
+  ],
   use: {
     baseURL: 'http://localhost:4173/geocoding-playground/',
     trace: 'on-first-retry',

@@ -19,7 +19,9 @@ Core only: `pnpm --filter @walkthru-earth/geocoding-core build`
 
 - **Unit tests** (`packages/core/`): Vitest. Run with `pnpm test`. Config at `packages/core/vitest.config.ts`.
 - **E2E tests** (`apps/playground/e2e/`): Playwright (Chromium). Run with `pnpm test:e2e`. Config at `apps/playground/playwright.config.ts`. Tests hit live S3 data, so they need network access and can be slow on first run.
+- **Data validation** (`pnpm test:validate`): Queries live S3 parquet files via DuckDB CLI to verify parsed addresses exist in the real data. Generates `test-output/validation/parser-validation.md`.
 - **Pre-commit hook**: Runs lint-staged + type-check + build. Unit and e2e tests run in CI only.
+- **Test output**: All test artifacts go to `test-output/` (gitignored). Unit coverage HTML at `test-output/unit/coverage/`, Playwright report at `test-output/e2e/report/`.
 
 **This project uses pnpm exclusively. Never use npm or npx.** Use `pnpm` and `pnpx` instead. A PreToolUse hook will block npm/npx commands automatically.
 

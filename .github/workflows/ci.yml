@@ -65,17 +65,18 @@ jobs:
 
       - name: Run unit tests with coverage
         working-directory: packages/core
-        run: pnpm vitest run --coverage --reporter=default --reporter=json --outputFile=test-results.json
+        run: pnpm vitest run --coverage --reporter=default --reporter=json
 
       - name: Generate test summary
         if: always()
-        run: node .github/scripts/test-summary.mjs packages/core/test-results.json packages/core/coverage
+        run: node .github/scripts/test-summary.mjs test-output/unit/test-results.json test-output/unit/coverage
 
       - name: Coverage PR comment
         if: github.event_name == 'pull_request'
         uses: davelosert/vitest-coverage-report-action@v2
         with:
           working-directory: packages/core
+          vite-config-path: vitest.config.ts
 
   e2e-tests:
     runs-on: ubuntu-latest
@@ -115,7 +116,7 @@ jobs:
         if: github.event_name == 'pull_request' && always()
         uses: daun/playwright-report-summary@v3
         with:
-          report-file: apps/playground/test-results/results.json
+          report-file: test-output/e2e/results.json
           comment-title: 'Playwright E2E Results'
 
       - name: Upload Playwright report
@@ -123,5 +124,5 @@ jobs:
         if: always()
         with:
           name: playwright-report
-          path: apps/playground/playwright-report/
+          path: test-output/e2e/report/
           retention-days: 7
