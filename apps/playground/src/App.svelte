@@ -126,7 +126,7 @@
 
     <!-- Navigation pills (desktop) -->
     <div class="hidden lg:flex items-center gap-1">
-      <button class="nav-pill" class:active={page === 'reverse'} onclick={() => navigate('reverse')}>Reverse</button>
+      <button id="tour-reverse-pill" class="nav-pill" class:active={page === 'reverse'} onclick={() => navigate('reverse')}>Reverse</button>
       <button id="tour-geocode-pill" class="nav-pill" class:active={page === 'geocode'} onclick={() => navigate('geocode')}>Geocode</button>
       <button class="nav-pill" class:active={page === 'status'} onclick={() => navigate('status')}>Status</button>
       <button class="nav-pill" class:active={page === 'benchmark'} onclick={() => navigate('benchmark')}>Benchmark</button>

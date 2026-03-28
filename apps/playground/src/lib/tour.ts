@@ -71,6 +71,50 @@ export function startGeocodeTour() {
   driverObj.drive()
 }
 
+const REVERSE_HINT_KEY = 'geocode-reverse-hint-seen'
+
+/** Returns true if the user has not yet been shown the reverse-geocoding hint. */
+export function shouldShowReverseHint(): boolean {
+  return localStorage.getItem(REVERSE_HINT_KEY) !== '1'
+}
+
+/** Shown when the user clicks the map on the Geocode page, guiding them to Reverse. */
+export function showReverseGeocodingHint() {
+  localStorage.setItem(REVERSE_HINT_KEY, '1')
+  const isMobile = window.innerWidth < 1024
+  const driverObj = driver({
+    animate: true,
+    overlayColor: 'black',
+    stagePadding: 8,
+    stageRadius: 12,
+    popoverClass: 'wt-tour-popover',
+    onDestroyStarted: () => {
+      driverObj.destroy()
+    },
+    steps: [
+      {
+        popover: {
+          title: 'Looking for reverse geocoding?',
+          description: 'Clicking the map to find addresses from coordinates is available on the Reverse page.',
+        },
+      },
+      {
+        element: isMobile ? '#tour-burger-menu' : '#tour-reverse-pill',
+        popover: {
+          title: 'Switch to Reverse',
+          description: isMobile
+            ? 'Tap this menu and select "Reverse" to click anywhere on the map and find nearby addresses.'
+            : 'Click "Reverse" to switch. Then click anywhere on the map to find nearby addresses.',
+          side: 'bottom',
+          align: 'start',
+        },
+      },
+    ],
+  })
+
+  driverObj.drive()
+}
+
 /** Tour step shown on the Reverse page pointing to nav for geocoding. */
 export function showNavTour() {
   const isMobile = window.innerWidth < 1024

@@ -13,7 +13,7 @@
   import SplitPane from '../lib/components/SplitPane.svelte'
   import StepLog from '../lib/components/StepLog.svelte'
   import ResultsTable from '../lib/components/ResultsTable.svelte'
-  import { startGeocodeTour } from '../lib/tour'
+  import { startGeocodeTour, shouldShowReverseHint, showReverseGeocodingHint } from '../lib/tour'
   import { track } from '../lib/analytics'
 
   const presetsByCountry: Record<string, { label: string; city: string; query: string }[]> = {
@@ -151,6 +151,22 @@
   onCacheLog((msg: string) => { cacheInfo = msg })
 
   $effect(() => { loadCountries() })
+
+  // When the user interacts with the map (click, zoom, pan) thinking it's reverse geocoding,
+  // guide them to the Reverse page. Only shown once.
+  $effect(() => {
+    const map = mapView?.getMap()
+    if (!map) return
+    function onMapInteraction() {
+      if (shouldShowReverseHint()) showReverseGeocodingHint()
+    }
+    map.on('click', onMapInteraction)
+    map.on('zoomstart', onMapInteraction)
+    return () => {
+      map.off('click', onMapInteraction)
+      map.off('zoomstart', onMapInteraction)
+    }
+  })
 
   /** When user clicks a disabled field, show the full guided tour. */
   function onDisabledFieldClick() {
