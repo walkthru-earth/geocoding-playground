@@ -45,6 +45,7 @@ export {
 // ── Search ───────────────────────────────────────────────────
 export {
   jaccardSimilarity,
+  normalizeForSearch,
   rankBySimilarity,
   SearchCache,
   searchCities,

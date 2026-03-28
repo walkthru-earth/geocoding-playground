@@ -80,6 +80,36 @@ export function rankBySimilarity<T>(items: T[], query: string, getText: (item: T
     .map((s) => s.item)
 }
 
+// ── Text normalization for cross-script search ──────────────
+// Handles ß↔ss (German), ø↔o (Nordic), æ↔ae, œ↔oe, đ↔d, ł↔l
+// plus all accented Latin characters via NFKD decomposition.
+
+const LIGATURE_MAP: [RegExp, string][] = [
+  [/ß/g, 'ss'],
+  [/\u1E9E/g, 'ss'], // Capital ß (rare)
+  [/ø/gi, 'o'],
+  [/æ/gi, 'ae'],
+  [/œ/gi, 'oe'],
+  [/đ/gi, 'd'],
+  [/ł/gi, 'l'],
+]
+
+/**
+ * Normalize text for search comparison.
+ * Strips accents (é→e, ü→u, ñ→n) via NFKD decomposition, then handles
+ * ligatures that Unicode normalization does not decompose (ß→ss, ø→o, etc.).
+ * Zero dependencies, covers all 39 countries in the dataset.
+ */
+export function normalizeForSearch(input: string): string {
+  // NFKD decomposes accented characters into base + combining marks, then strip the marks
+  let s = input.normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
+  // Handle ligatures/special chars that NFKD doesn't decompose
+  for (const [re, replacement] of LIGATURE_MAP) {
+    s = s.replace(re, replacement)
+  }
+  return s.toLowerCase()
+}
+
 // ── JS array autocomplete (sub-millisecond) ─────────────────
 // Replaces DuckDB SQL LIKE queries for instant keystroke response.
 
@@ -87,12 +117,12 @@ import type { CityRecord, PostcodeRecord, StreetRecord } from './types'
 
 /** Filter + rank streets by prefix. <1ms for 200K+ entries. */
 export function searchStreets(streets: StreetRecord[], query: string, limit = 15): StreetRecord[] {
-  const q = query.toLowerCase()
-  let matches = streets.filter((s) => s.street_lower.startsWith(q))
+  const q = normalizeForSearch(query)
+  let matches = streets.filter((s) => normalizeForSearch(s.street_lower).startsWith(q))
   // If few prefix matches, try contains
   if (matches.length < 3) {
     const seen = new Set(matches.map((s) => s.street_lower))
-    const extra = streets.filter((s) => !seen.has(s.street_lower) && s.street_lower.includes(q))
+    const extra = streets.filter((s) => !seen.has(s.street_lower) && normalizeForSearch(s.street_lower).includes(q))
     matches = [...matches, ...extra]
   }
   // Sort by addr_count descending, then rank by similarity
@@ -110,11 +140,11 @@ export function searchPostcodes(postcodes: PostcodeRecord[], query: string, limi
 
 /** Filter + rank cities by prefix with fallback to contains. */
 export function searchCities(cities: CityRecord[], query: string, limit = 20): CityRecord[] {
-  const q = query.toLowerCase()
-  let matches = cities.filter((c) => c.city.toLowerCase().startsWith(q))
+  const q = normalizeForSearch(query)
+  let matches = cities.filter((c) => normalizeForSearch(c.city).startsWith(q))
   if (matches.length < 3) {
     const seen = new Set(matches.map((c) => c.city))
-    const extra = cities.filter((c) => !seen.has(c.city) && c.city.toLowerCase().includes(q))
+    const extra = cities.filter((c) => !seen.has(c.city) && normalizeForSearch(c.city).includes(q))
     matches = [...matches, ...extra]
   }
   matches.sort((a, b) => b.addr_count - a.addr_count)
