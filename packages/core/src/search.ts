@@ -115,15 +115,39 @@ export function normalizeForSearch(input: string): string {
 
 import type { CityRecord, PostcodeRecord, StreetRecord } from './types'
 
-/** Filter + rank streets by prefix. <1ms for 200K+ entries. */
-export function searchStreets(streets: StreetRecord[], query: string, limit = 15): StreetRecord[] {
+/**
+ * Pre-compute normalized names for an array of records.
+ * Call once at prefetch time, then pass to searchStreets/searchCities
+ * on every keystroke to avoid per-record normalizeForSearch() calls.
+ * For DE (387K streets), this saves ~387K NFKD operations per keystroke.
+ */
+export function preNormalize<T>(items: T[], getText: (item: T) => string): string[] {
+  return items.map((item) => normalizeForSearch(getText(item)))
+}
+
+/**
+ * Filter + rank streets by prefix. <1ms for 200K+ entries.
+ * Pass preNormed (from preNormalize) to skip per-record normalization.
+ */
+export function searchStreets(
+  streets: StreetRecord[],
+  query: string,
+  limit = 15,
+  preNormed?: string[],
+): StreetRecord[] {
   const q = normalizeForSearch(query)
-  let matches = streets.filter((s) => normalizeForSearch(s.street_lower).startsWith(q))
+  const norm = preNormed ? (i: number) => preNormed[i] : (i: number) => normalizeForSearch(streets[i].street_lower)
+
+  const matches: StreetRecord[] = []
+  for (let i = 0; i < streets.length; i++) {
+    if (norm(i).startsWith(q)) matches.push(streets[i])
+  }
   // If few prefix matches, try contains
   if (matches.length < 3) {
     const seen = new Set(matches.map((s) => s.street_lower))
-    const extra = streets.filter((s) => !seen.has(s.street_lower) && normalizeForSearch(s.street_lower).includes(q))
-    matches = [...matches, ...extra]
+    for (let i = 0; i < streets.length; i++) {
+      if (!seen.has(streets[i].street_lower) && norm(i).includes(q)) matches.push(streets[i])
+    }
   }
   // Sort by addr_count descending, then rank by similarity
   matches.sort((a, b) => b.addr_count - a.addr_count)
@@ -138,14 +162,23 @@ export function searchPostcodes(postcodes: PostcodeRecord[], query: string, limi
   return matches.slice(0, limit)
 }
 
-/** Filter + rank cities by prefix with fallback to contains. */
-export function searchCities(cities: CityRecord[], query: string, limit = 20): CityRecord[] {
+/**
+ * Filter + rank cities by prefix with fallback to contains.
+ * Pass preNormed (from preNormalize) to skip per-record normalization.
+ */
+export function searchCities(cities: CityRecord[], query: string, limit = 20, preNormed?: string[]): CityRecord[] {
   const q = normalizeForSearch(query)
-  let matches = cities.filter((c) => normalizeForSearch(c.city).startsWith(q))
+  const norm = preNormed ? (i: number) => preNormed[i] : (i: number) => normalizeForSearch(cities[i].city)
+
+  const matches: CityRecord[] = []
+  for (let i = 0; i < cities.length; i++) {
+    if (norm(i).startsWith(q)) matches.push(cities[i])
+  }
   if (matches.length < 3) {
     const seen = new Set(matches.map((c) => c.city))
-    const extra = cities.filter((c) => !seen.has(c.city) && normalizeForSearch(c.city).includes(q))
-    matches = [...matches, ...extra]
+    for (let i = 0; i < cities.length; i++) {
+      if (!seen.has(cities[i].city) && norm(i).includes(q)) matches.push(cities[i])
+    }
   }
   matches.sort((a, b) => b.addr_count - a.addr_count)
   return rankBySimilarity(matches.slice(0, limit * 2), query, (c) => c.city).slice(0, limit)

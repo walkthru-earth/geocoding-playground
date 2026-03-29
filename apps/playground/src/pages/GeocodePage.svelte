@@ -1,14 +1,15 @@
 <script lang="ts">
   import {
-    queryObjects, queryObjectsWithRetry, tilePath, prefetchCountry, isCountryCached, onCacheLog, getTileSource, isTileCached,
-    SearchCache, rankBySimilarity,
+    queryObjects, queryObjectsWithRetry, tilePath, prefetchRegion, isRegionCached, onCacheLog, getTileSource, isTileCached,
+    cancelPendingQuery, getRegionTable,
+    SearchCache, searchCities as searchCitiesJS,
     getParser, stripJPCoordZone,
     esc, toArr, ms, addStep, updateLastStep, htmlEsc,
     // Smart autocomplete (core)
     suggest, classifyInput, resolveTiles, rankSuggestions,
     buildPostcodeSQL, buildStreetSQL, buildPostcodeNarrowSQL, buildStreetNarrowSQL, buildNumberIndexSQL,
   } from '@walkthru-earth/geocoding-core'
-  import type { CityRow, SuggestRow, AddressRow, StepEntry, AutocompleteQueryFns, InputClassification } from '@walkthru-earth/geocoding-core'
+  import type { CityRow, SuggestRow, AddressRow, StepEntry, AutocompleteQueryFns, InputClassification, RegionRow } from '@walkthru-earth/geocoding-core'
   import MapView from '../lib/MapView.svelte'
   import SplitPane from '../lib/components/SplitPane.svelte'
   import StepLog from '../lib/components/StepLog.svelte'
@@ -65,19 +66,24 @@
     ],
   }
 
-  let countries = $state<string[]>([])
+  let countries = $state.raw<string[]>([])
   let selectedCountry = $state('')
   let activePresets = $derived(presetsByCountry[selectedCountry] ?? [])
+
+  // Region state (new v3 layer between country and city)
+  let regions = $state.raw<RegionRow[]>([])
+  let selectedRegion = $state<RegionRow | null>(null)
+
   let cityQuery = $state('')
-  let cities = $state<CityRow[]>([])
+  let cities = $state.raw<CityRow[]>([])
+  let allCityRecords = $state.raw<CityRow[]>([])
   let selectedCity = $state<CityRow | null>(null)
   let selectedCityTiles = $derived(selectedCity ? new Set(toArr(selectedCity.tiles)) : null)
   let addressQuery = $state('')
-  let suggestions = $state<SuggestRow[]>([])
+  let suggestions = $state.raw<SuggestRow[]>([])
   let selectedSuggestion = $state<SuggestRow | null>(null)
-  let results = $state<AddressRow[]>([])
+  let results = $state.raw<AddressRow[]>([])
   let searching = $state(false)
-  let loadingCities = $state(false)
   let loadingSuggestions = $state(false)
   let prefetching = $state(false)
   let citiesReady = $state(false)
@@ -91,7 +97,6 @@
   let suggestTimer: ReturnType<typeof setTimeout> | null = null
   let searchGen = 0
   let autoGen = 0
-  const cityCache = new SearchCache<CityRow[]>()
   const suggestCache = new SearchCache<SuggestRow[]>()
 
   $effect(() => {
@@ -105,31 +110,34 @@
     steps = updateLastStep(steps, text, status)
   }
 
+  /** Current region string for SQL builders (empty string if none selected). */
+  let currentRegion = $derived(selectedRegion?.region ?? '')
+
   // ── Smart autocomplete query functions (bridge core engine to DuckDB) ──
 
   const autoQueryFns: AutocompleteQueryFns = {
-    async queryPostcodes(cc: string, query: string, cityTiles: string[]): Promise<SuggestRow[]> {
-      const sql = buildPostcodeSQL(cc, query, cityTiles)
+    async queryPostcodes(cc: string, region: string, query: string, cityTiles: string[]): Promise<SuggestRow[]> {
+      const sql = buildPostcodeSQL(cc, region, query, cityTiles)
       const rows = await queryObjects<{ postcode: string; tiles: string[]; addr_count: number }>(sql)
       return rows.map((r: { postcode: string; tiles: string[]; addr_count: number }) => ({
         type: 'postcode' as const, label: r.postcode, tiles: r.tiles, addr_count: r.addr_count,
       }))
     },
-    async queryStreets(cc: string, query: string, cityTiles: string[]): Promise<SuggestRow[]> {
+    async queryStreets(cc: string, region: string, query: string, cityTiles: string[]): Promise<SuggestRow[]> {
       try {
-        const sql = buildStreetSQL(cc, query, cityTiles)
+        const sql = buildStreetSQL(cc, region, query, cityTiles)
         const rows = await queryObjects<{ street_lower: string; tiles: string[]; addr_count: number; primary_city: string }>(sql)
         return rows.map((r: { street_lower: string; tiles: string[]; addr_count: number; primary_city: string }) => ({
           type: 'street' as const, label: r.street_lower, tiles: r.tiles, addr_count: r.addr_count, primary_city: r.primary_city,
         }))
       } catch { return [] }
     },
-    async queryAddresses(cc: string, street: string, numberPrefix: string, tiles: string[]): Promise<SuggestRow[]> {
+    async queryAddresses(cc: string, region: string, street: string, numberPrefix: string, tiles: string[]): Promise<SuggestRow[]> {
       try {
         // Query number_index via HTTP range request (~150 KB with row-group pushdown).
         // The number_index stores all distinct house numbers per street as a sorted array.
         // DuckDB-WASM fetches only the row group containing this street, not the whole file.
-        const sql = buildNumberIndexSQL(cc, street)
+        const sql = buildNumberIndexSQL(cc, region, street)
         const rows = await queryObjects<{ street_lower: string; numbers: string[] }>(sql)
         if (rows.length === 0) return []
 
@@ -196,84 +204,109 @@
     countries = rows.map((r: { country: string }) => r.country)
   }
 
-  /** Called when user picks a country ,prefetch indexes progressively.
-   *  Cities load first → city field unlocks → streets/postcodes load in background. */
+  /** Called when user picks a country. Load regions from cached region_index. */
   async function onCountryChange() {
+    selectedRegion = null
     selectedCity = null
     cities = []
+    allCityRecords = []
     results = []
     steps = []
     suggestions = []
     selectedSuggestion = null
     cacheInfo = ''
     citiesReady = false
-    cityCache.clear()
     suggestCache.clear()
     mapView?.clearResultMarkers()
+    regions = []
 
     if (!selectedCountry) return
     track('country_selected', { country: selectedCountry })
 
-    if (isCountryCached(selectedCountry)) {
+    // Load regions for this country from the global region_index (already in memory)
+    const rows = await queryObjects<RegionRow>(`
+      SELECT region, tiles, addr_count,
+             bbox_min_lon, bbox_max_lon, bbox_min_lat, bbox_max_lat
+      FROM _region_index
+      WHERE country = '${esc(selectedCountry)}'
+      ORDER BY addr_count DESC
+    `)
+    regions = rows
+
+    // Auto-select if only one region
+    if (rows.length === 1) {
+      selectedRegion = rows[0]
+      await onRegionChange()
+    }
+  }
+
+  /** Called when user picks a region. Prefetch region-scoped indexes. */
+  async function onRegionChange() {
+    selectedCity = null
+    cities = []
+    allCityRecords = []
+    results = []
+    steps = []
+    suggestions = []
+    selectedSuggestion = null
+    cacheInfo = ''
+    citiesReady = false
+    suggestCache.clear()
+    mapView?.clearResultMarkers()
+
+    if (!selectedRegion || !selectedCountry) return
+    track('region_selected', { country: selectedCountry, region: selectedRegion.region })
+
+    // Zoom to region bbox
+    if (selectedRegion.bbox_min_lon && selectedRegion.bbox_max_lat && mapView) {
+      const pad = 0.05
+      mapView.getMap()?.fitBounds(
+        [[selectedRegion.bbox_min_lon - pad, selectedRegion.bbox_min_lat - pad],
+         [selectedRegion.bbox_max_lon + pad, selectedRegion.bbox_max_lat + pad]],
+        { padding: 40 }
+      )
+    }
+
+    if (isRegionCached(selectedCountry, selectedRegion.region)) {
       citiesReady = true
-      cacheInfo = `${selectedCountry}: indexes already cached`
+      cacheInfo = `${selectedCountry}/${selectedRegion.region}: indexes already cached`
+      // Load city records for JS search if not already loaded
+      if (allCityRecords.length === 0) {
+        const citiesT = getRegionTable('_cities', selectedCountry, selectedRegion.region)
+        const rows = await queryObjects<CityRow>(
+          `SELECT city, tiles, addr_count, bbox_min_lon_e6, bbox_max_lon_e6, bbox_min_lat_e6, bbox_max_lat_e6 FROM ${citiesT}`
+        )
+        allCityRecords = rows
+      }
       return
     }
 
     prefetching = true
-    await prefetchCountryProgressive(selectedCountry)
+    await prefetchRegion(selectedCountry, selectedRegion.region, {
+      onCitiesReady: async (count: number) => {
+        citiesReady = true
+        cacheInfo = `${selectedCountry}/${selectedRegion!.region}: ${count} cities ready, loading streets & postcodes...`
+        // Load city records into JS array for sub-ms search (one-time cost)
+        const citiesT = getRegionTable('_cities', selectedCountry, selectedRegion!.region)
+        const rows = await queryObjects<CityRow>(
+          `SELECT city, tiles, addr_count, bbox_min_lon_e6, bbox_max_lon_e6, bbox_min_lat_e6, bbox_max_lat_e6 FROM ${citiesT}`
+        )
+        allCityRecords = rows
+      },
+    })
     prefetching = false
   }
 
-  /** Prefetch using shared duckdb.ts logic with progressive city unlock. */
-  async function prefetchCountryProgressive(cc: string) {
-    if (isCountryCached(cc)) { citiesReady = true; return }
-    await prefetchCountry(cc, {
-      onCitiesReady: (count: number) => {
-        citiesReady = true
-        cacheInfo = `${cc}: ${count} cities ready ,loading streets & postcodes...`
-      },
-    })
-  }
-
-
-  /** City autocomplete ,DuckDB SQL on cached in-memory table */
-  async function searchCities() {
-    if (!selectedCountry || cityQuery.length < 2) { cities = []; return }
-
-    const cacheKey = `${selectedCountry}:${cityQuery.toLowerCase()}`
-    const cached = cityCache.get(cacheKey)
-    if (cached) {
-      cities = rankBySimilarity(cached, cityQuery, (c: CityRow) => c.city)
-      return
-    }
-
-    loadingCities = true
-    try {
-      const result = await queryObjects<CityRow>(`
-        SELECT region, city,
-               list_distinct(flatten(list(tiles))) AS tiles,
-               sum(addr_count)::INTEGER AS addr_count,
-               COALESCE(min(bbox_min_lon_e6), 0) AS bbox_min_lon_e6,
-               COALESCE(max(bbox_max_lon_e6), 0) AS bbox_max_lon_e6,
-               COALESCE(min(bbox_min_lat_e6), 0) AS bbox_min_lat_e6,
-               COALESCE(max(bbox_max_lat_e6), 0) AS bbox_max_lat_e6
-        FROM _cities_${selectedCountry}
-        WHERE lower(city) LIKE '%${esc(cityQuery.toLowerCase())}%'
-        GROUP BY region, city
-        ORDER BY addr_count DESC LIMIT 20
-      `)
-      cityCache.set(cacheKey, result)
-      cities = rankBySimilarity(result, cityQuery, (c: CityRow) => c.city)
-    } catch (e: any) {
-      error = e.message
-    } finally {
-      loadingCities = false
-    }
+  /** City autocomplete, sub-ms JS array search on pre-loaded records */
+  function searchCities() {
+    if (!selectedCountry || !selectedRegion || cityQuery.length < 2) { cities = []; return }
+    // Sub-ms JS search instead of DuckDB SQL round-trip.
+    // searchCitiesJS does prefix match with contains fallback + similarity ranking.
+    cities = searchCitiesJS(allCityRecords as any, cityQuery, 20) as CityRow[]
   }
 
   function selectCity(city: CityRow) {
-    track('city_selected', { city: city.city, region: city.region, country: selectedCountry })
+    track('city_selected', { city: city.city, country: selectedCountry })
     selectedCity = city
     cityQuery = city.city
     cities = []
@@ -294,13 +327,13 @@
 
   /** Address/postcode autocomplete via smart engine (core) with debounce */
   function autocomplete() {
-    if (!selectedCountry || addressQuery.length < 2) { suggestions = []; lastClassification = null; return }
+    if (!selectedCountry || !selectedRegion || addressQuery.length < 2) { suggestions = []; lastClassification = null; return }
     if (suggestTimer) clearTimeout(suggestTimer)
     suggestTimer = setTimeout(() => doAutocomplete(), 150)
   }
 
   async function doAutocomplete() {
-    if (!isCountryCached(selectedCountry)) return
+    if (!selectedRegion || !isRegionCached(selectedCountry, selectedRegion.region)) return
 
     const gen = ++autoGen
     loadingSuggestions = true
@@ -308,6 +341,7 @@
       const { classification, suggestions: results } = await suggest(
         addressQuery,
         selectedCountry,
+        selectedRegion.region,
         selectedCity?.city ?? null,
         selectedCityTiles,
         autoQueryFns,
@@ -344,7 +378,8 @@
 
   async function runPreset(preset: { label: string; city: string; query: string }) {
     const cc = selectedCountry
-    if (!cc) return
+    if (!cc || !selectedRegion) return
+    const reg = selectedRegion.region
     track('preset_clicked', { preset: preset.label, country: cc })
 
     steps = []
@@ -354,35 +389,36 @@
     addressQuery = preset.query
     mapView?.clearResultMarkers()
 
-    // Ensure country is cached
-    if (!isCountryCached(cc)) {
-      log(`Step 1  Caching ${cc} indexes...`, 'loading')
+    // Ensure region is cached
+    if (!isRegionCached(cc, reg)) {
+      log(`Step 1  Caching ${cc}/${reg} indexes...`, 'loading')
       prefetching = true
-      const info = await prefetchCountry(cc)
+      const info = await prefetchRegion(cc, reg)
       prefetching = false
       citiesReady = true
-      updateLast(`Step 1  ${cc} cached: ${info.cities} cities, ${info.postcodes} postcodes, ${info.streets} streets`, 'done')
+      updateLast(`Step 1  ${cc}/${reg} cached: ${info.cities} cities, ${info.postcodes} postcodes, ${info.streets} streets`, 'done')
     } else {
-      log(`Step 1  ${cc} indexes already cached`, 'done')
+      log(`Step 1  ${cc}/${reg} indexes already cached`, 'done')
     }
 
     // Find city from cache
     let t0 = performance.now()
     log(`Step 2  Looking up "${preset.city}"...`, 'loading')
+    const citiesT = getRegionTable('_cities', cc, reg)
     const cityResults = await queryObjects<CityRow>(`
-      SELECT region, city,
+      SELECT city,
              list_distinct(flatten(list(tiles))) AS tiles,
              sum(addr_count)::INTEGER AS addr_count
-      FROM _cities_${cc}
+      FROM ${citiesT}
       WHERE lower(city) = '${esc(preset.city.toLowerCase())}'
-      GROUP BY region, city
+      GROUP BY city
       ORDER BY addr_count DESC LIMIT 1
     `)
     if (cityResults.length === 0) { updateLast(`Step 2  City not found!`, 'error'); return }
     const city = cityResults[0]
     selectedCity = city
     cityQuery = city.city
-    updateLast(`Step 2  ${city.city} ,${toArr(city.tiles).length} tile(s), ${city.addr_count.toLocaleString()} addr (${ms(t0)})`, 'done')
+    updateLast(`Step 2  ${city.city}, ${toArr(city.tiles).length} tile(s), ${city.addr_count.toLocaleString()} addr (${ms(t0)})`, 'done')
 
     // Narrow via postcode or street index (from cache)
     t0 = performance.now()
@@ -390,8 +426,9 @@
     const cls = classifyInput(q, cc)
     if (cls.hasPostcode || cls.mode === 'postcode') {
       log(`Step 3  Narrowing via postcodes for "${q}"...`, 'loading')
+      const postcodesT = getRegionTable('_postcodes', cc, reg)
       const rows = await queryObjects<{ postcode: string; tiles: string[]; addr_count: number }>(`
-        SELECT postcode, tiles, addr_count FROM _postcodes_${cc}
+        SELECT postcode, tiles, addr_count FROM ${postcodesT}
         WHERE lower(postcode) LIKE '${esc(q)}%'
         ORDER BY addr_count DESC LIMIT 1
       `)
@@ -404,8 +441,9 @@
     } else {
       log(`Step 3  Narrowing via streets for "${q.split(/\s+/)[0]}"...`, 'loading')
       try {
+        const streetsT = getRegionTable('_streets', cc, reg)
         const rows = await queryObjects<{ street_lower: string; tiles: string[]; addr_count: number }>(`
-          SELECT street_lower, tiles, addr_count FROM _streets_${cc}
+          SELECT street_lower, tiles, addr_count FROM ${streetsT}
           WHERE street_lower LIKE '${esc(q.split(/\s+/)[0])}%'
           ORDER BY addr_count DESC LIMIT 1
         `)
@@ -424,7 +462,9 @@
   }
 
   async function searchDirect() {
-    if (addressQuery.length < 2) return
+    if (addressQuery.length < 2 || !selectedRegion) return
+    // Cancel any in-flight query before starting a new one
+    await cancelPendingQuery()
     const gen = ++searchGen
     searching = true
     error = ''
@@ -433,6 +473,7 @@
     userNavigated = false
 
     const cc = selectedCountry
+    const reg = selectedRegion.region
     const parser = getParser(cc)
     const parsed = parser.parseAddress(addressQuery)
     const where = parser.buildWhereClause(parsed)
@@ -452,10 +493,10 @@
     let source = 'none'
 
     // Try postcode narrowing first
-    if (parsed.postcode && isCountryCached(cc)) {
+    if (parsed.postcode && isRegionCached(cc, reg)) {
       const t0 = performance.now()
       try {
-        const rows = await queryObjects<{ postcode: string; tiles: string[]; addr_count: number }>(buildPostcodeNarrowSQL(cc, parsed.postcode))
+        const rows = await queryObjects<{ postcode: string; tiles: string[]; addr_count: number }>(buildPostcodeNarrowSQL(cc, reg, parsed.postcode))
         if (rows.length > 0) {
           tiles = toArr(rows[0].tiles)
           source = `postcode "${rows[0].postcode}" (${rows[0].addr_count.toLocaleString()} addr)`
@@ -465,12 +506,12 @@
     }
 
     // Try street narrowing if no postcode tiles (exact then prefix)
-    if (tiles.length === 0 && parsed.street && isCountryCached(cc)) {
+    if (tiles.length === 0 && parsed.street && isRegionCached(cc, reg)) {
       const t0 = performance.now()
       try {
-        let rows = await queryObjects<{ street_lower: string; tiles: string[]; addr_count: number }>(buildStreetNarrowSQL(cc, parsed.street, true))
+        let rows = await queryObjects<{ street_lower: string; tiles: string[]; addr_count: number }>(buildStreetNarrowSQL(cc, reg, parsed.street, true))
         if (rows.length === 0) {
-          rows = await queryObjects<{ street_lower: string; tiles: string[]; addr_count: number }>(buildStreetNarrowSQL(cc, parsed.street, false))
+          rows = await queryObjects<{ street_lower: string; tiles: string[]; addr_count: number }>(buildStreetNarrowSQL(cc, reg, parsed.street, false))
         }
         if (rows.length > 0) {
           tiles = toArr(rows[0].tiles)
@@ -480,13 +521,19 @@
       } catch { /* no street table */ }
     }
 
-    // Intersect with city tiles if city is selected
-    if (tiles.length > 0 && selectedCityTiles) {
-      const intersected = tiles.filter((t: string) => selectedCityTiles.has(t))
-      if (intersected.length > 0 && intersected.length < tiles.length) {
-        log(`Narrow  City "${selectedCity!.city}" intersection: ${tiles.length} → ${intersected.length} tile(s)`, 'done')
-        tiles = intersected
+    // Sort and narrow tiles by selected city proximity.
+    // City-matching tiles first, then remaining tiles sorted by distance
+    // to city centroid so nearby results are found faster.
+    if (tiles.length > 0 && selectedCityTiles && selectedCity) {
+      const cityTiles = tiles.filter((t: string) => selectedCityTiles.has(t))
+      const otherTiles = tiles.filter((t: string) => !selectedCityTiles.has(t))
+      if (cityTiles.length > 0 && cityTiles.length < tiles.length) {
+        tiles = [...cityTiles, ...otherTiles]
+        log(`Narrow  City "${selectedCity.city}" intersection: ${cityTiles.length} tile(s) first, ${otherTiles.length} remaining`, 'done')
         source += ` ∩ city`
+      } else if (cityTiles.length === 0 && otherTiles.length > 0) {
+        // Street doesn't exist in selected city. Keep all tiles but log it.
+        log(`Narrow  "${parsed.street}" not in "${selectedCity.city}", searching all ${tiles.length} tile(s)`, 'done')
       }
     }
 
@@ -517,15 +564,26 @@
     }
 
     try {
+      let consecutiveEmpty = 0
+      const MAX_EMPTY_AFTER_RESULTS = 5
+
       for (let i = 0; i < tiles.length; i++) {
         if (gen !== searchGen) return
         if (remaining <= 0) {
           log(`        Limit reached, skipping ${tiles.length - i} tile(s)`, 'done')
           break
         }
+
+        // Early stop: if we already have results and hit too many empty tiles in a row, stop.
+        // This prevents scanning 30 tiles across the country when results are already found.
+        if (results.length > 0 && consecutiveEmpty >= MAX_EMPTY_AFTER_RESULTS) {
+          log(`        ${tiles.length - i} tile(s) skipped (${consecutiveEmpty} consecutive empty)`, 'done')
+          break
+        }
+
         const tile = tiles[i]
         const t0 = performance.now()
-        log(`        ${tile} ,querying...`, 'loading')
+        log(`        ${tile}, querying...`, 'loading')
 
         let tileResults: AddressRow[] = []
         try {
@@ -534,13 +592,13 @@
           // Otherwise, cache the full tile for subsequent queries
           let src: string
           let useRetry = false
-          if (isTileCached(cc, tile)) {
-            src = await getTileSource(cc, tile)
+          if (isTileCached(cc, reg, tile)) {
+            src = await getTileSource(cc, reg, tile)
           } else if (hasSpecificFilters) {
-            src = `read_parquet('${tilePath(cc, tile)}')`
+            src = `read_parquet('${tilePath(cc, reg, tile)}')`
             useRetry = true
           } else {
-            src = await getTileSource(cc, tile)
+            src = await getTileSource(cc, reg, tile)
           }
 
           const queryFn = useRetry ? queryObjectsWithRetry : queryObjects
@@ -555,16 +613,28 @@
           `)
         } catch (tileErr: any) {
           console.warn(`[geocode] Tile ${tile} failed:`, tileErr.message)
-          updateLast(`        ${tile} ,failed (${ms(t0)})`, 'error')
+          updateLast(`        ${tile}, failed (${ms(t0)})`, 'error')
           continue
         }
 
         if (gen !== searchGen) return
+
+        if (tileResults.length > 0) {
+          consecutiveEmpty = 0
+        } else {
+          consecutiveEmpty++
+        }
+
         results = [...results, ...tileResults].slice(0, limit)
         remaining = limit - results.length
-        updateLast(`        ${tile} ,${tileResults.length} match${tileResults.length !== 1 ? 'es' : ''} (${ms(t0)})`, 'done')
+        updateLast(`        ${tile}, ${tileResults.length} match${tileResults.length !== 1 ? 'es' : ''} (${ms(t0)})`, 'done')
 
-        // Update map progressively ,only auto-fit on first batch
+        // Mark search visually done once we have any results, even while still loading more
+        if (results.length > 0 && searching) {
+          searching = false
+        }
+
+        // Update map progressively, only auto-fit on first batch
         updateMapMarkers(i === 0)
       }
 
@@ -572,6 +642,7 @@
       log(`Done    ${results.length} results, total: ${ms(totalT0)}`, 'done')
       track('forward_geocode_search', {
         country: cc,
+        region: reg,
         result_count: results.length,
         duration_ms: Math.round(searchTime),
         tile_count: tiles.length,
@@ -628,8 +699,8 @@
     cities = []
     steps = []
     mapView?.clearResultMarkers()
-    if (isCountryCached(selectedCountry)) {
-      log(`Step 1  ${selectedCountry} indexes cached`, 'done')
+    if (selectedRegion && isRegionCached(selectedCountry, selectedRegion.region)) {
+      log(`Step 1  ${selectedCountry}/${selectedRegion.region} indexes cached`, 'done')
     }
     if (selectedCity) log(`Step 2  City: ${selectedCity.city}`, 'done')
     if (selectedSuggestion) log(`Step 3  ${selectedSuggestion.type}: ${selectedSuggestion.label}`, 'done')
@@ -651,7 +722,7 @@
       <select id="tour-country-select" class="select select-bordered select-sm md:select-md w-28 md:w-40" bind:value={selectedCountry} onchange={onCountryChange}>
         <option value="">Country...</option>
         {#each countries as c}
-          <option value={c}>{c}{isCountryCached(c) ? ' ✓' : ''}</option>
+          <option value={c}>{c}</option>
         {/each}
       </select>
       {#if prefetching}
@@ -659,12 +730,24 @@
       {/if}
     </div>
 
+    <!-- Region selector (new v3 step) -->
+    {#if regions.length > 1}
+      <div class="flex items-center gap-2">
+        <select class="select select-bordered select-sm md:select-md flex-1" bind:value={selectedRegion} onchange={onRegionChange}>
+          <option value={null}>Region...</option>
+          {#each regions as r}
+            <option value={r}>{r.region} ({r.addr_count.toLocaleString()} addr)</option>
+          {/each}
+        </select>
+      </div>
+    {/if}
+
     {#if cacheInfo && prefetching}
       <div class="text-xs md:text-sm text-base-content/50 -mt-2 md:-mt-3 break-words">{cacheInfo}</div>
     {/if}
 
     <!-- Presets -->
-    {#if activePresets.length > 0}
+    {#if activePresets.length > 0 && selectedRegion}
       <div id="tour-presets" class="flex gap-2 overflow-x-auto scrollbar-thin pb-1">
         {#each activePresets as p}
           <button class="preset-pill" onclick={() => runPreset(p)} disabled={searching || prefetching}>{p.label}</button>
@@ -682,13 +765,10 @@
           placeholder="City (optional)..."
           bind:value={cityQuery}
           oninput={() => searchCities()}
-          disabled={!selectedCountry || !citiesReady}
+          disabled={!selectedCountry || !selectedRegion || !citiesReady}
         />
-        {#if !selectedCountry}
-          <div class="absolute inset-0 cursor-pointer" role="button" tabindex="0" aria-label="Select a country first" onclick={onDisabledFieldClick} onkeydown={(e) => e.key === 'Enter' && onDisabledFieldClick()}></div>
-        {/if}
-        {#if loadingCities}
-          <span class="loading loading-spinner loading-sm absolute right-3 top-3"></span>
+        {#if !selectedCountry || !selectedRegion}
+          <div class="absolute inset-0 cursor-pointer" role="button" tabindex="0" aria-label={!selectedCountry ? "Select a country first" : "Select a region first"} onclick={onDisabledFieldClick} onkeydown={(e) => e.key === 'Enter' && onDisabledFieldClick()}></div>
         {/if}
         {#if cities.length > 0}
           <ul class="menu bg-base-200 rounded-lg shadow-xl absolute z-50 w-full mt-1 max-h-60 overflow-y-auto border border-base-content/10">
@@ -696,7 +776,6 @@
               <li>
                 <button class="flex items-center gap-2 min-w-0" onclick={() => selectCity(city)}>
                   <span class="font-bold truncate">{city.city}</span>
-                  {#if city.region}<span class="text-xs opacity-40 shrink-0">{city.region}</span>{/if}
                   <span class="badge badge-sm badge-ghost ml-auto shrink-0">{city.addr_count.toLocaleString()}</span>
                 </button>
               </li>
@@ -714,10 +793,10 @@
           bind:value={addressQuery}
           oninput={() => { selectedSuggestion = null; autocomplete() }}
           onkeydown={(e: KeyboardEvent) => e.key === 'Enter' && search()}
-          disabled={!selectedCountry || prefetching}
+          disabled={!selectedCountry || !selectedRegion || prefetching}
         />
-        {#if !selectedCountry}
-          <div class="absolute inset-0 cursor-pointer" role="button" tabindex="0" aria-label="Select a country first" onclick={onDisabledFieldClick} onkeydown={(e) => e.key === 'Enter' && onDisabledFieldClick()}></div>
+        {#if !selectedCountry || !selectedRegion}
+          <div class="absolute inset-0 cursor-pointer" role="button" tabindex="0" aria-label={!selectedCountry ? "Select a country first" : "Select a region first"} onclick={onDisabledFieldClick} onkeydown={(e) => e.key === 'Enter' && onDisabledFieldClick()}></div>
         {/if}
         {#if loadingSuggestions}
           <span class="loading loading-spinner loading-sm absolute right-3 top-3"></span>
@@ -755,24 +834,27 @@
           <option value={40}>40</option>
           <option value={80}>80</option>
         </select>
-        <button id="tour-search-btn" class="btn btn-primary btn-sm md:btn-md rounded-full flex-1" onclick={search} disabled={!selectedCountry || addressQuery.length < 2 || searching || prefetching}>
+        <button id="tour-search-btn" class="btn btn-primary btn-sm md:btn-md rounded-full flex-1" onclick={search} disabled={!selectedCountry || !selectedRegion || addressQuery.length < 2 || searching || prefetching}>
           {#if searching}
             <span class="loading loading-spinner loading-sm"></span>
           {:else}
             Search
           {/if}
         </button>
-        {#if !selectedCountry}
-          <div class="absolute inset-0 cursor-pointer" role="button" tabindex="0" aria-label="Select a country first" onclick={onDisabledFieldClick} onkeydown={(e) => e.key === 'Enter' && onDisabledFieldClick()}></div>
+        {#if !selectedCountry || !selectedRegion}
+          <div class="absolute inset-0 cursor-pointer" role="button" tabindex="0" aria-label={!selectedCountry ? "Select a country first" : "Select a region first"} onclick={onDisabledFieldClick} onkeydown={(e) => e.key === 'Enter' && onDisabledFieldClick()}></div>
         {/if}
       </div>
     </div>
 
     <!-- Context badges -->
-    {#if selectedCity || selectedSuggestion || (cacheInfo && !prefetching)}
+    {#if selectedRegion || selectedCity || selectedSuggestion || (cacheInfo && !prefetching)}
       <div class="flex flex-col sm:flex-row flex-wrap gap-1.5 md:gap-2">
         {#if cacheInfo && !prefetching}
           <span class="text-xs text-base-content/40 border border-base-content/10 rounded-lg px-2.5 py-1 leading-snug">{cacheInfo}</span>
+        {/if}
+        {#if selectedRegion}
+          <span class="badge badge-sm badge-outline whitespace-nowrap">{selectedRegion.region}</span>
         {/if}
         {#if selectedCity}
           <span class="badge badge-sm badge-info whitespace-nowrap">{selectedCity.city} · {selectedCityTiles?.size ?? 0} tiles</span>

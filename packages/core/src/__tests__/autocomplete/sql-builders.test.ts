@@ -1,8 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('../../duckdb', () => ({
-  tilePath: (cc: string, tile: string) => `https://example.com/geocoder/country=${cc}/h3/${tile}.parquet`,
-  dataPath: (suffix: string) => `https://example.com/${suffix}`,
+  tilePath: (cc: string, region: string, tile: string) =>
+    `https://example.com/geocoder/country=${cc}/region=${encodeURIComponent(region)}/h3_parent=${tile}/data_0.parquet`,
+  indexPath: (type: string, cc: string, region: string) =>
+    `https://example.com/${type}/country=${cc}/region=${encodeURIComponent(region)}/data_0.parquet`,
+  getRegionTable: (prefix: string, cc: string, region: string) => `"${prefix}_${cc}_${region.replace(/"/g, '""')}"`,
 }))
 
 import {
@@ -16,28 +19,28 @@ import {
 
 describe('buildPostcodeSQL', () => {
   it('generates correct SQL with city boost', () => {
-    const sql = buildPostcodeSQL('NL', '1016', ['t1', 't2'])
-    expect(sql).toContain('_postcodes_NL')
+    const sql = buildPostcodeSQL('NL', 'Noord-Holland', '1016', ['t1', 't2'])
+    expect(sql).toContain('"_postcodes_NL_Noord-Holland"')
     expect(sql).toContain("LIKE '1016%'")
     expect(sql).toContain('list_has_any')
     expect(sql).toContain('LIMIT 15')
   })
 
   it('generates SQL without boost when no city tiles', () => {
-    const sql = buildPostcodeSQL('NL', '1016', [])
+    const sql = buildPostcodeSQL('NL', 'Noord-Holland', '1016', [])
     expect(sql).not.toContain('list_has_any')
   })
 
   it('escapes single quotes', () => {
-    const sql = buildPostcodeSQL('NL', "test'inject", [])
+    const sql = buildPostcodeSQL('NL', 'Noord-Holland', "test'inject", [])
     expect(sql).toContain("test''inject")
   })
 })
 
 describe('buildStreetSQL', () => {
   it('generates correct SQL with city boost', () => {
-    const sql = buildStreetSQL('NL', 'keizers', ['t1'])
-    expect(sql).toContain('_streets_NL')
+    const sql = buildStreetSQL('NL', 'Noord-Holland', 'keizers', ['t1'])
+    expect(sql).toContain('"_streets_NL_Noord-Holland"')
     expect(sql).toContain("LIKE 'keizers%'")
     expect(sql).toContain('list_has_any')
     expect(sql).toContain('primary_city')
@@ -46,7 +49,7 @@ describe('buildStreetSQL', () => {
 
 describe('buildPostcodeNarrowSQL', () => {
   it('uses exact match', () => {
-    const sql = buildPostcodeNarrowSQL('US', '10001')
+    const sql = buildPostcodeNarrowSQL('US', 'California', '10001')
     expect(sql).toContain("= '10001'")
     expect(sql).toContain('LIMIT 1')
   })
@@ -54,29 +57,31 @@ describe('buildPostcodeNarrowSQL', () => {
 
 describe('buildStreetNarrowSQL', () => {
   it('uses exact match when exact=true', () => {
-    const sql = buildStreetNarrowSQL('NL', 'keizersgracht', true)
+    const sql = buildStreetNarrowSQL('NL', 'Noord-Holland', 'keizersgracht', true)
     expect(sql).toContain("= 'keizersgracht'")
   })
 
   it('uses LIKE when exact=false', () => {
-    const sql = buildStreetNarrowSQL('NL', 'keizers', false)
+    const sql = buildStreetNarrowSQL('NL', 'Noord-Holland', 'keizers', false)
     expect(sql).toContain("LIKE 'keizers%'")
   })
 })
 
 describe('buildAddressSQL', () => {
-  it('uses tile URL and filters by street + number prefix', () => {
-    const sql = buildAddressSQL('NL', 'keizersgracht', '18', '841fb47ffffffff')
-    expect(sql).toContain('example.com/geocoder/country=NL/h3/841fb47ffffffff.parquet')
+  it('uses tile URL with region and filters by street + number prefix', () => {
+    const sql = buildAddressSQL('NL', 'Noord-Holland', 'keizersgracht', '18', '841fb47ffffffff')
+    expect(sql).toContain(
+      'example.com/geocoder/country=NL/region=Noord-Holland/h3_parent=841fb47ffffffff/data_0.parquet',
+    )
     expect(sql).toContain("lower(street) = 'keizersgracht'")
     expect(sql).toContain("number LIKE '18%'")
   })
 })
 
 describe('buildNumberIndexSQL', () => {
-  it('uses flat number_index path', () => {
-    const sql = buildNumberIndexSQL('NL', 'keizersgracht')
-    expect(sql).toContain('number_index/NL.parquet')
+  it('uses Hive number_index path with region', () => {
+    const sql = buildNumberIndexSQL('NL', 'Noord-Holland', 'keizersgracht')
+    expect(sql).toContain('number_index/country=NL/region=Noord-Holland/data_0.parquet')
     expect(sql).toContain("street_lower = 'keizersgracht'")
   })
 })

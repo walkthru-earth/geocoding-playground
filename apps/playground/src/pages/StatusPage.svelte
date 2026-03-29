@@ -16,7 +16,7 @@
     address_count: number
     unique_cities: number
     unique_postcodes: number
-    primary_region: string
+    region: string
   }
   interface TileDetail {
     topStreets: { street: string; count: number }[]
@@ -43,7 +43,7 @@
     const cities = Number(btn.dataset.cities)
     const postcodes = Number(btn.dataset.postcodes)
     const region = btn.dataset.region!
-    investigateTile({ country, h3_parent: h3, address_count: addrCount, unique_cities: cities, unique_postcodes: postcodes, primary_region: region })
+    investigateTile({ country, h3_parent: h3, address_count: addrCount, unique_cities: cities, unique_postcodes: postcodes, region: region })
   }
 
   async function investigateTile(tile: TileInspect) {
@@ -52,7 +52,7 @@
     inspectError = ''
     inspectLoading = true
 
-    const url = tilePath(tile.country, tile.h3_parent)
+    const url = tilePath(tile.country, tile.region, tile.h3_parent)
     const t0 = performance.now()
 
     try {
@@ -167,7 +167,7 @@
     address_count: number
     unique_cities: number
     unique_postcodes: number
-    primary_region: string | null
+    region: string | null
   }
 
   $effect(() => { loadData() })
@@ -195,7 +195,7 @@
           min(address_count)::INTEGER AS min_addr,
           sum(unique_postcodes)::INTEGER AS total_postcodes,
           sum(unique_cities)::INTEGER AS total_cities,
-          count(DISTINCT primary_region)::INTEGER AS regions
+          count(DISTINCT region)::INTEGER AS regions
         FROM _tile_index
         GROUP BY country
         ORDER BY total_addr DESC
@@ -256,7 +256,7 @@
     tilesLoading = true
     try {
       const rows = await queryObjects<TileGeoRow>(`
-        SELECT country, h3_parent, address_count, unique_cities, unique_postcodes, primary_region
+        SELECT country, h3_parent, address_count, unique_cities, unique_postcodes, region
         FROM _tile_index
       `)
       const features: any[] = []
@@ -274,7 +274,7 @@
             address_count: row.address_count,
             unique_cities: row.unique_cities,
             unique_postcodes: row.unique_postcodes,
-            primary_region: row.primary_region ?? '-',
+            region: row.region ?? '-',
           },
           geometry: { type: 'Polygon' as const, coordinates: [coords] },
         })
@@ -297,7 +297,7 @@
             <div>Addresses: <b>${Number(p.address_count).toLocaleString()}</b></div>
             <div>Cities: <b>${p.unique_cities}</b></div>
             <div>Postcodes: <b>${p.unique_postcodes}</b></div>
-            <div>Region: <b>${p.primary_region}</b></div>
+            <div>Region: <b>${p.region}</b></div>
             <button
               data-investigate
               data-country="${p.country}"
@@ -305,7 +305,7 @@
               data-addresses="${p.address_count}"
               data-cities="${p.unique_cities}"
               data-postcodes="${p.unique_postcodes}"
-              data-region="${p.primary_region}"
+              data-region="${p.region}"
               style="margin-top:6px;padding:3px 10px;font-size:12px;border-radius:6px;background:var(--wt-marker-primary, #36d399);color:#fff;border:none;cursor:pointer;width:100%"
             >Investigate</button>
           </div>
@@ -895,7 +895,7 @@
           <h3 class="font-bold text-lg">{inspectTile.country} / {inspectTile.h3_parent}</h3>
           <p class="text-sm text-base-content/50">
             {inspectTile.address_count.toLocaleString()} addresses, {inspectTile.unique_cities} cities, {inspectTile.unique_postcodes} postcodes
-            {#if inspectTile.primary_region !== '-'}, region: {inspectTile.primary_region}{/if}
+            {#if inspectTile.region !== '-'}, region: {inspectTile.region}{/if}
           </p>
         </div>
         <button class="btn btn-ghost btn-sm btn-square" aria-label="Close" onclick={closeInspect}>

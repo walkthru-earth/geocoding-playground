@@ -12,10 +12,10 @@
 
 import type { ParsedAddress } from './address-parser'
 import { getParser, NUMBER_FIRST } from './address-parser'
-import { dataPath, tilePath } from './duckdb'
+import { getRegionTable, indexPath, tilePath } from './duckdb'
 import { jaccardSimilarity, type SearchCache } from './search'
 import type { CityRow, SuggestRow } from './types'
-import { esc, toArr, validateCC } from './utils'
+import { esc, toArr, validateCC, validateRegion } from './utils'
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -39,15 +39,21 @@ export interface InputClassification {
 
 /** Query functions the autocomplete engine delegates to (injected by caller) */
 export interface AutocompleteQueryFns {
-  queryPostcodes(cc: string, query: string, cityTiles: string[]): Promise<SuggestRow[]>
-  queryStreets(cc: string, query: string, cityTiles: string[]): Promise<SuggestRow[]>
+  queryPostcodes(cc: string, region: string, query: string, cityTiles: string[]): Promise<SuggestRow[]>
+  queryStreets(cc: string, region: string, query: string, cityTiles: string[]): Promise<SuggestRow[]>
   /**
    * Query number_index for address-level suggestions (street + number prefix).
    * Uses HTTP range requests with row-group pushdown on the number_index file,
    * fetching only ~150 KB per query instead of full tiles (0.5-15 MB).
    * Falls back to cached tile data if the number_index query fails.
    */
-  queryAddresses(cc: string, street: string, numberPrefix: string, tiles: string[]): Promise<SuggestRow[]>
+  queryAddresses(
+    cc: string,
+    region: string,
+    street: string,
+    numberPrefix: string,
+    tiles: string[],
+  ): Promise<SuggestRow[]>
 }
 
 /** Options for tile resolution */
@@ -281,6 +287,7 @@ export function rankSuggestions(
 export async function suggest(
   input: string,
   cc: string,
+  region: string,
   cityName: string | null,
   cityTiles: Set<string> | null,
   queryFns: AutocompleteQueryFns,
@@ -299,7 +306,7 @@ export async function suggest(
   if (mode === 'ready') {
     if (!parsed.street || !parsed.number) return { classification, suggestions: [] }
 
-    const cacheKey = `${cc}:ready:${input.trim().toLowerCase()}`
+    const cacheKey = `${cc}:${region}:ready:${input.trim().toLowerCase()}`
     const cached = cache.get(cacheKey)
     if (cached) {
       return { classification, suggestions: cached }
@@ -307,7 +314,7 @@ export async function suggest(
 
     // Find which tiles contain this street (from lightweight street_index, already in memory)
     const cityTilesArr = cityTiles ? ([...cityTiles] as string[]) : []
-    const streets = await queryFns.queryStreets(cc, parsed.street, cityTilesArr)
+    const streets = await queryFns.queryStreets(cc, region, parsed.street, cityTilesArr)
     if (streets.length === 0) return { classification, suggestions: [] }
 
     // Get tile list from best matching street, intersected with city
@@ -318,7 +325,7 @@ export async function suggest(
     }
 
     // Try address suggestions from cached tiles only (no network fetch)
-    const addresses = await queryFns.queryAddresses(cc, parsed.street, parsed.number, tiles)
+    const addresses = await queryFns.queryAddresses(cc, region, parsed.street, parsed.number, tiles)
 
     if (addresses.length > 0) {
       cache.set(cacheKey, addresses)
@@ -339,7 +346,7 @@ export async function suggest(
     return { classification, suggestions: fallback }
   }
 
-  const cacheKey = `${cc}:${input.trim().toLowerCase()}`
+  const cacheKey = `${cc}:${region}:${input.trim().toLowerCase()}`
   const cached = cache.get(cacheKey)
   if (cached) {
     return {
@@ -354,14 +361,14 @@ export async function suggest(
   // Query based on mode
   if (mode === 'postcode' || mode === 'mixed') {
     const pcQuery = parsed.postcode || input.trim()
-    const postcodes = await queryFns.queryPostcodes(cc, pcQuery, cityTilesArr)
+    const postcodes = await queryFns.queryPostcodes(cc, region, pcQuery, cityTilesArr)
     result.push(...postcodes)
   }
 
   if (mode === 'street' || mode === 'mixed') {
     const sq = streetQuery.length >= 2 ? streetQuery : input.trim()
     if (sq.length >= 2) {
-      const streets = await queryFns.queryStreets(cc, sq, cityTilesArr)
+      const streets = await queryFns.queryStreets(cc, region, sq, cityTilesArr)
       result.push(...streets)
     }
   }
@@ -401,11 +408,13 @@ export function resolveTiles(
  * Build the SQL for postcode autocomplete with city tile boost.
  * Returns the full SQL string for queryObjects.
  */
-export function buildPostcodeSQL(cc: string, query: string, cityTiles: string[]): string {
+export function buildPostcodeSQL(cc: string, region: string, query: string, cityTiles: string[]): string {
   validateCC(cc)
+  validateRegion(region)
+  const table = getRegionTable('_postcodes', cc, region)
   const boost =
     cityTiles.length > 0 ? `list_has_any(tiles, ['${cityTiles.map((t) => esc(t)).join("','")}']::VARCHAR[]) DESC, ` : ''
-  return `SELECT postcode, tiles, addr_count FROM _postcodes_${cc}
+  return `SELECT postcode, tiles, addr_count FROM ${table}
     WHERE lower(postcode) LIKE '${esc(query.toLowerCase())}%'
     ORDER BY ${boost}addr_count DESC LIMIT 15`
 }
@@ -414,11 +423,13 @@ export function buildPostcodeSQL(cc: string, query: string, cityTiles: string[])
  * Build the SQL for street autocomplete with city tile boost.
  * Returns the full SQL string for queryObjects.
  */
-export function buildStreetSQL(cc: string, query: string, cityTiles: string[]): string {
+export function buildStreetSQL(cc: string, region: string, query: string, cityTiles: string[]): string {
   validateCC(cc)
+  validateRegion(region)
+  const table = getRegionTable('_streets', cc, region)
   const boost =
     cityTiles.length > 0 ? `list_has_any(tiles, ['${cityTiles.map((t) => esc(t)).join("','")}']::VARCHAR[]) DESC, ` : ''
-  return `SELECT street_lower, tiles, addr_count, primary_city FROM _streets_${cc}
+  return `SELECT street_lower, tiles, addr_count, primary_city FROM ${table}
     WHERE street_lower LIKE '${esc(query.toLowerCase())}%'
     ORDER BY ${boost}addr_count DESC LIMIT 15`
 }
@@ -426,9 +437,11 @@ export function buildStreetSQL(cc: string, query: string, cityTiles: string[]): 
 /**
  * Build SQL for narrowing tiles by postcode (exact or prefix match).
  */
-export function buildPostcodeNarrowSQL(cc: string, postcode: string): string {
+export function buildPostcodeNarrowSQL(cc: string, region: string, postcode: string): string {
   validateCC(cc)
-  return `SELECT postcode, tiles, addr_count FROM _postcodes_${cc}
+  validateRegion(region)
+  const table = getRegionTable('_postcodes', cc, region)
+  return `SELECT postcode, tiles, addr_count FROM ${table}
     WHERE lower(postcode) = '${esc(postcode.toLowerCase())}'
     LIMIT 1`
 }
@@ -436,11 +449,13 @@ export function buildPostcodeNarrowSQL(cc: string, postcode: string): string {
 /**
  * Build SQL for narrowing tiles by street (exact then prefix fallback).
  */
-export function buildStreetNarrowSQL(cc: string, street: string, exact: boolean): string {
+export function buildStreetNarrowSQL(cc: string, region: string, street: string, exact: boolean): string {
   validateCC(cc)
+  validateRegion(region)
+  const table = getRegionTable('_streets', cc, region)
   const op = exact ? '=' : 'LIKE'
   const val = exact ? `'${esc(street.toLowerCase())}'` : `'${esc(street.toLowerCase())}%'`
-  return `SELECT street_lower, tiles, addr_count FROM _streets_${cc}
+  return `SELECT street_lower, tiles, addr_count FROM ${table}
     WHERE street_lower ${op} ${val}
     ${exact ? '' : 'ORDER BY addr_count DESC'} LIMIT 1`
 }
@@ -452,11 +467,18 @@ export function buildStreetNarrowSQL(cc: string, street: string, exact: boolean)
  */
 const TILE_RE = /^[0-9a-f]+$/i
 
-export function buildAddressSQL(cc: string, street: string, numberPrefix: string, tile: string): string {
+export function buildAddressSQL(
+  cc: string,
+  region: string,
+  street: string,
+  numberPrefix: string,
+  tile: string,
+): string {
   validateCC(cc)
+  validateRegion(region)
   if (!TILE_RE.test(tile)) throw new Error(`Invalid tile id: ${tile}`)
   return `SELECT DISTINCT number, street, city, postcode
-    FROM read_parquet('${tilePath(cc, tile)}')
+    FROM read_parquet('${tilePath(cc, region, tile)}')
     WHERE lower(street) = '${esc(street.toLowerCase())}'
       AND number LIKE '${esc(numberPrefix)}%'
     ORDER BY number
@@ -470,12 +492,13 @@ export function buildAddressSQL(cc: string, street: string, numberPrefix: string
  * and fetch only ~150 KB per query instead of full tiles (0.5-15 MB).
  *
  * The numbers column is a sorted VARCHAR[] of all distinct house numbers
- * for that street across the entire country.
+ * for that street within the region.
  */
-export function buildNumberIndexSQL(cc: string, street: string): string {
+export function buildNumberIndexSQL(cc: string, region: string, street: string): string {
   validateCC(cc)
+  validateRegion(region)
   return `SELECT street_lower, numbers
-    FROM read_parquet('${dataPath(`number_index/${cc}.parquet`)}')
+    FROM read_parquet('${indexPath('number_index', cc, region)}')
     WHERE street_lower = '${esc(street.toLowerCase())}'
     LIMIT 1`
 }

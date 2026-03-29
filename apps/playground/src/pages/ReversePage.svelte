@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { queryObjects, queryObjectsWithRetry, dataPath, tilePath, getTileSource, isTileCached, ms, addStep, updateLastStep, htmlEsc } from '@walkthru-earth/geocoding-core'
+  import { queryObjects, queryObjectsWithRetry, tilePath, getTileSource, isTileCached, ms, addStep, updateLastStep, htmlEsc } from '@walkthru-earth/geocoding-core'
   import type { AddressRow, StepEntry } from '@walkthru-earth/geocoding-core'
   import MapView from '../lib/MapView.svelte'
   import SplitPane from '../lib/components/SplitPane.svelte'
@@ -68,108 +68,108 @@
     steps = []
     mapView?.clearResultMarkers()
 
-    // Only fly to point when triggered from button (not map click ,map already moved)
-    // clearResultMarkers above already cleans the old markers
-
     const totalT0 = performance.now()
     try {
-      // Step 1: Compute H3 cells for the search area
-      // Res-5 cells are ~10km across. For radius ≤ 2km, a single center cell
-      // always covers the entire search area ,no grid_disk needed.
-      // grid_disk only needed for very large radius (>5km).
+      // ── Step 1: H3 cell computation + tile_index lookup (single query) ──
+      // Combines H3 computation and tile_index lookup into one round-trip.
+      // For radius ≤ 5km (default), a single res-5 cell always covers the area.
+      // grid_disk only needed for very large radius.
       let t0 = performance.now()
       const needDisk = radius > 5000
       const gridK = radius <= 5000 ? 0 : radius <= 10000 ? 1 : 2
-      log(`Step 1  H3 res-5 ${needDisk ? `grid_disk(k=${gridK})` : 'center cell'} + parent tile...`, 'loading')
+      log(`Step 1  H3 ${needDisk ? `grid_disk(k=${gridK})` : 'center cell'} + tile lookup...`, 'loading')
 
-      const h3Result = await queryObjects<{ h3_parent: string; cell_bigint: string; cell_hex: string }>(
-        needDisk
-          ? `WITH disk AS (
+      // Single query: compute H3 cells AND join with tile_index to get country/region
+      const tileResults = needDisk
+        ? await queryObjects<{ country: string; region: string; h3_parent: string; address_count: number; cell_bigint: string; cell_hex: string }>(`
+            WITH disk AS (
               SELECT UNNEST(h3_grid_disk(h3_latlng_to_cell(${lat}, ${lon}, 5), ${gridK})) AS cell
+            ),
+            cells AS (
+              SELECT DISTINCT
+                h3_h3_to_string(h3_cell_to_parent(cell, 4)) AS h3_parent,
+                cell::BIGINT::VARCHAR AS cell_bigint,
+                h3_h3_to_string(cell) AS cell_hex
+              FROM disk
             )
-            SELECT DISTINCT
-              h3_h3_to_string(h3_cell_to_parent(cell, 4)) AS h3_parent,
-              cell::BIGINT::VARCHAR AS cell_bigint,
-              h3_h3_to_string(cell) AS cell_hex
-            FROM disk`
-          : `SELECT
-              h3_h3_to_string(h3_cell_to_parent(h3_latlng_to_cell(${lat}, ${lon}, 5), 4)) AS h3_parent,
-              h3_latlng_to_cell(${lat}, ${lon}, 5)::BIGINT::VARCHAR AS cell_bigint,
-              h3_h3_to_string(h3_latlng_to_cell(${lat}, ${lon}, 5)) AS cell_hex`
-      )
+            SELECT t.country, t.region, t.h3_parent, t.address_count, c.cell_bigint, c.cell_hex
+            FROM cells c
+            JOIN _tile_index t ON t.h3_parent = c.h3_parent
+          `)
+        : await queryObjects<{ country: string; region: string; h3_parent: string; address_count: number; cell_bigint: string; cell_hex: string }>(`
+            WITH target AS (
+              SELECT
+                h3_h3_to_string(h3_cell_to_parent(h3_latlng_to_cell(${lat}, ${lon}, 5), 4)) AS h3_parent,
+                h3_latlng_to_cell(${lat}, ${lon}, 5)::BIGINT::VARCHAR AS cell_bigint,
+                h3_h3_to_string(h3_latlng_to_cell(${lat}, ${lon}, 5)) AS cell_hex
+            )
+            SELECT t.country, t.region, t.h3_parent, t.address_count, tgt.cell_bigint, tgt.cell_hex
+            FROM target tgt
+            JOIN _tile_index t ON t.h3_parent = tgt.h3_parent
+          `)
 
       if (gen !== searchGen) return
 
-      // Group cells by their parent tile ,each cell belongs to exactly one tile
-      // Track both BIGINT (for SQL WHERE) and hex (for map visualization)
+      if (tileResults.length === 0) {
+        updateLast('Step 1  No coverage at this location', 'error')
+        error = 'No address coverage at this location.'
+        return
+      }
+
+      // Group cells by parent tile
       const cellsByParent = new Map<string, string[]>()
       const cellBigintsByParent = new Map<string, string[]>()
-      for (const r of h3Result) {
+      const tileInfoMap = new Map<string, { country: string; region: string; h3_parent: string; address_count: number }>()
+
+      for (const r of tileResults) {
         const arr = cellsByParent.get(r.h3_parent) ?? []
         arr.push(r.cell_hex)
         cellsByParent.set(r.h3_parent, arr)
         const bArr = cellBigintsByParent.get(r.h3_parent) ?? []
         bArr.push(r.cell_bigint)
         cellBigintsByParent.set(r.h3_parent, bArr)
-      }
-      const parents = [...cellsByParent.keys()]
-      const totalCells = h3Result.length
-      updateLast(`Step 1  ${totalCells} H3 cells → ${parents.length} tile(s) (${ms(t0)})`, 'done')
-
-      // Step 2: Find which tiles exist in our index
-      t0 = performance.now()
-      log('Step 2  Looking up tiles in cached tile_index...', 'loading')
-      const parentList = parents.map(p => `'${p}'`).join(',')
-      const tileResults = await queryObjects<{ country: string; h3_parent: string; address_count: number }>(`
-        SELECT country, h3_parent, address_count
-        FROM _tile_index
-        WHERE h3_parent IN (${parentList})
-      `)
-
-      if (gen !== searchGen) return
-      if (tileResults.length === 0) {
-        updateLast('Step 2  No tiles found ,this location has no address coverage', 'error')
-        error = 'No address coverage at this location.'
-        return
+        if (!tileInfoMap.has(r.h3_parent)) {
+          tileInfoMap.set(r.h3_parent, { country: r.country, region: r.region, h3_parent: r.h3_parent, address_count: r.address_count })
+        }
       }
 
-      // Sort tiles: most matching cells first (tile closest to query point)
-      tileResults.sort((a: { h3_parent: string }, b: { h3_parent: string }) => (cellsByParent.get(b.h3_parent)?.length ?? 0) - (cellsByParent.get(a.h3_parent)?.length ?? 0))
+      const tiles = [...tileInfoMap.values()]
+      // Sort: most matching cells first (tile closest to query point)
+      tiles.sort((a, b) => (cellsByParent.get(b.h3_parent)?.length ?? 0) - (cellsByParent.get(a.h3_parent)?.length ?? 0))
 
-      updateLast(`Step 2  Found ${tileResults.length} tile(s) in index, sorted by proximity (${ms(t0)})`, 'done')
-      tileResults.forEach((t: { country: string; h3_parent: string; address_count: number }) => {
+      const totalCells = new Set(tileResults.map(r => r.cell_hex)).size
+      updateLast(`Step 1  ${tiles[0].country}/${tiles[0].region}, ${totalCells} cell(s) in ${tiles.length} tile(s) (${ms(t0)})`, 'done')
+
+      tiles.forEach(t => {
         const cells = cellsByParent.get(t.h3_parent) ?? []
-        const cached = isTileCached(t.country, t.h3_parent)
-        log(`        ${t.country}/${t.h3_parent} ,${t.address_count.toLocaleString()} addr, ${cells.length} cell(s)${cached ? ' [cached]' : ''}`)
+        const cached = isTileCached(t.country, t.region, t.h3_parent)
+        log(`        ${t.h3_parent}, ${t.address_count.toLocaleString()} addr, ${cells.length} cell(s)${cached ? ' [cached]' : ''}`)
       })
 
-      // Show H3 grid on map (cells + tile boundaries)
+      // Show H3 grid on map
       const queriedTiles = new Set<string>()
       const skippedTiles = new Set<string>()
-      showH3OnMap(cellsByParent, tileResults, queriedTiles, skippedTiles)
+      showH3OnMap(cellsByParent, tiles, queriedTiles, skippedTiles)
 
-      // Step 3: Query each tile ,use filter pushdown on remote file for uncached tiles
-      for (let i = 0; i < tileResults.length; i++) {
-        const { country, h3_parent, address_count } = tileResults[i]
-        const tileCells = cellsByParent.get(h3_parent) ?? []
+      // ── Step 2: Query tiles ──
+      // For reverse geocoding, always cache the tile (user likely clicks nearby again).
+      for (let i = 0; i < tiles.length; i++) {
+        const { country, region, h3_parent, address_count } = tiles[i]
         const tileCellBigints = cellBigintsByParent.get(h3_parent) ?? []
 
         t0 = performance.now()
-        // Use BIGINT values for WHERE ,enables row-group min/max pushdown
         const cellList = tileCellBigints.join(',')
-        const cached = isTileCached(country, h3_parent)
-        log(`Step 3  Tile ${i + 1}/${tileResults.length}: ${h3_parent} ,${cached ? 'cached' : 'remote pushdown'}, ${tileCells.length} cell(s)...`, 'loading')
+        const cached = isTileCached(country, region, h3_parent)
+        log(`Step 2  Tile ${i + 1}/${tiles.length}: ${h3_parent}, ${cached ? 'cached' : 'fetching'}...`, 'loading')
 
         let tileAddresses: AddressRow[] = []
         try {
-          // Use cached tile if available, otherwise query remote directly
-          // with h3_index filter pushdown (downloads ~12 MB vs ~48 MB)
-          const src = cached
-            ? await getTileSource(country, h3_parent)
-            : `read_parquet('${tilePath(country, h3_parent)}')`
+          // Always use getTileSource for reverse geocoding (caches the tile).
+          // Reverse geocode users typically click nearby multiple times,
+          // so the tile will be reused on subsequent clicks.
+          const src = await getTileSource(country, region, h3_parent)
 
-          const queryFn = cached ? queryObjects : queryObjectsWithRetry
-          tileAddresses = await queryFn<AddressRow>(`
+          tileAddresses = await queryObjects<AddressRow>(`
             WITH addr AS (
               SELECT
                 full_address, street, number, city, region, postcode,
@@ -193,7 +193,7 @@
         } catch (tileErr: any) {
           console.warn(`[reverse] Tile ${h3_parent} failed:`, tileErr.message)
           updateLast(
-            `Step 3  Tile ${i + 1}/${tileResults.length}: ${h3_parent} ,failed (${ms(t0)})`,
+            `Step 2  Tile ${i + 1}/${tiles.length}: ${h3_parent}, failed (${ms(t0)})`,
             'error'
           )
           continue
@@ -204,20 +204,20 @@
 
         results = [...results, ...tileAddresses].sort((a, b) => (a.distance_m ?? 0) - (b.distance_m ?? 0)).slice(0, resultLimit)
         updateLast(
-          `Step 3  Tile ${i + 1}/${tileResults.length}: ${h3_parent} ,${tileAddresses.length} nearby (${ms(t0)})`,
+          `Step 2  Tile ${i + 1}/${tiles.length}: ${h3_parent}, ${tileAddresses.length} nearby (${ms(t0)})`,
           'done'
         )
 
         // Update map: markers + tile status
         updateMapMarkers()
-        showH3OnMap(cellsByParent, tileResults, queriedTiles, skippedTiles)
+        showH3OnMap(cellsByParent, tiles, queriedTiles, skippedTiles)
 
         // Early exit: if we have enough results, skip remaining tiles
         if (results.length >= resultLimit) {
-          const skipped = tileResults.length - i - 1
+          const skipped = tiles.length - i - 1
           if (skipped > 0) {
-            for (let j = i + 1; j < tileResults.length; j++) skippedTiles.add(tileResults[j].h3_parent)
-            showH3OnMap(cellsByParent, tileResults, queriedTiles, skippedTiles)
+            for (let j = i + 1; j < tiles.length; j++) skippedTiles.add(tiles[j].h3_parent)
+            showH3OnMap(cellsByParent, tiles, queriedTiles, skippedTiles)
             log(`        Limit reached, skipping ${skipped} tile(s)`, 'done')
           }
           break
@@ -225,7 +225,7 @@
       }
 
       searchTime = performance.now() - totalT0
-      log(`Done    ${results.length} results, total: ${ms(totalT0)}`, 'done')
+      log(`Done    ${results.length} results in ${ms(totalT0)}`, 'done')
       track('reverse_geocode_search', {
         lat,
         lon,
@@ -280,7 +280,7 @@
   /** Show H3 cells and tile boundaries on the map */
   function showH3OnMap(
     cellsByParent: Map<string, string[]>,
-    tileResults: { country: string; h3_parent: string; address_count: number }[],
+    tiles: { country: string; h3_parent: string; address_count: number }[],
     queriedTiles: Set<string>,
     skippedTiles: Set<string>,
   ) {
@@ -310,7 +310,7 @@
     })
 
     // Res-4 parent tiles: green = done, yellow = pending, gray = skipped
-    const tileFeatures: GeoJSON.Feature[] = tileResults.map(t => {
+    const tileFeatures: GeoJSON.Feature[] = tiles.map(t => {
       const boundary = cellToBoundary(t.h3_parent)
       const coords = boundary.map(([lt, ln]) => [ln, lt])
       coords.push(coords[0])

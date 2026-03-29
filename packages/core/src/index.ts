@@ -22,19 +22,22 @@ export {
 export type { PrefetchOptions, QueryResult } from './duckdb'
 // ── DuckDB ───────────────────────────────────────────────────
 export {
-  availableReleases,
+  cancelPendingQuery,
   clearHttpCache,
   dataPath,
+  getAvailableReleases,
   getConnection,
+  getRegionTable,
   getRelease,
   getTileSource,
+  indexPath,
   initDuckDB,
-  isCountryCached,
+  isRegionCached,
   isTileCached,
-  markCountryCached,
+  markRegionCached,
   onCacheLog,
   onReleaseChange,
-  prefetchCountry,
+  prefetchRegion,
   query,
   queryObjects,
   queryObjectsWithRetry,
@@ -47,6 +50,7 @@ export { stripJPCoordZone } from './parsers/jp'
 export {
   jaccardSimilarity,
   normalizeForSearch,
+  preNormalize,
   rankBySimilarity,
   SearchCache,
   searchCities,
@@ -60,6 +64,7 @@ export type {
   IndexAvailRow,
   ManifestRow,
   PostcodeRecord,
+  RegionRow,
   StepEntry,
   StreetRecord,
   SuggestRow,
@@ -67,4 +72,16 @@ export type {
   TileStatsRow,
 } from './types'
 // ── Utilities ────────────────────────────────────────────────
-export { addStep, esc, fmt, fmtFull, formatSize, htmlEsc, ms, toArr, updateLastStep, validateCC } from './utils'
+export {
+  addStep,
+  esc,
+  fmt,
+  fmtFull,
+  formatSize,
+  htmlEsc,
+  ms,
+  toArr,
+  updateLastStep,
+  validateCC,
+  validateRegion,
+} from './utils'

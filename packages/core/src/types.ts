@@ -46,11 +46,23 @@ export interface ManifestRow {
   country: string
   address_count: number
   tile_count: number
+  region_count: number
   bbox_min_lon: number
   bbox_max_lon: number
   bbox_min_lat: number
   bbox_max_lat: number
   overture_release: string
+}
+
+export interface RegionRow {
+  country: string
+  region: string
+  tiles: string[]
+  addr_count: number
+  bbox_min_lon: number
+  bbox_max_lon: number
+  bbox_min_lat: number
+  bbox_max_lat: number
 }
 
 export interface TileStatsRow {

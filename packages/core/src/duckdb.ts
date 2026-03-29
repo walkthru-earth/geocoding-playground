@@ -1,9 +1,9 @@
 import * as duckdb from '@duckdb/duckdb-wasm'
 
-// Public HTTPS URL ,works reliably for all file sizes in DuckDB-WASM.
-// S3 protocol fails on large files (416 Range Not Satisfiable) in WASM httpfs.
+// Public HTTPS URL for all data access. S3 protocol is slower in WASM
+// and glob support is experimental. Pipeline ensures one file per partition.
 const DATA_ROOT =
-  'https://s3.us-west-2.amazonaws.com/us-west-2.opendata.source.coop/walkthru-earth/indices/addresses-index/v1'
+  'https://s3.us-west-2.amazonaws.com/us-west-2.opendata.source.coop/walkthru-earth/indices/addresses-index/v3'
 const DEFAULT_RELEASE = '2026-03-18.0'
 
 let currentRelease = DEFAULT_RELEASE
@@ -16,8 +16,12 @@ export function getRelease(): string {
   return currentRelease
 }
 
-/** List of known releases ,discovered from _manifest after init. */
-export let availableReleases: string[] = [DEFAULT_RELEASE]
+let _availableReleases: string[] = [DEFAULT_RELEASE]
+
+/** List of known releases, discovered from _manifest after init. */
+export function getAvailableReleases(): readonly string[] {
+  return _availableReleases
+}
 
 type ReleaseChangeCallback = (release: string) => void
 let releaseChangeCallbacks: ReleaseChangeCallback[] = []
@@ -29,6 +33,22 @@ export function onReleaseChange(cb: ReleaseChangeCallback): () => void {
   }
 }
 
+// ── Helpers for region-scoped table names ────────────────────
+
+/**
+ * Build a DuckDB-safe quoted identifier for a region-scoped in-memory table.
+ * Uses double-quoted identifiers to handle any Unicode/spaces in region names.
+ */
+function regionTable(prefix: string, cc: string, region: string): string {
+  const safe = region.replace(/"/g, '""')
+  return `"${prefix}_${cc}_${safe}"`
+}
+
+/** Unique key for region in JavaScript collections (null byte separator). */
+function regionKey(cc: string, region: string): string {
+  return `${cc}\0${region}`
+}
+
 /**
  * Switch to a different Overture release.
  * Drops all cached tables, re-loads global indexes from the new release.
@@ -37,19 +57,20 @@ export async function switchRelease(release: string): Promise<void> {
   if (release === currentRelease) return
   const c = await getConnection()
 
-  // Drop all cached country tables + tile tables
-  for (const cc of cachedCountries) {
+  // Drop all cached region tables
+  for (const rk of cachedRegions) {
+    const [cc, reg] = rk.split('\0')
     try {
-      await c.query(`DROP TABLE IF EXISTS _cities_${cc}`)
+      await c.query(`DROP TABLE IF EXISTS ${regionTable('_cities', cc, reg)}`)
     } catch {}
     try {
-      await c.query(`DROP TABLE IF EXISTS _postcodes_${cc}`)
+      await c.query(`DROP TABLE IF EXISTS ${regionTable('_postcodes', cc, reg)}`)
     } catch {}
     try {
-      await c.query(`DROP TABLE IF EXISTS _streets_${cc}`)
+      await c.query(`DROP TABLE IF EXISTS ${regionTable('_streets', cc, reg)}`)
     } catch {}
   }
-  cachedCountries.clear()
+  cachedRegions.clear()
 
   for (const tile of tileCache.values()) {
     try {
@@ -65,9 +86,13 @@ export async function switchRelease(release: string): Promise<void> {
 
   // Re-load global indexes (with retry for stale cache after release change)
   await c.query(`DROP TABLE IF EXISTS _tile_index`)
+  await c.query(`DROP TABLE IF EXISTS _region_index`)
   await c.query(`DROP TABLE IF EXISTS _manifest`)
   await queryRemoteWithRetry(
     `CREATE TABLE _tile_index AS SELECT * FROM read_parquet('${DATA_BASE}/tile_index.parquet')`,
+  )
+  await queryRemoteWithRetry(
+    `CREATE TABLE _region_index AS SELECT * FROM read_parquet('${DATA_BASE}/region_index.parquet')`,
   )
   await queryRemoteWithRetry(`CREATE TABLE _manifest AS SELECT * FROM read_parquet('${DATA_BASE}/manifest.parquet')`)
   console.log(`[duckdb] Switched to release ${release}`)
@@ -108,10 +133,13 @@ export async function initDuckDB(): Promise<duckdb.AsyncDuckDBConnection> {
   await conn.query(`SET parquet_metadata_cache = true`)
   console.log('[duckdb] HTTP + Parquet metadata caching enabled')
 
-  // Cache tile_index + manifest at startup via HTTPS (~17K + 39 rows)
-  console.log('[duckdb] Caching tile_index + manifest...')
+  // Cache tile_index + region_index + manifest at startup via HTTPS
+  console.log('[duckdb] Caching tile_index + region_index + manifest...')
   await queryRemoteWithRetry(
     `CREATE TABLE _tile_index AS SELECT * FROM read_parquet('${DATA_BASE}/tile_index.parquet')`,
+  )
+  await queryRemoteWithRetry(
+    `CREATE TABLE _region_index AS SELECT * FROM read_parquet('${DATA_BASE}/region_index.parquet')`,
   )
   await queryRemoteWithRetry(`CREATE TABLE _manifest AS SELECT * FROM read_parquet('${DATA_BASE}/manifest.parquet')`)
   console.log('[duckdb] Global indexes cached, ready!')
@@ -122,7 +150,7 @@ export async function initDuckDB(): Promise<duckdb.AsyncDuckDBConnection> {
       `SELECT DISTINCT overture_release FROM _manifest ORDER BY overture_release DESC`,
     )
     if (rows.length > 0) {
-      availableReleases = rows.map((r) => r.overture_release)
+      _availableReleases = rows.map((r) => r.overture_release)
     }
   } catch {
     /* keep default */
@@ -136,12 +164,39 @@ export async function getConnection(): Promise<duckdb.AsyncDuckDBConnection> {
   return conn
 }
 
+/**
+ * Cancel any in-flight query on the current connection.
+ * Uses DuckDB-WASM's low-level cancelPendingQuery API which takes
+ * the internal connection handle (number), not the connection object.
+ */
+export async function cancelPendingQuery(): Promise<boolean> {
+  if (!db || !conn) return false
+  try {
+    // AsyncDuckDBConnection stores the handle as a private numeric ID.
+    // Access it via the internal property to pass to the cancel API.
+    const handle = (conn as any)._conn as number
+    if (typeof handle !== 'number') return false
+    return await db.cancelPendingQuery(handle)
+  } catch {
+    return false
+  }
+}
+
 export function dataPath(suffix: string): string {
   return `${DATA_BASE}/${suffix}`
 }
 
-export function tilePath(country: string, h3Parent: string): string {
-  return `${DATA_BASE}/geocoder/country=${country}/h3/${h3Parent}.parquet`
+/**
+ * Build a full HTTPS URL for a region-scoped index file.
+ * Region values are always URL-safe: either short ASCII codes (US/CA, DE/NW)
+ * or H3 hex strings (822e67fffffffff). encodeURIComponent is a no-op for these.
+ */
+export function indexPath(type: string, cc: string, region: string): string {
+  return `${DATA_BASE}/${type}/country=${cc}/region=${encodeURIComponent(region)}/data_0.parquet`
+}
+
+export function tilePath(country: string, region: string, h3Parent: string): string {
+  return `${DATA_BASE}/geocoder/country=${country}/region=${encodeURIComponent(region)}/h3_parent=${h3Parent}/data_0.parquet`
 }
 
 /** Convert Arrow values (lists, structs, bigints) to plain JS */
@@ -288,8 +343,8 @@ export async function queryObjectsWithRetry<T = Record<string, any>>(sql: string
 // Subsequent queries in the same area skip the network entirely.
 
 interface CachedTile {
-  key: string // "CC_h3parent"
-  tableName: string // "_tile_CC_h3parent"
+  key: string // "CC\0region\0h3parent"
+  tableName: string // quoted identifier
   addrCount: number // estimated row count for memory budgeting
   lastUsed: number // timestamp for LRU eviction
 }
@@ -298,12 +353,13 @@ const tileCache = new Map<string, CachedTile>()
 const TILE_CACHE_MAX_ADDR = 4_000_000 // ~200 MB at ~50 bytes/row
 let tileCacheAddrTotal = 0
 
-function tileCacheKey(country: string, h3Parent: string): string {
-  return `${country}_${h3Parent}`
+function tileCacheKey(country: string, region: string, h3Parent: string): string {
+  return `${country}\0${region}\0${h3Parent}`
 }
 
-function tileCacheTableName(country: string, h3Parent: string): string {
-  return `_tile_${country}_${h3Parent.replace(/[^a-z0-9]/gi, '')}`
+function tileCacheTableName(country: string, region: string, h3Parent: string): string {
+  const safeRegion = region.replace(/"/g, '""')
+  return `"_tile_${country}_${safeRegion}_${h3Parent.replace(/[^a-z0-9]/gi, '')}"`
 }
 
 async function evictTiles(neededAddr: number): Promise<void> {
@@ -330,8 +386,8 @@ async function evictTiles(neededAddr: number): Promise<void> {
  * Query a geocoder tile, using cached in-memory table if available.
  * Returns the table name to SELECT FROM (either cached or remote URL).
  */
-export async function getTileSource(country: string, h3Parent: string): Promise<string> {
-  const key = tileCacheKey(country, h3Parent)
+export async function getTileSource(country: string, region: string, h3Parent: string): Promise<string> {
+  const key = tileCacheKey(country, region, h3Parent)
   const cached = tileCache.get(key)
   if (cached) {
     cached.lastUsed = Date.now()
@@ -343,7 +399,7 @@ export async function getTileSource(country: string, h3Parent: string): Promise<
   try {
     const rows = await queryObjects<{ address_count: number }>(`
       SELECT address_count FROM _tile_index
-      WHERE country = '${country}' AND h3_parent = '${h3Parent}'
+      WHERE country = '${country}' AND region = '${region.replace(/'/g, "''")}' AND h3_parent = '${h3Parent}'
       LIMIT 1
     `)
     if (rows.length > 0) addrCount = rows[0].address_count
@@ -355,14 +411,16 @@ export async function getTileSource(country: string, h3Parent: string): Promise<
   await evictTiles(addrCount)
 
   // Fetch and cache
-  const tableName = tileCacheTableName(country, h3Parent)
-  const url = tilePath(country, h3Parent)
+  const tableName = tileCacheTableName(country, region, h3Parent)
+  const url = tilePath(country, region, h3Parent)
   try {
     await queryRemoteWithRetry(`CREATE OR REPLACE TABLE ${tableName} AS SELECT * FROM read_parquet('${url}')`)
     const entry: CachedTile = { key, tableName, addrCount, lastUsed: Date.now() }
     tileCache.set(key, entry)
     tileCacheAddrTotal += addrCount
-    cacheLog(`tile cached: ${key} (${addrCount.toLocaleString()} addr, total: ${tileCacheAddrTotal.toLocaleString()})`)
+    cacheLog(
+      `tile cached: ${country}/${region}/${h3Parent} (${addrCount.toLocaleString()} addr, total: ${tileCacheAddrTotal.toLocaleString()})`,
+    )
     return tableName
   } catch (_e) {
     // If caching fails, fall back to direct URL read
@@ -371,16 +429,16 @@ export async function getTileSource(country: string, h3Parent: string): Promise<
 }
 
 /** Check if a tile is already cached in memory. */
-export function isTileCached(country: string, h3Parent: string): boolean {
-  return tileCache.has(tileCacheKey(country, h3Parent))
+export function isTileCached(country: string, region: string, h3Parent: string): boolean {
+  return tileCache.has(tileCacheKey(country, region, h3Parent))
 }
 
-// ── Country cache ──────────────────────────────────────────
-// When a country is selected, we prefetch ALL its index data
+// ── Region cache ──────────────────────────────────────────
+// When a region is selected, we prefetch ALL its index data
 // into DuckDB in-memory tables. All autocomplete queries hit
-// these cached tables ,zero network latency.
+// these cached tables, zero network latency.
 
-const cachedCountries = new Set<string>()
+const cachedRegions = new Set<string>()
 let cacheCallbacks: ((msg: string) => void)[] = []
 
 export function onCacheLog(cb: (msg: string) => void): () => void {
@@ -394,12 +452,20 @@ function cacheLog(msg: string) {
   cacheCallbacks.forEach((cb) => cb(msg))
 }
 
-export function isCountryCached(cc: string): boolean {
-  return cachedCountries.has(cc)
+export function isRegionCached(cc: string, region: string): boolean {
+  return cachedRegions.has(regionKey(cc, region))
 }
 
-export function markCountryCached(cc: string): void {
-  cachedCountries.add(cc)
+export function markRegionCached(cc: string, region: string): void {
+  cachedRegions.add(regionKey(cc, region))
+}
+
+/**
+ * Get the DuckDB quoted table name for a region-scoped index.
+ * Exported so the playground can query these tables directly (e.g. for presets).
+ */
+export function getRegionTable(prefix: string, cc: string, region: string): string {
+  return regionTable(prefix, cc, region)
 }
 
 export interface PrefetchOptions {
@@ -408,32 +474,35 @@ export interface PrefetchOptions {
 }
 
 /**
- * Prefetch all indexes for a country into DuckDB in-memory tables.
- * Called once when user selects a country. ~1-3s total.
+ * Prefetch all indexes for a region into DuckDB in-memory tables.
+ * Called once when user selects a region. ~0.5-1.5s total (much faster than full country).
  *
- * Creates: _cities_{CC}, _postcodes_{CC}, _streets_{CC}
- * All autocomplete queries hit these tables ,zero network latency.
- * Enriched columns: primary_city, centroid, bbox available for UX.
+ * Creates: "_cities_{CC}_{region}", "_postcodes_{CC}_{region}", "_streets_{CC}_{region}"
+ * All autocomplete queries hit these tables, zero network latency.
  */
-export async function prefetchCountry(
+export async function prefetchRegion(
   cc: string,
+  region: string,
   opts?: PrefetchOptions,
 ): Promise<{ cities: number; postcodes: number; streets: number }> {
-  if (cachedCountries.has(cc)) {
-    cacheLog(`${cc} already cached`)
+  const rk = regionKey(cc, region)
+  if (cachedRegions.has(rk)) {
+    cacheLog(`${cc}/${region} already cached`)
     opts?.onCitiesReady?.(0)
     return { cities: 0, postcodes: 0, streets: 0 }
   }
 
   const t0 = performance.now()
+  const citiesT = regionTable('_cities', cc, region)
+  const postcodesT = regionTable('_postcodes', cc, region)
+  const streetsT = regionTable('_streets', cc, region)
 
-  // Phase 1: Cities ,fast, unlocks city search immediately
-  cacheLog(`${cc}: loading cities...`)
+  // Phase 1: Cities, fast, unlocks city search immediately
+  cacheLog(`${cc}/${region}: loading cities...`)
   try {
     await queryRemoteWithRetry(`
-      CREATE OR REPLACE TABLE _cities_${cc} AS
-      SELECT region,
-             CASE
+      CREATE OR REPLACE TABLE ${citiesT} AS
+      SELECT CASE
                  WHEN city LIKE 'Paris % Arrondissement' THEN 'Paris'
                  WHEN city LIKE 'Lyon % Arrondissement' THEN 'Lyon'
                  WHEN city LIKE 'Marseille % Arrondissement' THEN 'Marseille'
@@ -445,9 +514,8 @@ export async function prefetchCountry(
              COALESCE(max(bbox_max_lon_e6), 0) AS bbox_max_lon_e6,
              COALESCE(min(bbox_min_lat_e6), 0) AS bbox_min_lat_e6,
              COALESCE(max(bbox_max_lat_e6), 0) AS bbox_max_lat_e6
-      FROM read_parquet('${dataPath(`city_index/${cc}.parquet`)}')
-      GROUP BY region,
-               CASE
+      FROM read_parquet('${indexPath('city_index', cc, region)}')
+      GROUP BY CASE
                    WHEN city LIKE 'Paris % Arrondissement' THEN 'Paris'
                    WHEN city LIKE 'Lyon % Arrondissement' THEN 'Lyon'
                    WHEN city LIKE 'Marseille % Arrondissement' THEN 'Marseille'
@@ -455,80 +523,62 @@ export async function prefetchCountry(
                END
     `)
   } catch {
-    await queryRemoteWithRetry(`
-      CREATE OR REPLACE TABLE _cities_${cc} AS
-      SELECT region,
-             CASE
-                 WHEN city LIKE 'Paris % Arrondissement' THEN 'Paris'
-                 WHEN city LIKE 'Lyon % Arrondissement' THEN 'Lyon'
-                 WHEN city LIKE 'Marseille % Arrondissement' THEN 'Marseille'
-                 ELSE city
-             END AS city,
-             list_distinct(flatten(list(tiles))) AS tiles,
-             sum(addr_count)::INTEGER AS addr_count,
-             0 AS bbox_min_lon_e6, 0 AS bbox_max_lon_e6,
-             0 AS bbox_min_lat_e6, 0 AS bbox_max_lat_e6
-      FROM read_parquet('${dataPath('city_index.parquet')}')
-      WHERE country = '${cc}'
-      GROUP BY region,
-               CASE
-                   WHEN city LIKE 'Paris % Arrondissement' THEN 'Paris'
-                   WHEN city LIKE 'Lyon % Arrondissement' THEN 'Lyon'
-                   WHEN city LIKE 'Marseille % Arrondissement' THEN 'Marseille'
-                   ELSE city
-               END
-    `)
+    // Fallback: create empty table
+    await queryObjects(
+      `CREATE OR REPLACE TABLE ${citiesT}(city VARCHAR, tiles VARCHAR[], addr_count INTEGER, bbox_min_lon_e6 INTEGER, bbox_max_lon_e6 INTEGER, bbox_min_lat_e6 INTEGER, bbox_max_lat_e6 INTEGER)`,
+    )
+    cacheLog(`${cc}/${region}: no city index available`)
   }
-  const cRows = await queryObjects<{ c: number }>(`SELECT count(*)::INTEGER AS c FROM _cities_${cc}`)
+  const cRows = await queryObjects<{ c: number }>(`SELECT count(*)::INTEGER AS c FROM ${citiesT}`)
   const cities = cRows[0]?.c ?? 0
-  cacheLog(`${cc}: ${cities} cities cached`)
+  cacheLog(`${cc}/${region}: ${cities} cities cached`)
   opts?.onCitiesReady?.(cities)
 
-  // Phase 2: Postcodes + Streets ,loaded after cities to keep city search responsive
+  // Phase 2: Postcodes + Streets, loaded after cities to keep city search responsive
   let postcodes = 0
   try {
-    cacheLog(`${cc}: loading postcodes...`)
+    cacheLog(`${cc}/${region}: loading postcodes...`)
     await queryRemoteWithRetry(`
-      CREATE OR REPLACE TABLE _postcodes_${cc} AS
+      CREATE OR REPLACE TABLE ${postcodesT} AS
       SELECT postcode, tiles, addr_count,
              COALESCE(centroid_lon_e6, 0) AS centroid_lon_e6,
              COALESCE(centroid_lat_e6, 0) AS centroid_lat_e6
-      FROM read_parquet('${dataPath(`postcode_index/${cc}.parquet`)}')
+      FROM read_parquet('${indexPath('postcode_index', cc, region)}')
     `)
-    const pRows = await queryObjects<{ c: number }>(`SELECT count(*)::INTEGER AS c FROM _postcodes_${cc}`)
+    const pRows = await queryObjects<{ c: number }>(`SELECT count(*)::INTEGER AS c FROM ${postcodesT}`)
     postcodes = pRows[0]?.c ?? 0
-    cacheLog(`${cc}: ${postcodes} postcodes cached`)
+    cacheLog(`${cc}/${region}: ${postcodes} postcodes cached`)
   } catch {
     await queryObjects(
-      `CREATE OR REPLACE TABLE _postcodes_${cc}(postcode VARCHAR, tiles VARCHAR[], addr_count INTEGER, centroid_lon_e6 INTEGER, centroid_lat_e6 INTEGER)`,
+      `CREATE OR REPLACE TABLE ${postcodesT}(postcode VARCHAR, tiles VARCHAR[], addr_count INTEGER, centroid_lon_e6 INTEGER, centroid_lat_e6 INTEGER)`,
     )
-    cacheLog(`${cc}: no postcode index available`)
+    cacheLog(`${cc}/${region}: no postcode index available`)
   }
 
   let streets = 0
   try {
-    cacheLog(`${cc}: loading streets...`)
+    cacheLog(`${cc}/${region}: loading streets...`)
     await queryRemoteWithRetry(`
-      CREATE OR REPLACE TABLE _streets_${cc} AS
+      CREATE OR REPLACE TABLE ${streetsT} AS
       SELECT street_lower, tiles, addr_count,
              COALESCE(primary_city, '') AS primary_city,
              COALESCE(centroid_lon_e6, 0) AS centroid_lon_e6,
              COALESCE(centroid_lat_e6, 0) AS centroid_lat_e6
-      FROM read_parquet('${dataPath(`street_index/${cc}.parquet`)}')
+      FROM read_parquet('${indexPath('street_index', cc, region)}')
     `)
-    const sRows = await queryObjects<{ c: number }>(`SELECT count(*)::INTEGER AS c FROM _streets_${cc}`)
+    const sRows = await queryObjects<{ c: number }>(`SELECT count(*)::INTEGER AS c FROM ${streetsT}`)
     streets = sRows[0]?.c ?? 0
-    cacheLog(`${cc}: ${streets} streets cached`)
+    cacheLog(`${cc}/${region}: ${streets} streets cached`)
   } catch {
     await queryObjects(
-      `CREATE OR REPLACE TABLE _streets_${cc}(street_lower VARCHAR, tiles VARCHAR[], addr_count INTEGER, primary_city VARCHAR, centroid_lon_e6 INTEGER, centroid_lat_e6 INTEGER)`,
+      `CREATE OR REPLACE TABLE ${streetsT}(street_lower VARCHAR, tiles VARCHAR[], addr_count INTEGER, primary_city VARCHAR, centroid_lon_e6 INTEGER, centroid_lat_e6 INTEGER)`,
     )
-    cacheLog(`${cc}: street_index not available yet`)
+    cacheLog(`${cc}/${region}: street_index not available yet`)
   }
 
-  cachedCountries.add(cc)
+  cachedRegions.add(rk)
   cacheLog(
-    `${cc}: all indexes cached in ${((performance.now() - t0) / 1000).toFixed(2)}s (${cities} cities, ${postcodes} postcodes, ${streets} streets)`,
+    `${cc}/${region}: all indexes cached in ${((performance.now() - t0) / 1000).toFixed(2)}s (${cities} cities, ${postcodes} postcodes, ${streets} streets)`,
   )
   return { cities, postcodes, streets }
 }
