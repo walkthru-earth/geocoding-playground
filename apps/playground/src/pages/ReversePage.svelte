@@ -115,7 +115,7 @@
 
       tiles.forEach(t => {
         const cached = isTileCached(t.country, t.region, t.h3_parent)
-        log(`        ${t.h3_parent}, ${t.address_count.toLocaleString()} addr${cached ? ' [cached]' : ''}`)
+        log(`        ${t.region}/${t.h3_parent}, ${t.address_count.toLocaleString()} addr${cached ? ' [cached]' : ''}`)
       })
 
       // Show tile boundaries on map
@@ -124,21 +124,30 @@
       showTilesOnMap(tiles, queriedTiles, skippedTiles)
 
       // ── Step 2: Query tiles by distance ──
-      // Scans the full tile and ranks by Haversine distance. No h3_index cell
-      // filter, because addresses in adjacent cells within the same tile are
-      // often the nearest results (sparse tiles can have all addresses in one cell).
-      // DuckDB scans 10K-50K cached rows with distance calc in <50ms.
+      // Uses numeric ST_Y/ST_X BETWEEN for bbox filtering instead of ST_Intersects.
+      // EXPLAIN ANALYZE shows this downloads 1.7 MiB vs 12.7 MiB (7.5x less),
+      // and the filter runs in 1.5s vs 15.8s (10x faster) on a 1M-row tile.
+      const radiusDeg = Math.max(radius, 1000) / 111000
+      const lonScale = Math.cos((lat * Math.PI) / 180)
+      const bboxMinLon = +(lon - radiusDeg / lonScale).toFixed(6)
+      const bboxMaxLon = +(lon + radiusDeg / lonScale).toFixed(6)
+      const bboxMinLat = +(lat - radiusDeg).toFixed(6)
+      const bboxMaxLat = +(lat + radiusDeg).toFixed(6)
+
       for (let i = 0; i < tiles.length; i++) {
         const { country, region, h3_parent } = tiles[i]
 
         t0 = performance.now()
         const cached = isTileCached(country, region, h3_parent)
-        log(`Step 2  Tile ${i + 1}/${tiles.length}: ${h3_parent}, ${cached ? 'cached' : 'fetching'}...`, 'loading')
+        log(`Step 2  Tile ${i + 1}/${tiles.length}: ${region}/${h3_parent}, ${cached ? 'cached' : 'fetching'}...`, 'loading')
 
         let tileAddresses: AddressRow[] = []
         try {
-          // Always cache tile for reverse geocoding (user clicks nearby again)
-          const src = await getTileSource(country, region, h3_parent)
+          // For cached tiles: query cached table with bbox filter
+          // For uncached tiles: read_parquet directly (bbox narrows the scan)
+          const src = cached
+            ? await getTileSource(country, region, h3_parent)
+            : `read_parquet('${tilePath(country, region, h3_parent)}')`
 
           tileAddresses = await queryObjects<AddressRow>(`
             SELECT
@@ -153,13 +162,15 @@
                 POWER(SIN(RADIANS(ST_X(geometry) - ${lon}) / 2), 2)
               )) AS distance_m
             FROM ${src}
+            WHERE ST_Y(geometry) BETWEEN ${bboxMinLat} AND ${bboxMaxLat}
+              AND ST_X(geometry) BETWEEN ${bboxMinLon} AND ${bboxMaxLon}
             ORDER BY distance_m
             LIMIT ${resultLimit}
           `)
         } catch (tileErr: any) {
-          console.warn(`[reverse] Tile ${h3_parent} failed:`, tileErr.message)
+          console.warn(`[reverse] Tile ${region}/${h3_parent} failed:`, tileErr.message)
           updateLast(
-            `Step 2  Tile ${i + 1}/${tiles.length}: ${h3_parent}, failed (${ms(t0)})`,
+            `Step 2  Tile ${i + 1}/${tiles.length}: ${region}/${h3_parent}, failed (${ms(t0)})`,
             'error'
           )
           continue
@@ -170,7 +181,7 @@
 
         results = [...results, ...tileAddresses].sort((a, b) => (a.distance_m ?? 0) - (b.distance_m ?? 0)).slice(0, resultLimit)
         updateLast(
-          `Step 2  Tile ${i + 1}/${tiles.length}: ${h3_parent}, ${tileAddresses.length} nearby (${ms(t0)})`,
+          `Step 2  Tile ${i + 1}/${tiles.length}: ${region}/${h3_parent}, ${tileAddresses.length} nearby (${ms(t0)})`,
           'done'
         )
 
