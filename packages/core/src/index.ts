@@ -25,26 +25,32 @@ export {
   cancelPendingQuery,
   clearHttpCache,
   dataPath,
+  expandTilesToBucketGroups,
   getAvailableReleases,
   getConnection,
-  getRegionTable,
+  getCountryTable,
   getRelease,
   getTileSource,
   indexPath,
   initDuckDB,
-  isRegionCached,
+  isCountryCached,
   isTileCached,
-  markRegionCached,
+  markCountryCached,
   onCacheLog,
   onReleaseChange,
-  prefetchRegion,
+  prefetchCountry,
   query,
   queryObjects,
   queryObjectsWithRetry,
   switchRelease,
   tilePath,
+  tileSourceExpr,
+  toggleExplain,
 } from './duckdb'
 export { stripJPCoordZone } from './parsers/jp'
+// ── Reverse geocode ─────────────────────────────────────────
+export type { Bbox, TileBucketRow } from './reverse-geocode'
+export { buildReverseQuerySQL, buildTileLookupSQL, gridKForRadius, radiusToBbox } from './reverse-geocode'
 
 // ── Search ───────────────────────────────────────────────────
 export {
@@ -83,5 +89,4 @@ export {
   toArr,
   updateLastStep,
   validateCC,
-  validateRegion,
 } from './utils'

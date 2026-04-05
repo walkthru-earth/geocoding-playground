@@ -49,11 +49,6 @@ export function validateCC(cc: string): void {
   if (!CC_RE.test(cc)) throw new Error(`Invalid country code: ${cc}`)
 }
 
-/** Validate a region string (state name or H3 hex). Throws on empty/invalid input. */
-export function validateRegion(region: string): void {
-  if (!region || typeof region !== 'string') throw new Error(`Invalid region: ${region}`)
-}
-
 // ── Data conversion ─────────────────────────────────────────
 
 /** Normalize Arrow/DuckDB array values to plain JS string arrays */

@@ -46,7 +46,8 @@ export interface ManifestRow {
   country: string
   address_count: number
   tile_count: number
-  region_count: number
+  bucket_count: number
+  h3_res4_count: number
   bbox_min_lon: number
   bbox_max_lon: number
   bbox_min_lat: number
