@@ -16,18 +16,18 @@
     "@walkthru-earth/geocoding-core": "workspace:*",
     "driver.js": "^1.4.0",
     "h3-js": "^4.4.0",
-    "maplibre-gl": "^5.21.1",
-    "posthog-js": "^1.364.1"
+    "maplibre-gl": "^5.22.0",
+    "posthog-js": "^1.364.7"
   },
   "devDependencies": {
-    "@playwright/test": "^1.58.2",
+    "@playwright/test": "^1.59.1",
     "@sveltejs/vite-plugin-svelte": "^7.0.0",
     "@tailwindcss/vite": "^4.2.2",
     "@tsconfig/svelte": "^5.0.8",
-    "@types/node": "^25.5.0",
+    "@types/node": "^25.5.2",
     "daisyui": "^5.5.19",
-    "svelte": "^5.55.0",
-    "svelte-check": "^4.4.5",
+    "svelte": "^5.55.1",
+    "svelte-check": "^4.4.6",
     "tailwindcss": "^4.2.2",
     "typescript": "~6.0.2",
     "vite": "^8.0.3"
