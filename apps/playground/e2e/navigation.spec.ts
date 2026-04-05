@@ -4,8 +4,7 @@ test.describe('Navigation', () => {
   // Dismiss all Driver.js tours so overlays don't block interactions
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
-      localStorage.setItem('geocode-tour-seen', '1')
-      localStorage.setItem('geocode-reverse-hint-seen', '1')
+      localStorage.setItem('geocode-tour-seen', '2')
     })
   })
 
@@ -21,15 +20,11 @@ test.describe('Navigation', () => {
     const releaseSelect = page.locator('select').filter({ hasText: '2026' })
     await expect(releaseSelect).toBeVisible({ timeout: 60_000 })
 
-    // Use specific IDs to avoid strict mode violations
     await page.locator('#tour-geocode-pill').click()
     expect(page.url()).toContain('#geocode')
-    await expect(page.locator('h2:has-text("Forward Geocode")')).toBeVisible()
+    await expect(page.locator('h2:has-text("Geocoding Playground")')).toBeVisible()
 
     await page.locator('button.nav-pill:has-text("Status")').click()
     expect(page.url()).toContain('#status')
-
-    await page.locator('button.nav-pill:has-text("Reverse")').click()
-    expect(page.url()).toContain('#reverse')
   })
 })
