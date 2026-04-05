@@ -1,531 +1,386 @@
 <script lang="ts">
-  import { query, queryObjects, dataPath, formatSize } from '@walkthru-earth/geocoding-core'
+  import { query, queryObjects, dataPath, indexPath, tilePath, formatSize } from '@walkthru-earth/geocoding-core'
 
-  const EXPERIMENTS_BASE = dataPath('experiments')
+  // ── State ──────────────────────────────────────────────────
 
-  // Index versions to benchmark
-  const INDEX_VERSIONS = {
-    'v1-current': {
-      label: 'V1: Current (no coords)',
-      street: (cc: string) => dataPath(`street_index/${cc}.parquet`),
-      postcode: (cc: string) => dataPath(`postcode_index/${cc}.parquet`),
-      city: () => dataPath('city_index.parquet'),
-      hasCoords: false,
-      hasCity: false,
-    },
-    'v2-enriched': {
-      label: 'V2: Enriched (DOUBLE coords + city)',
-      street: (cc: string) => `${EXPERIMENTS_BASE}/v2-enriched/street_index/${cc}.parquet`,
-      postcode: (cc: string) => `${EXPERIMENTS_BASE}/v2-enriched/postcode_index/${cc}.parquet`,
-      city: (cc: string) => `${EXPERIMENTS_BASE}/v2-enriched/city_index_${cc}.parquet`,
-      hasCoords: true,
-      hasCity: true,
-    },
-    'v3-compact': {
-      label: 'V3: Compact (INT32 coords + city)',
-      street: (cc: string) => `${EXPERIMENTS_BASE}/v3-compact/street_index/${cc}.parquet`,
-      postcode: (cc: string) => `${EXPERIMENTS_BASE}/v3-compact/postcode_index/${cc}.parquet`,
-      city: (cc: string) => `${EXPERIMENTS_BASE}/v3-compact/city_index_${cc}.parquet`,
-      hasCoords: true,
-      hasCity: true,
-    },
-    'v4-hilbert': {
-      label: 'V4: Hilbert-sorted (DOUBLE + spatial order)',
-      street: (cc: string) => `${EXPERIMENTS_BASE}/v4-hilbert/street_index/${cc}.parquet`,
-      postcode: (cc: string) => `${EXPERIMENTS_BASE}/v4-hilbert/postcode_index/${cc}.parquet`,
-      city: (cc: string) => `${EXPERIMENTS_BASE}/v4-hilbert/city_index_${cc}.parquet`,
-      hasCoords: true,
-      hasCity: true,
-    },
-  } as const
-
-  type VersionKey = keyof typeof INDEX_VERSIONS
-
-  const TEST_COUNTRIES = ['NL', 'DE'] as const
-  type TestCC = typeof TEST_COUNTRIES[number]
-
-  // Test scenarios
-  const SCENARIOS = [
-    { id: 'street-prefix', label: 'Street prefix', type: 'street' as const, queries: { NL: 'kerkstr', DE: 'hauptstr' } },
-    { id: 'street-common', label: 'Common street', type: 'street' as const, queries: { NL: 'dorpsstraat', DE: 'hauptstraße' } },
-    { id: 'street-rare', label: 'Rare street', type: 'street' as const, queries: { NL: 'zonnebloem', DE: 'kirschbaum' } },
-    { id: 'postcode-exact', label: 'Postcode exact', type: 'postcode' as const, queries: { NL: '1013BJ', DE: '10115' } },
-    { id: 'postcode-prefix', label: 'Postcode prefix', type: 'postcode' as const, queries: { NL: '1013', DE: '101' } },
-    { id: 'city-search', label: 'City search', type: 'city' as const, queries: { NL: 'amsterdam', DE: 'berlin' } },
-  ]
-
-  interface BenchResult {
-    version: VersionKey
-    scenario: string
-    country: TestCC
-    query: string
-    rows: number
-    timeMs: number
-    fileSize?: number
-    sample?: any[]
-    error?: string
-  }
-
-  let selectedCountry = $state<TestCC>('NL')
-  let results = $state<BenchResult[]>([])
-  let running = $state(false)
-  let currentTest = $state('')
-  let fileSizes = $state<Record<string, Record<string, number>>>({})
+  let activeTab = $state<'cdn' | 'queries' | 'parquet'>('cdn')
   let logs = $state<string[]>([])
 
   function log(msg: string) {
     logs = [...logs, `[${new Date().toISOString().slice(11, 23)}] ${msg}`]
   }
 
-  // ── CDN / Proxy latency comparison ──────────────────────
+  // ── CDN Latency ────────────────────────────────────────────
 
-  const CDN_BASES = {
-    's3-direct': 'https://s3.us-west-2.amazonaws.com/us-west-2.opendata.source.coop/walkthru-earth/indices/addresses-index/v1/release=2026-03-18.0',
-    'source-coop': 'https://data.source.coop/walkthru-earth/indices/addresses-index/v1/release=2026-03-18.0',
-  } as const
-
+  const S3_BASE = dataPath('')
+  const SC_BASE = S3_BASE.replace(
+    'https://s3.us-west-2.amazonaws.com/us-west-2.opendata.source.coop/',
+    'https://data.source.coop/',
+  )
+  const CDN_BASES = { 's3-direct': S3_BASE, 'source-coop': SC_BASE } as const
   type CdnKey = keyof typeof CDN_BASES
 
   const CDN_TEST_FILES = [
-    { id: 'tile_index', label: 'tile_index.parquet', path: 'tile_index.parquet', desc: '562 KB, 17.5K rows' },
-    { id: 'manifest', label: 'manifest.parquet', path: 'manifest.parquet', desc: '3 KB, 39 rows' },
-    { id: 'street_NL', label: 'street_index/NL.parquet', path: 'street_index/NL.parquet', desc: '1.1 MB, 136K rows' },
-    { id: 'tile_small', label: 'NL small tile', path: 'geocoder/country=NL/h3/84194d9ffffffff.parquet', desc: '5.3 MB' },
+    { id: 'manifest', label: 'manifest.parquet', path: 'manifest.parquet', desc: '~3 KB' },
+    { id: 'tile_index', label: 'tile_index.parquet', path: 'tile_index.parquet', desc: '~560 KB' },
+    { id: 'street_NL', label: 'street_index/NL', path: 'street_index/country=NL/data_0.parquet', desc: '~1.1 MB' },
+    { id: 'city_NL', label: 'city_index/NL', path: 'city_index/country=NL/data_0.parquet', desc: '~15 KB' },
+    { id: 'number_NL', label: 'number_index/NL', path: 'number_index/country=NL/data_0.parquet', desc: '~1.5 MB' },
   ]
 
-  interface CdnResult {
-    cdn: CdnKey
-    file: string
-    fetchMs: number
-    queryMs: number
-    rows: number
-    error?: string
-  }
+  interface CdnResult { cdn: CdnKey; file: string; headMs: number; queryMs: number; rows: number; bytes: string; error?: string }
 
   let cdnResults = $state<CdnResult[]>([])
   let cdnRunning = $state(false)
-  let cdnDone = $state(false)
 
   async function runCdnBenchmark() {
     cdnRunning = true
     cdnResults = []
-    logs = []
-    log('=== CDN LATENCY BENCHMARK ===')
+    log('=== CDN LATENCY ===')
 
     for (const file of CDN_TEST_FILES) {
       for (const [cdnKey, base] of Object.entries(CDN_BASES)) {
-        const url = `${base}/${file.path}`
-        log(`  [${cdnKey}] ${file.label}...`)
-
-        const result: CdnResult = { cdn: cdnKey as CdnKey, file: file.id, fetchMs: 0, queryMs: 0, rows: 0 }
+        const url = `${base}${file.path}`
+        const result: CdnResult = { cdn: cdnKey as CdnKey, file: file.id, headMs: 0, queryMs: 0, rows: 0, bytes: '?' }
 
         try {
-          // Measure HTTP fetch time (just metadata / first bytes)
           const ft0 = performance.now()
           const fetchRes = await fetch(url, { method: 'HEAD' })
-          result.fetchMs = Math.round(performance.now() - ft0)
+          result.headMs = Math.round(performance.now() - ft0)
+          result.bytes = fetchRes.headers.get('content-length') ?? '?'
+          if (!fetchRes.ok) result.error = `HTTP ${fetchRes.status}`
 
-          if (!fetchRes.ok) {
-            result.error = `HTTP ${fetchRes.status}`
-            log(`    HEAD: ${result.error}`)
-          } else {
-            log(`    HEAD: ${result.fetchMs}ms (${fetchRes.headers.get('content-length') ?? '?'} bytes)`)
-          }
-
-          // Measure DuckDB query time (full read)
           const qt0 = performance.now()
           const res = await query(`SELECT count(*)::INTEGER AS c FROM read_parquet('${url}')`)
           result.queryMs = Math.round(performance.now() - qt0)
           result.rows = res.rows[0]?.[0] ?? 0
-          log(`    Query: ${result.queryMs}ms (${result.rows} rows)`)
         } catch (e: any) {
           result.error = e.message?.slice(0, 80)
-          log(`    ERROR: ${result.error}`)
         }
 
         cdnResults = [...cdnResults, result]
+        log(`  [${cdnKey}] ${file.label}: HEAD ${result.headMs}ms, Query ${result.queryMs}ms`)
       }
     }
 
     cdnRunning = false
-    cdnDone = true
-    log('=== CDN BENCHMARK COMPLETE ===')
+    log('=== CDN DONE ===')
   }
 
-  // Auto-run CDN benchmark on mount
-  $effect(() => { if (!cdnDone && !cdnRunning) runCdnBenchmark() })
+  $effect(() => { if (cdnResults.length === 0 && !cdnRunning) runCdnBenchmark() })
 
-  // ── File size measurement ──
-  async function measureFileSizes(cc: TestCC) {
-    log(`Measuring file sizes for ${cc}...`)
-    const sizes: Record<string, Record<string, number>> = {}
+  // ── Query Benchmarks with EXPLAIN ANALYZE ──────────────────
 
-    for (const [vKey, vDef] of Object.entries(INDEX_VERSIONS)) {
-      sizes[vKey] = {}
-      for (const fType of ['street', 'postcode', 'city'] as const) {
-        try {
-          const url = vDef[fType](cc)
-          const res = await queryObjects<{ file_size: number }>(`
-            SELECT sum(total_compressed_size)::INTEGER AS file_size
-            FROM parquet_metadata('${url}')
-          `)
-          sizes[vKey][fType] = res[0]?.file_size ?? 0
-        } catch {
-          sizes[vKey][fType] = -1  // not available
+  const TEST_COUNTRIES = ['NL', 'DE', 'US', 'FR', 'JP'] as const
+  type TestCC = typeof TEST_COUNTRIES[number]
+
+  interface QueryScenario {
+    id: string
+    label: string
+    description: string
+    buildSQL: (cc: TestCC) => string
+  }
+
+  const QUERY_SCENARIOS: QueryScenario[] = [
+    {
+      id: 'street-prefix',
+      label: 'Street prefix search',
+      description: 'LIKE prefix match on street_lower. Tests row-group min/max pushdown on sorted data.',
+      buildSQL: (cc) => {
+        const q = { NL: 'kerkstr', DE: 'hauptstr', US: 'broadway', FR: 'rue de', JP: '本郷' }[cc] ?? 'main'
+        return `SELECT street_lower, primary_city, addr_count, len(tiles) AS num_tiles
+          FROM read_parquet('${indexPath('street_index', cc)}')
+          WHERE street_lower LIKE '${q}%' LIMIT 10`
+      },
+    },
+    {
+      id: 'postcode-prefix',
+      label: 'Postcode prefix search',
+      description: 'LIKE prefix match on postcode column.',
+      buildSQL: (cc) => {
+        const q = { NL: '1013', DE: '101', US: '100', FR: '750', JP: '' }[cc]
+        if (!q) return ''
+        return `SELECT postcode, addr_count, len(tiles) AS num_tiles
+          FROM read_parquet('${indexPath('postcode_index', cc)}')
+          WHERE postcode LIKE '${q}%' LIMIT 10`
+      },
+    },
+    {
+      id: 'city-search',
+      label: 'City search',
+      description: 'Case-insensitive city name prefix search with region.',
+      buildSQL: (cc) => {
+        const q = { NL: 'amsterdam', DE: 'berlin', US: 'new york', FR: 'paris', JP: '東京' }[cc] ?? 'main'
+        return `SELECT city, region, addr_count, len(tiles) AS num_tiles
+          FROM read_parquet('${indexPath('city_index', cc)}')
+          WHERE lower(city) LIKE '${q}%' LIMIT 10`
+      },
+    },
+    {
+      id: 'number-pushdown',
+      label: 'Number index (HTTP range pushdown)',
+      description: 'Exact match on street_lower in number_index. ROW_GROUP_SIZE 2000 + bloom filters enable DuckDB to fetch only ~150 KB instead of the full file.',
+      buildSQL: (cc) => {
+        const q = { NL: 'keizersgracht', DE: 'friedrichstraße', US: 'broadway', FR: 'avenue des champs', JP: '本郷' }[cc] ?? 'main'
+        return `SELECT street_lower, len(numbers) AS num_count
+          FROM read_parquet('${indexPath('number_index', cc)}')
+          WHERE street_lower = '${q}' LIMIT 1`
+      },
+    },
+    {
+      id: 'tile-scan',
+      label: 'Geocoder tile scan (street_lower pushdown)',
+      description: 'Query a geocoder tile with street_lower filter. Tests bloom filter skip on the street column.',
+      buildSQL: (cc) => {
+        // Small tiles (~10K addresses) verified to exist on v4 S3
+        const tiles: Record<string, [string, string]> = {
+          NL: ['84196b1ffffffff', 'keizersgracht'],
+          DE: ['841f017ffffffff', 'friedrichstraße'],
+          US: ['8426531ffffffff', 'broadway'],
+          FR: ['8418457ffffffff', 'rue de'],
+          JP: ['842ead5ffffffff', '本郷'],
         }
-      }
-    }
-    fileSizes = sizes
-    log(`File sizes measured for ${cc}`)
+        const [tile, street] = tiles[cc] ?? ['84196b1ffffffff', 'main']
+        return `SELECT full_address, street, number, city, postcode
+          FROM read_parquet('${tilePath(cc, tile, '_')}')
+          WHERE street_lower LIKE '${street}%' LIMIT 5`
+      },
+    },
+  ]
+
+  interface QueryResult {
+    scenarioId: string
+    coldMs: number
+    warmMs: number
+    rows: number
+    sample: any[]
+    plan: string
+    error?: string
   }
 
-  // ── Benchmark runner ──
-  async function runBenchmarks() {
-    running = true
-    results = []
-    logs = []
+  let selectedCountry = $state<TestCC>('NL')
+  let queryResults = $state<QueryResult[]>([])
+  let queryRunning = $state(false)
+  let currentTest = $state('')
+  let showPlans = $state(false)
+
+  async function runExplainAnalyze(sql: string): Promise<string> {
+    try {
+      const res = await query(`EXPLAIN ANALYZE ${sql}`)
+      const lines: string[] = []
+      for (const row of res.rows) {
+        if (row[1]) lines.push(String(row[1]))
+      }
+      return lines.join('\n')
+    } catch {
+      return '(EXPLAIN ANALYZE not available)'
+    }
+  }
+
+  async function runQueryBenchmarks() {
+    queryRunning = true
+    queryResults = []
     const cc = selectedCountry
+    log(`=== QUERY BENCHMARKS (${cc}) ===`)
 
-    await measureFileSizes(cc)
+    for (const scenario of QUERY_SCENARIOS) {
+      const sql = scenario.buildSQL(cc)
+      if (!sql) continue
 
-    for (const scenario of SCENARIOS) {
-      const q = scenario.queries[cc]
-      if (!q) continue
+      currentTest = scenario.label
+      log(`  ${scenario.label}...`)
 
-      for (const [vKey, vDef] of Object.entries(INDEX_VERSIONS)) {
-        // Skip v4-hilbert for DE (only NL generated)
-        if (vKey === 'v4-hilbert' && cc === 'DE') continue
+      const result: QueryResult = { scenarioId: scenario.id, coldMs: 0, warmMs: 0, rows: 0, sample: [], plan: '' }
 
-        currentTest = `${vDef.label} / ${scenario.label}`
-        log(`Running: ${currentTest} → "${q}"`)
+      try {
+        // Cold run
+        const t0 = performance.now()
+        const res = await query(sql)
+        result.coldMs = Math.round(performance.now() - t0)
+        result.rows = res.rows.length
+        result.sample = res.rows.slice(0, 3).map((row: any[]) => {
+          const obj: any = {}
+          res.columns.forEach((col: string, i: number) => { obj[col] = row[i] })
+          return obj
+        })
 
-        const result: BenchResult = {
-          version: vKey as VersionKey,
-          scenario: scenario.id,
-          country: cc,
-          query: q,
-          rows: 0,
-          timeMs: 0,
-        }
+        // Warm run
+        const t1 = performance.now()
+        await query(sql)
+        result.warmMs = Math.round(performance.now() - t1)
 
-        try {
-          const url = vDef[scenario.type](cc)
-          let sql = ''
+        // EXPLAIN ANALYZE
+        result.plan = await runExplainAnalyze(sql)
 
-          if (scenario.type === 'street') {
-            const cols = vDef.hasCity
-              ? 'street_lower, primary_city, addr_count, len(tiles) AS num_tiles'
-              : 'street_lower, addr_count, len(tiles) AS num_tiles'
-            sql = `SELECT ${cols} FROM read_parquet('${url}')
-              WHERE street_lower LIKE '${q.toLowerCase()}%' LIMIT 10`
-          } else if (scenario.type === 'postcode') {
-            const coordCols = vDef.hasCoords
-              ? (vKey === 'v3-compact' ? ', lon_e6, lat_e6' : ', avg_lon, avg_lat')
-              : ''
-            sql = `SELECT postcode, addr_count, len(tiles) AS num_tiles${coordCols}
-              FROM read_parquet('${url}')
-              WHERE postcode LIKE '${q}%' LIMIT 10`
-          } else {
-            // city
-            const bboxCols = vDef.hasCoords
-              ? (vKey === 'v3-compact'
-                ? ', bbox_min_lon_e6, bbox_max_lon_e6, bbox_min_lat_e6, bbox_max_lat_e6'
-                : ', bbox_min_lon, bbox_max_lon, bbox_min_lat, bbox_max_lat')
-              : ''
-            sql = `SELECT city, addr_count, len(tiles) AS num_tiles${bboxCols}
-              FROM read_parquet('${url}')
-              WHERE lower(city) LIKE '${q.toLowerCase()}%' LIMIT 10`
-          }
-
-          const t0 = performance.now()
-          const res = await query(sql)
-          result.timeMs = Math.round(performance.now() - t0)
-          result.rows = res.rows.length
-          result.sample = res.rows.slice(0, 3).map((row: any[]) => {
-            const obj: any = {}
-            res.columns.forEach((col: string, i: number) => { obj[col] = row[i] })
-            return obj
-          })
-        } catch (e: any) {
-          result.error = e.message?.slice(0, 100)
-          result.timeMs = -1
-          log(`  ERROR: ${result.error}`)
-        }
-
-        results = [...results, result]
-        if (result.timeMs >= 0) {
-          log(`  → ${result.rows} rows in ${result.timeMs}ms`)
-        }
+        log(`    cold=${result.coldMs}ms, warm=${result.warmMs}ms, rows=${result.rows}`)
+      } catch (e: any) {
+        result.error = e.message?.slice(0, 120)
+        log(`    ERROR: ${result.error}`)
       }
+
+      queryResults = [...queryResults, result]
     }
-
-    // Run a second pass (warm cache) for more accurate timing
-    log('')
-    log('=== WARM CACHE PASS (repeat all queries) ===')
-    const warmResults: BenchResult[] = []
-
-    for (const scenario of SCENARIOS) {
-      const q = scenario.queries[cc]
-      if (!q) continue
-
-      for (const [vKey, vDef] of Object.entries(INDEX_VERSIONS)) {
-        if (vKey === 'v4-hilbert' && cc === 'DE') continue
-
-        const url = vDef[scenario.type](cc)
-        let sql = ''
-
-        if (scenario.type === 'street') {
-          sql = `SELECT street_lower FROM read_parquet('${url}') WHERE street_lower LIKE '${q.toLowerCase()}%' LIMIT 10`
-        } else if (scenario.type === 'postcode') {
-          sql = `SELECT postcode FROM read_parquet('${url}') WHERE postcode LIKE '${q}%' LIMIT 10`
-        } else {
-          sql = `SELECT city FROM read_parquet('${url}') WHERE lower(city) LIKE '${q.toLowerCase()}%' LIMIT 10`
-        }
-
-        try {
-          const t0 = performance.now()
-          const res = await query(sql)
-          const ms = Math.round(performance.now() - t0)
-          warmResults.push({
-            version: vKey as VersionKey,
-            scenario: scenario.id,
-            country: cc,
-            query: q,
-            rows: res.rows.length,
-            timeMs: ms,
-          })
-          log(`  [warm] ${vDef.label} / ${scenario.label}: ${ms}ms`)
-        } catch {
-          warmResults.push({
-            version: vKey as VersionKey,
-            scenario: scenario.id,
-            country: cc,
-            query: q,
-            rows: 0,
-            timeMs: -1,
-            error: 'failed',
-          })
-        }
-      }
-    }
-
-    // Merge warm results
-    results = [...results, ...warmResults.map(r => ({ ...r, scenario: r.scenario + '-warm' }))]
 
     currentTest = ''
-    running = false
-    log('=== BENCHMARK COMPLETE ===')
+    queryRunning = false
+    log('=== QUERIES DONE ===')
   }
 
-  // ── Helpers ──
-  function getResultsForScenario(scenarioId: string): BenchResult[] {
-    return results.filter(r => r.scenario === scenarioId)
+  // ── Parquet Metadata Inspector ─────────────────────────────
+
+  interface ParquetFileInfo {
+    label: string
+    url: string
+    numRows: number
+    numRowGroups: number
+    fileSize: number
+    columns: { name: string; type: string; compression: string; hasBloom: boolean; avgSize: number }[]
+    error?: string
   }
 
-  function getWarmResultsForScenario(scenarioId: string): BenchResult[] {
-    return results.filter(r => r.scenario === scenarioId + '-warm')
+  let parquetCountry = $state<TestCC>('NL')
+  let parquetResults = $state<ParquetFileInfo[]>([])
+  let parquetRunning = $state(false)
+
+  async function inspectParquetFiles() {
+    parquetRunning = true
+    parquetResults = []
+    const cc = parquetCountry
+    log(`=== PARQUET METADATA (${cc}) ===`)
+
+    const files = [
+      { label: 'city_index', url: indexPath('city_index', cc) },
+      { label: 'street_index', url: indexPath('street_index', cc) },
+      { label: 'postcode_index', url: indexPath('postcode_index', cc) },
+      { label: 'number_index', url: indexPath('number_index', cc) },
+    ]
+
+    for (const file of files) {
+      log(`  ${file.label}...`)
+      const info: ParquetFileInfo = { label: file.label, url: file.url, numRows: 0, numRowGroups: 0, fileSize: 0, columns: [] }
+
+      try {
+        // File-level metadata
+        const fileMeta = await queryObjects<{ num_rows: number; num_row_groups: number; file_size_bytes: number }>(`
+          SELECT num_rows::INTEGER AS num_rows, num_row_groups::INTEGER AS num_row_groups, file_size_bytes::INTEGER AS file_size_bytes
+          FROM parquet_file_metadata('${file.url}')
+        `)
+        if (fileMeta.length > 0) {
+          info.numRows = fileMeta[0].num_rows
+          info.numRowGroups = fileMeta[0].num_row_groups
+          info.fileSize = fileMeta[0].file_size_bytes
+        }
+
+        // Column-level metadata (from first row group)
+        const colMeta = await queryObjects<{ name: string; type: string; compression: string; has_bloom: boolean; avg_size: number }>(`
+          SELECT
+            path_in_schema AS name,
+            type,
+            compression,
+            (bloom_filter_offset IS NOT NULL) AS has_bloom,
+            (total_compressed_size / GREATEST(num_values, 1))::INTEGER AS avg_size
+          FROM parquet_metadata('${file.url}')
+          WHERE row_group_id = 0
+          ORDER BY path_in_schema
+        `)
+        info.columns = colMeta.map(c => ({
+          name: c.name,
+          type: c.type,
+          compression: c.compression,
+          hasBloom: c.has_bloom,
+          avgSize: c.avg_size,
+        }))
+
+        log(`    ${info.numRows} rows, ${info.numRowGroups} row groups, ${formatSize(info.fileSize)}`)
+      } catch (e: any) {
+        info.error = e.message?.slice(0, 100)
+        log(`    ERROR: ${info.error}`)
+      }
+
+      parquetResults = [...parquetResults, info]
+    }
+
+    parquetRunning = false
+    log('=== PARQUET DONE ===')
   }
 </script>
 
 <div class="space-y-6">
   <div class="flex items-center justify-between flex-wrap gap-2">
-    <h1 class="text-xl md:text-2xl font-bold">Index Benchmark</h1>
-    <div class="flex items-center gap-2 md:gap-3">
-      <select class="select select-bordered select-xs md:select-sm" bind:value={selectedCountry} disabled={running}>
-        {#each TEST_COUNTRIES as cc}
-          <option value={cc}>{cc}</option>
-        {/each}
-      </select>
-      <button class="btn btn-primary btn-xs md:btn-sm" onclick={runBenchmarks} disabled={running}>
-        {#if running}
-          <span class="loading loading-spinner loading-xs"></span>
-          {currentTest}
-        {:else}
-          Run Benchmarks
-        {/if}
-      </button>
-    </div>
+    <h1 class="text-xl md:text-2xl font-bold">Benchmark & Inspect</h1>
   </div>
 
-  <!-- CDN / Proxy latency comparison -->
-  <div class="card bg-base-200 p-4">
-    <div class="flex items-center justify-between mb-2">
-      <h2 class="font-bold">CDN Latency Comparison</h2>
-      {#if cdnRunning}
-        <span class="loading loading-spinner loading-xs"></span>
-      {:else if cdnDone}
-        <button class="btn btn-xs btn-ghost" onclick={runCdnBenchmark}>Re-run</button>
-      {/if}
-    </div>
-    <p class="text-xs text-base-content/50 mb-3">
-      Comparing S3 direct ({CDN_BASES['s3-direct'].split('/')[2]}) vs Source Cooperative proxy ({CDN_BASES['source-coop'].split('/')[2]}).
-      HEAD = HTTP round-trip, Query = full DuckDB read_parquet.
-    </p>
-    {#if cdnResults.length > 0}
-      <div class="overflow-x-auto">
-        <table class="table table-sm">
-          <thead>
-            <tr>
-              <th>File</th>
-              {#each Object.entries(CDN_BASES) as [key, _]}
-                <th class="text-center" colspan="2">{key}</th>
-              {/each}
-              <th>Winner</th>
-            </tr>
-            <tr>
-              <th></th>
-              {#each Object.keys(CDN_BASES) as _}
-                <th class="text-right text-xs opacity-50">HEAD</th>
-                <th class="text-right text-xs opacity-50">Query</th>
-              {/each}
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {#each CDN_TEST_FILES as file}
-              {@const s3 = cdnResults.find(r => r.cdn === 's3-direct' && r.file === file.id)}
-              {@const sc = cdnResults.find(r => r.cdn === 'source-coop' && r.file === file.id)}
-              {@const s3q = s3?.queryMs ?? Infinity}
-              {@const scq = sc?.queryMs ?? Infinity}
-              {@const winner = s3q < scq ? 's3-direct' : scq < s3q ? 'source-coop' : 'tie'}
-              {@const diff = Math.abs(s3q - scq)}
-              <tr>
-                <td>
-                  <div class="font-mono text-xs">{file.label}</div>
-                  <div class="text-xs opacity-40">{file.desc}</div>
-                </td>
-                <td class="text-right font-mono text-xs">
-                  {#if s3?.error}<span class="text-error">{s3.error}</span>{:else}{s3?.fetchMs ?? '-'}ms{/if}
-                </td>
-                <td class="text-right font-mono text-xs" class:text-success={winner === 's3-direct'}>
-                  {#if s3?.error}<span class="text-error">-</span>{:else}{s3?.queryMs ?? '-'}ms{/if}
-                </td>
-                <td class="text-right font-mono text-xs">
-                  {#if sc?.error}<span class="text-error">{sc.error}</span>{:else}{sc?.fetchMs ?? '-'}ms{/if}
-                </td>
-                <td class="text-right font-mono text-xs" class:text-success={winner === 'source-coop'}>
-                  {#if sc?.error}<span class="text-error">-</span>{:else}{sc?.queryMs ?? '-'}ms{/if}
-                </td>
-                <td>
-                  {#if winner !== 'tie' && diff > 50}
-                    <span class="badge badge-sm" class:badge-primary={winner === 'source-coop'} class:badge-secondary={winner === 's3-direct'}>
-                      {winner === 'source-coop' ? 'SC' : 'S3'} -{diff}ms
-                    </span>
-                  {:else}
-                    <span class="badge badge-ghost badge-sm">~same</span>
-                  {/if}
-                </td>
-              </tr>
-            {/each}
-          </tbody>
-        </table>
-      </div>
-    {:else if !cdnRunning}
-      <p class="text-xs opacity-40">Click Re-run to test</p>
-    {/if}
+  <!-- Tab bar -->
+  <div role="tablist" class="tabs tabs-bordered">
+    <button role="tab" class="tab" class:tab-active={activeTab === 'cdn'} onclick={() => activeTab = 'cdn'}>CDN Latency</button>
+    <button role="tab" class="tab" class:tab-active={activeTab === 'queries'} onclick={() => activeTab = 'queries'}>Query Benchmark</button>
+    <button role="tab" class="tab" class:tab-active={activeTab === 'parquet'} onclick={() => activeTab = 'parquet'}>Parquet Inspector</button>
   </div>
 
-  <!-- Version descriptions -->
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3">
-    {#each Object.entries(INDEX_VERSIONS) as [key, def]}
-      <div class="card bg-base-200 p-3">
-        <h3 class="font-semibold text-sm">{def.label}</h3>
-        <div class="text-xs text-base-content/60 mt-1">
-          {#if key === 'v1-current'}
-            Baseline. street_lower + tiles + addr_count. No location data.
-          {:else if key === 'v2-enriched'}
-            + primary_city + avg_lon/avg_lat (DOUBLE). Autocomplete disambiguation + map pin.
-          {:else if key === 'v3-compact'}
-            + primary_city + lon_e6/lat_e6 (INT32). Same features, ~40% smaller coords.
-          {:else}
-            Hilbert spatial sort. Nearby streets clustered in same row groups. Better spatial pushdown.
-          {/if}
-        </div>
+  <!-- ═══ CDN Tab ═══ -->
+  {#if activeTab === 'cdn'}
+    <div class="space-y-4">
+      <div class="flex items-center justify-between">
+        <p class="text-sm text-base-content/60">
+          Comparing S3 direct vs Source Cooperative proxy. HEAD = HTTP round-trip latency. Query = full DuckDB read_parquet.
+        </p>
+        <button class="btn btn-xs btn-outline" onclick={runCdnBenchmark} disabled={cdnRunning}>
+          {#if cdnRunning}<span class="loading loading-spinner loading-xs"></span>{:else}Re-run{/if}
+        </button>
       </div>
-    {/each}
-  </div>
 
-  <!-- File sizes -->
-  {#if Object.keys(fileSizes).length > 0}
-    <div class="card bg-base-200 p-4">
-      <h2 class="font-bold mb-2">File Sizes ({selectedCountry})</h2>
-      <div class="overflow-x-auto">
-        <table class="table table-sm">
-          <thead>
-            <tr>
-              <th>Version</th>
-              <th>Street Index</th>
-              <th>Postcode Index</th>
-              <th>City Index</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {#each Object.entries(fileSizes) as [ver, sizes]}
-              {@const total = Object.values(sizes).reduce((a, b) => a + (b > 0 ? b : 0), 0)}
-              <tr>
-                <td class="font-mono text-xs">{ver}</td>
-                <td>{formatSize(sizes.street ?? -1)}</td>
-                <td>{formatSize(sizes.postcode ?? -1)}</td>
-                <td>{formatSize(sizes.city ?? -1)}</td>
-                <td class="font-bold">{formatSize(total)}</td>
-              </tr>
-            {/each}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  {/if}
-
-  <!-- Results by scenario -->
-  {#each SCENARIOS as scenario}
-    {@const cold = getResultsForScenario(scenario.id)}
-    {@const warm = getWarmResultsForScenario(scenario.id)}
-    {#if cold.length > 0}
-      <div class="card bg-base-200 p-4">
-        <h2 class="font-bold mb-1">{scenario.label}: "{scenario.queries[selectedCountry]}"</h2>
+      {#if cdnResults.length > 0}
         <div class="overflow-x-auto">
           <table class="table table-sm">
             <thead>
               <tr>
-                <th>Version</th>
-                <th>Cold (ms)</th>
-                <th>Warm (ms)</th>
-                <th>Rows</th>
-                <th>Sample</th>
+                <th>File</th>
+                {#each Object.keys(CDN_BASES) as key}
+                  <th class="text-center" colspan="2">{key}</th>
+                {/each}
+                <th>Winner</th>
+              </tr>
+              <tr>
+                <th></th>
+                {#each Object.keys(CDN_BASES) as _}
+                  <th class="text-right text-xs opacity-50">HEAD</th>
+                  <th class="text-right text-xs opacity-50">Query</th>
+                {/each}
+                <th></th>
               </tr>
             </thead>
             <tbody>
-              {#each cold as r}
-                {@const w = warm.find(w => w.version === r.version)}
+              {#each CDN_TEST_FILES as file}
+                {@const s3 = cdnResults.find(r => r.cdn === 's3-direct' && r.file === file.id)}
+                {@const sc = cdnResults.find(r => r.cdn === 'source-coop' && r.file === file.id)}
+                {@const s3q = s3?.queryMs ?? Infinity}
+                {@const scq = sc?.queryMs ?? Infinity}
+                {@const winner = s3q < scq ? 's3' : scq < s3q ? 'sc' : 'tie'}
+                {@const diff = Math.abs(s3q - scq)}
                 <tr>
-                  <td class="font-mono text-xs">{r.version}</td>
                   <td>
-                    {#if r.error}
-                      <span class="text-error text-xs">{r.error}</span>
-                    {:else}
-                      <span class:text-success={r.timeMs < 500}
-                            class:text-warning={r.timeMs >= 500 && r.timeMs < 2000}
-                            class:text-error={r.timeMs >= 2000}>
-                        {r.timeMs}ms
-                      </span>
-                    {/if}
+                    <div class="font-mono text-xs">{file.label}</div>
+                    <div class="text-xs opacity-40">{file.desc}</div>
+                  </td>
+                  <td class="text-right font-mono text-xs">
+                    {#if s3?.error}<span class="text-error">{s3.error}</span>{:else}{s3?.headMs ?? '-'}ms{/if}
+                  </td>
+                  <td class="text-right font-mono text-xs" class:text-success={winner === 's3'}>
+                    {#if s3?.error}<span class="text-error">-</span>{:else}{s3?.queryMs ?? '-'}ms{/if}
+                  </td>
+                  <td class="text-right font-mono text-xs">
+                    {#if sc?.error}<span class="text-error">{sc.error}</span>{:else}{sc?.headMs ?? '-'}ms{/if}
+                  </td>
+                  <td class="text-right font-mono text-xs" class:text-success={winner === 'sc'}>
+                    {#if sc?.error}<span class="text-error">-</span>{:else}{sc?.queryMs ?? '-'}ms{/if}
                   </td>
                   <td>
-                    {#if w && !w.error}
-                      <span class:text-success={w.timeMs < 100}
-                            class:text-warning={w.timeMs >= 100 && w.timeMs < 500}
-                            class:text-error={w.timeMs >= 500}>
-                        {w.timeMs}ms
+                    {#if winner !== 'tie' && diff > 50}
+                      <span class="badge badge-sm" class:badge-primary={winner === 'sc'} class:badge-secondary={winner === 's3'}>
+                        {winner === 'sc' ? 'SC' : 'S3'} -{diff}ms
                       </span>
                     {:else}
-                      -
-                    {/if}
-                  </td>
-                  <td>{r.rows}</td>
-                  <td class="text-xs font-mono max-w-sm truncate">
-                    {#if r.sample && r.sample.length > 0}
-                      {JSON.stringify(r.sample[0]).slice(0, 120)}
+                      <span class="badge badge-ghost badge-sm">~same</span>
                     {/if}
                   </td>
                 </tr>
@@ -533,17 +388,198 @@
             </tbody>
           </table>
         </div>
-      </div>
-    {/if}
-  {/each}
+      {/if}
+    </div>
+  {/if}
 
-  <!-- Logs -->
+  <!-- ═══ Query Benchmark Tab ═══ -->
+  {#if activeTab === 'queries'}
+    <div class="space-y-4">
+      <div class="flex items-center gap-3 flex-wrap">
+        <select class="select select-bordered select-sm" bind:value={selectedCountry} disabled={queryRunning}>
+          {#each TEST_COUNTRIES as cc}
+            <option value={cc}>{cc}</option>
+          {/each}
+        </select>
+        <button class="btn btn-primary btn-sm" onclick={runQueryBenchmarks} disabled={queryRunning}>
+          {#if queryRunning}
+            <span class="loading loading-spinner loading-xs"></span>
+            {currentTest}
+          {:else}
+            Run All Queries
+          {/if}
+        </button>
+        {#if queryResults.length > 0}
+          <label class="label cursor-pointer gap-2">
+            <span class="label-text text-xs">Show EXPLAIN ANALYZE</span>
+            <input type="checkbox" class="toggle toggle-xs toggle-primary" bind:checked={showPlans} />
+          </label>
+        {/if}
+      </div>
+
+      <p class="text-sm text-base-content/60">
+        Each query runs cold (first fetch from S3), then warm (Parquet metadata cached).
+        EXPLAIN ANALYZE shows the execution plan with per-operator timing and actual row counts.
+      </p>
+
+      {#each QUERY_SCENARIOS as scenario}
+        {@const result = queryResults.find(r => r.scenarioId === scenario.id)}
+        <div class="card bg-base-200 p-4">
+          <div class="flex items-center gap-2 mb-1">
+            <h3 class="font-bold text-sm">{scenario.label}</h3>
+            {#if result && !result.error}
+              <span class="badge badge-sm" class:badge-success={result.coldMs < 500} class:badge-warning={result.coldMs >= 500 && result.coldMs < 2000} class:badge-error={result.coldMs >= 2000}>
+                {result.coldMs}ms cold
+              </span>
+              <span class="badge badge-sm badge-outline" class:badge-success={result.warmMs < 100} class:badge-warning={result.warmMs >= 100}>
+                {result.warmMs}ms warm
+              </span>
+              <span class="badge badge-ghost badge-sm">{result.rows} rows</span>
+            {/if}
+          </div>
+          <p class="text-xs text-base-content/50 mb-2">{scenario.description}</p>
+
+          {#if result}
+            {#if result.error}
+              <div class="alert alert-error text-xs py-1">{result.error}</div>
+            {:else}
+              <!-- SQL -->
+              <details class="mb-2">
+                <summary class="text-xs text-base-content/40 cursor-pointer hover:text-base-content/60">SQL</summary>
+                <pre class="text-xs bg-base-300 rounded p-2 mt-1 overflow-x-auto whitespace-pre-wrap">{scenario.buildSQL(selectedCountry)}</pre>
+              </details>
+
+              <!-- Sample results -->
+              {#if result.sample.length > 0}
+                <details class="mb-2">
+                  <summary class="text-xs text-base-content/40 cursor-pointer hover:text-base-content/60">Sample ({result.sample.length} of {result.rows})</summary>
+                  <div class="overflow-x-auto mt-1">
+                    <table class="table table-xs bg-base-300 rounded">
+                      <thead>
+                        <tr>
+                          {#each Object.keys(result.sample[0]) as col}
+                            <th class="text-xs">{col}</th>
+                          {/each}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {#each result.sample as row}
+                          <tr>
+                            {#each Object.values(row) as val}
+                              <td class="font-mono text-xs max-w-[200px] truncate">{val}</td>
+                            {/each}
+                          </tr>
+                        {/each}
+                      </tbody>
+                    </table>
+                  </div>
+                </details>
+              {/if}
+
+              <!-- EXPLAIN ANALYZE plan -->
+              {#if showPlans && result.plan}
+                <details open>
+                  <summary class="text-xs text-primary cursor-pointer hover:text-primary/80 font-medium">EXPLAIN ANALYZE</summary>
+                  <pre class="text-[11px] leading-tight bg-base-300 rounded p-3 mt-1 overflow-x-auto max-h-80 overflow-y-auto font-mono">{result.plan}</pre>
+                </details>
+              {/if}
+            {/if}
+          {:else if !queryRunning}
+            <p class="text-xs opacity-30">Click "Run All Queries" to benchmark</p>
+          {/if}
+        </div>
+      {/each}
+    </div>
+  {/if}
+
+  <!-- ═══ Parquet Inspector Tab ═══ -->
+  {#if activeTab === 'parquet'}
+    <div class="space-y-4">
+      <div class="flex items-center gap-3">
+        <select class="select select-bordered select-sm" bind:value={parquetCountry} disabled={parquetRunning}>
+          {#each TEST_COUNTRIES as cc}
+            <option value={cc}>{cc}</option>
+          {/each}
+        </select>
+        <button class="btn btn-primary btn-sm" onclick={inspectParquetFiles} disabled={parquetRunning}>
+          {#if parquetRunning}
+            <span class="loading loading-spinner loading-xs"></span>
+            Inspecting...
+          {:else}
+            Inspect Files
+          {/if}
+        </button>
+      </div>
+
+      <p class="text-sm text-base-content/60">
+        Reads Parquet file metadata and column statistics via <code class="text-xs">parquet_file_metadata()</code> and <code class="text-xs">parquet_metadata()</code>.
+        Bloom filters enable row-group skipping for exact-match queries. Small row groups (ROW_GROUP_SIZE 2000) in number_index enable HTTP range-request pushdown (~150 KB per query).
+      </p>
+
+      {#each parquetResults as info}
+        <div class="card bg-base-200 p-4">
+          <div class="flex items-center gap-2 mb-2">
+            <h3 class="font-bold text-sm">{info.label}</h3>
+            {#if !info.error}
+              <span class="badge badge-ghost badge-sm">{info.numRows.toLocaleString()} rows</span>
+              <span class="badge badge-ghost badge-sm">{info.numRowGroups} row groups</span>
+              <span class="badge badge-ghost badge-sm">{formatSize(info.fileSize)}</span>
+              {#if info.numRowGroups > 1}
+                <span class="badge badge-sm badge-outline">~{Math.round(info.numRows / info.numRowGroups)} rows/group</span>
+              {/if}
+            {/if}
+          </div>
+
+          {#if info.error}
+            <div class="alert alert-error text-xs py-1">{info.error}</div>
+          {:else if info.columns.length > 0}
+            <div class="overflow-x-auto">
+              <table class="table table-xs">
+                <thead>
+                  <tr>
+                    <th>Column</th>
+                    <th>Type</th>
+                    <th>Compression</th>
+                    <th>Bloom Filter</th>
+                    <th>Avg bytes/val</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {#each info.columns as col}
+                    <tr>
+                      <td class="font-mono text-xs">{col.name}</td>
+                      <td class="text-xs">{col.type}</td>
+                      <td class="text-xs">{col.compression}</td>
+                      <td>
+                        {#if col.hasBloom}
+                          <span class="badge badge-success badge-xs">Yes</span>
+                        {:else}
+                          <span class="badge badge-ghost badge-xs">No</span>
+                        {/if}
+                      </td>
+                      <td class="font-mono text-xs">{col.avgSize}</td>
+                    </tr>
+                  {/each}
+                </tbody>
+              </table>
+            </div>
+          {/if}
+        </div>
+      {/each}
+
+      {#if parquetResults.length === 0 && !parquetRunning}
+        <p class="text-sm opacity-40">Click "Inspect Files" to read Parquet metadata from S3</p>
+      {/if}
+    </div>
+  {/if}
+
+  <!-- Logs (always visible) -->
   {#if logs.length > 0}
     <div class="collapse collapse-arrow bg-base-200">
       <input type="checkbox" />
-      <div class="collapse-title font-bold">Logs ({logs.length} entries)</div>
+      <div class="collapse-title font-bold text-sm">Logs ({logs.length} entries)</div>
       <div class="collapse-content">
-        <pre class="text-xs bg-base-300 p-3 rounded max-h-80 overflow-y-auto">{logs.join('\n')}</pre>
+        <pre class="text-xs bg-base-300 p-3 rounded max-h-60 overflow-y-auto">{logs.join('\n')}</pre>
       </div>
     </div>
   {/if}

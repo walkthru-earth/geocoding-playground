@@ -12,7 +12,8 @@
   // ── Tile investigation modal ──────────────────────────────
   interface TileInspect {
     country: string
-    h3_parent: string
+    h3_res4: string
+    bucket: string
     address_count: number
     unique_cities: number
     unique_postcodes: number
@@ -39,11 +40,12 @@
     if (!btn) return
     const country = btn.dataset.country!
     const h3 = btn.dataset.h3!
+    const bucket = btn.dataset.bucket ?? '_'
     const addrCount = Number(btn.dataset.addresses)
     const cities = Number(btn.dataset.cities)
     const postcodes = Number(btn.dataset.postcodes)
     const region = btn.dataset.region!
-    investigateTile({ country, h3_parent: h3, address_count: addrCount, unique_cities: cities, unique_postcodes: postcodes, region: region })
+    investigateTile({ country, h3_res4: h3, bucket, address_count: addrCount, unique_cities: cities, unique_postcodes: postcodes, region })
   }
 
   async function investigateTile(tile: TileInspect) {
@@ -52,37 +54,57 @@
     inspectError = ''
     inspectLoading = true
 
-    const url = tilePath(tile.country, tile.region, tile.h3_parent)
+    // For multi-bucket tiles, resolve actual bucket IDs from tile_index
+    let buckets: string[] = [tile.bucket]
+    if (tile.bucket === '*') {
+      const rows = await queryObjects<{ bucket: string }>(`
+        SELECT bucket FROM _tile_index
+        WHERE country = '${tile.country}' AND h3_res4 = '${tile.h3_res4}'
+        ORDER BY bucket LIMIT 10
+      `)
+      buckets = rows.map(r => r.bucket)
+      if (buckets.length > 0) {
+        tile.bucket = buckets[0]
+      }
+    }
+
+    // Build source: single file or multi-file read_parquet([...])
+    const url = buckets.length === 1
+      ? tilePath(tile.country, tile.h3_res4, buckets[0])
+      : null
+    const src = buckets.length === 1
+      ? `read_parquet('${url}')`
+      : `read_parquet([${buckets.map(b => `'${tilePath(tile.country, tile.h3_res4, b)}'`).join(',')}])`
     const t0 = performance.now()
 
     try {
       const [topStreets, topCities, topPostcodes, sampleAddresses, countResult] = await Promise.all([
         queryObjects<{ street: string; count: number }>(`
           SELECT street, count(*)::INTEGER AS count
-          FROM read_parquet('${url}')
+          FROM ${src}
           WHERE street IS NOT NULL AND street != ''
           GROUP BY street ORDER BY count DESC LIMIT 15
         `),
         queryObjects<{ city: string; count: number }>(`
           SELECT city, count(*)::INTEGER AS count
-          FROM read_parquet('${url}')
+          FROM ${src}
           WHERE city IS NOT NULL AND city != ''
           GROUP BY city ORDER BY count DESC LIMIT 15
         `),
         queryObjects<{ postcode: string; count: number }>(`
           SELECT postcode, count(*)::INTEGER AS count
-          FROM read_parquet('${url}')
+          FROM ${src}
           WHERE postcode IS NOT NULL AND postcode != ''
           GROUP BY postcode ORDER BY count DESC LIMIT 15
         `),
         queryObjects<{ full_address: string; street: string; number: string; unit: string; city: string; region: string; postcode: string; lat: number; lon: number }>(`
           SELECT full_address, street, number, unit, city, region, postcode,
                  ST_Y(geometry) AS lat, ST_X(geometry) AS lon
-          FROM read_parquet('${url}')
+          FROM ${src}
           USING SAMPLE 10
         `),
         queryObjects<{ total: number }>(`
-          SELECT count(*)::INTEGER AS total FROM read_parquet('${url}')
+          SELECT count(*)::INTEGER AS total FROM ${src}
         `),
       ])
 
@@ -92,7 +114,7 @@
         topPostcodes,
         sampleAddresses,
         totalRows: countResult[0]?.total ?? 0,
-        fileUrl: url,
+        fileUrl: url ?? tilePath(tile.country, tile.h3_res4, buckets[0]),
         fetchMs: Math.round(performance.now() - t0),
       }
     } catch (e: any) {
@@ -156,14 +178,15 @@
   let maxMedian = $derived(Math.max(...tileStats.map(r => r.median_addr), 1))
 
   // Map layers
-  let showCoverage = $state(true)
+  let showCoverage = $state(false)
   let showTiles = $state(true)
   let tilesLoaded = $state(false)
   let tilesLoading = $state(false)
 
   interface TileGeoRow {
     country: string
-    h3_parent: string
+    h3_res4: string
+    bucket: string
     address_count: number
     unique_cities: number
     unique_postcodes: number
@@ -195,7 +218,7 @@
           min(address_count)::INTEGER AS min_addr,
           sum(unique_postcodes)::INTEGER AS total_postcodes,
           sum(unique_cities)::INTEGER AS total_cities,
-          count(DISTINCT region)::INTEGER AS regions
+          count(DISTINCT primary_region) FILTER (primary_region IS NOT NULL)::INTEGER AS regions
         FROM _tile_index
         GROUP BY country
         ORDER BY total_addr DESC
@@ -225,7 +248,7 @@
             ELSE 1
           END AS sort_key
         FROM _tile_index
-        GROUP BY bucket, sort_key
+        GROUP BY ALL
         ORDER BY sort_key DESC
       `)
 
@@ -255,26 +278,50 @@
     if (tilesLoaded || tilesLoading || !mapView || !mapReady) return
     tilesLoading = true
     try {
+      // v4: aggregate per h3_res4 for map display (sum across buckets)
       const rows = await queryObjects<TileGeoRow>(`
-        SELECT country, h3_parent, address_count, unique_cities, unique_postcodes, region
+        SELECT h3_res4, bucket,
+               country, address_count, unique_cities, unique_postcodes,
+               primary_region AS region
         FROM _tile_index
       `)
-      const features: any[] = []
+      // Aggregate by h3_res4 for map polygons
+      const byH3 = new Map<string, { country: string; h3_res4: string; address_count: number; unique_cities: number; unique_postcodes: number; region: string; buckets: number }>()
       for (const row of rows) {
-        if (!isValidCell(row.h3_parent)) continue
-        const boundary = cellToBoundary(row.h3_parent)
-        // h3-js returns [lat, lng] pairs, GeoJSON needs [lng, lat]
-        const coords = boundary.map(([lat, lng]) => [lng, lat])
-        coords.push(coords[0]) // close polygon
-        features.push({
-          type: 'Feature' as const,
-          properties: {
+        const existing = byH3.get(row.h3_res4)
+        if (existing) {
+          existing.address_count += row.address_count
+          existing.unique_cities += row.unique_cities
+          existing.unique_postcodes += row.unique_postcodes
+          existing.buckets++
+        } else {
+          byH3.set(row.h3_res4, {
             country: row.country,
-            h3_parent: row.h3_parent,
+            h3_res4: row.h3_res4,
             address_count: row.address_count,
             unique_cities: row.unique_cities,
             unique_postcodes: row.unique_postcodes,
             region: row.region ?? '-',
+            buckets: 1,
+          })
+        }
+      }
+      const features: any[] = []
+      for (const row of byH3.values()) {
+        if (!isValidCell(row.h3_res4)) continue
+        const boundary = cellToBoundary(row.h3_res4)
+        const coords = boundary.map(([lat, lng]) => [lng, lat])
+        coords.push(coords[0])
+        features.push({
+          type: 'Feature' as const,
+          properties: {
+            country: row.country,
+            h3_res4: row.h3_res4,
+            address_count: row.address_count,
+            unique_cities: row.unique_cities,
+            unique_postcodes: row.unique_postcodes,
+            region: row.region,
+            buckets: row.buckets,
           },
           geometry: { type: 'Polygon' as const, coordinates: [coords] },
         })
@@ -293,15 +340,17 @@
         visible: true,
         popupFn: (p) => `
           <div class="popup-mono">
-            <div class="popup-mono-title">${p.country} / ${p.h3_parent}</div>
+            <div class="popup-mono-title">${p.country} / ${p.h3_res4}</div>
             <div>Addresses: <b>${Number(p.address_count).toLocaleString()}</b></div>
             <div>Cities: <b>${p.unique_cities}</b></div>
             <div>Postcodes: <b>${p.unique_postcodes}</b></div>
             <div>Region: <b>${p.region}</b></div>
+            ${Number(p.buckets) > 1 ? `<div>Buckets: <b>${p.buckets}</b></div>` : ''}
             <button
               data-investigate
               data-country="${p.country}"
-              data-h3="${p.h3_parent}"
+              data-h3="${p.h3_res4}"
+              data-bucket="${Number(p.buckets) > 1 ? '*' : '_'}"
               data-addresses="${p.address_count}"
               data-cities="${p.unique_cities}"
               data-postcodes="${p.unique_postcodes}"
@@ -892,7 +941,7 @@
       <!-- Header -->
       <div class="flex items-center justify-between px-5 py-3 border-b border-base-content/10">
         <div>
-          <h3 class="font-bold text-lg">{inspectTile.country} / {inspectTile.h3_parent}</h3>
+          <h3 class="font-bold text-lg">{inspectTile.country} / {inspectTile.h3_res4}{inspectTile.bucket !== '_' && inspectTile.bucket !== '*' ? ` / ${inspectTile.bucket}` : ''}{inspectTile.bucket === '*' ? ' (all buckets)' : ''}</h3>
           <p class="text-sm text-base-content/50">
             {inspectTile.address_count.toLocaleString()} addresses, {inspectTile.unique_cities} cities, {inspectTile.unique_postcodes} postcodes
             {#if inspectTile.region !== '-'}, region: {inspectTile.region}{/if}
