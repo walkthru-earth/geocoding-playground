@@ -28,7 +28,7 @@ test.describe('Forward Geocode', () => {
 
     await cityInput.fill('Amsterdam')
     const cityOption = page.locator('.menu button').filter({ hasText: 'Amsterdam' })
-    await cityOption.first().waitFor({ timeout: 10_000 })
+    await cityOption.first().waitFor({ timeout: 30_000 })
     await cityOption.first().click()
 
     const addressInput = page.locator('#tour-address-input')

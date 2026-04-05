@@ -296,13 +296,13 @@
       prefetching = true
       await prefetchCountry(selectedCountry, {
         onCitiesReady: async (count: number) => {
-          citiesReady = true
           cacheInfo = `${selectedCountry}: ${count} cities ready, loading streets & postcodes...`
           const citiesT = getCountryTable('_cities', selectedCountry)
           const rows = await queryObjects<CityRow>(
             `SELECT city, region, tiles, addr_count, bbox_min_lon_e6, bbox_max_lon_e6, bbox_min_lat_e6, bbox_max_lat_e6 FROM ${citiesT}`
           )
           allCityRecords = rows
+          citiesReady = true
           if (pendingAutoCity) {
             autoSelectCity(pendingAutoCity)
             pendingAutoCity = ''
