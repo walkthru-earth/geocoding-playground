@@ -60,7 +60,8 @@ export class JPParser extends GenericParser {
     // We match the banchi portion using split_part to strip the zone suffix.
     const conditions: string[] = []
     if (parsed.street) {
-      conditions.push(`lower(street) LIKE '${esc(parsed.street.toLowerCase())}%'`)
+      // street_lower is a physical column (v4.1+) enabling Parquet row-group pushdown.
+      conditions.push(`street_lower LIKE '${esc(parsed.street.toLowerCase())}%'`)
     }
     if (parsed.number) {
       // Match banchi: split_part(number, '-', 1) extracts the real lot number

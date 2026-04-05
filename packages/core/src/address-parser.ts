@@ -91,7 +91,9 @@ export function buildDefaultWhere(parsed: ParsedAddress): string {
     conditions.push(`lower(postcode) = '${esc(parsed.postcode.toLowerCase())}'`)
   }
   if (parsed.street) {
-    conditions.push(`lower(street) LIKE '${esc(parsed.street.toLowerCase())}%'`)
+    // street_lower is a physical column (v4.1+) enabling Parquet row-group pushdown.
+    // lower(street) defeats pushdown because DuckDB can't apply functions to min/max stats.
+    conditions.push(`street_lower LIKE '${esc(parsed.street.toLowerCase())}%'`)
   }
   if (parsed.number) {
     conditions.push(`number = '${esc(parsed.number)}'`)

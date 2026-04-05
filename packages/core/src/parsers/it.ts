@@ -39,10 +39,11 @@ export class ITParser extends GenericParser {
   }
 
   buildWhereClause(parsed: ParsedAddress): string {
-    // IT has no postcode data in Overture ,skip postcode in WHERE
+    // IT has no postcode data in Overture, skip postcode in WHERE
     const conditions: string[] = []
     if (parsed.street) {
-      conditions.push(`lower(street) LIKE '${esc(parsed.street.toLowerCase())}%'`)
+      // street_lower is a physical column (v4.1+) enabling Parquet row-group pushdown.
+      conditions.push(`street_lower LIKE '${esc(parsed.street.toLowerCase())}%'`)
     }
     if (parsed.number) {
       conditions.push(`number = '${esc(parsed.number)}'`)
