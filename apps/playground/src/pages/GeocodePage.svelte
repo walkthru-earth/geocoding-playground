@@ -848,12 +848,15 @@
     clickLat = lt
     clickLon = ln
     if (clickMarker) clickMarker.remove()
-    clickMarker = new maplibregl.Marker({
-      color: getComputedStyle(document.documentElement).getPropertyValue('--wt-marker-primary').trim() || '#36d399',
-    })
-      .setLngLat([ln, lt])
-      .addTo(mapView!.getMap()!)
-    mapView?.flyTo(ln, lt, 16)
+    const map = mapView?.getMap()
+    if (map) {
+      clickMarker = new maplibregl.Marker({
+        color: getComputedStyle(document.documentElement).getPropertyValue('--wt-marker-primary').trim() || '#36d399',
+      })
+        .setLngLat([ln, lt])
+        .addTo(map)
+      mapView?.flyTo(ln, lt, 16)
+    }
     reverseSearch()
   }
 

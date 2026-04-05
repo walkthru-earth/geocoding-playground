@@ -9,8 +9,12 @@ test.describe('Reverse Geocode', () => {
 
   test('location preset triggers reverse search', async ({ page }) => {
     await page.goto('/#geocode')
-    // Wait for DuckDB to initialize
-    await page.waitForSelector('text=DuckDB', { timeout: 60_000 })
+    // Wait for DuckDB to fully initialize (release select proves tile_index is loaded)
+    const releaseSelect = page.locator('select').filter({ hasText: '2026' })
+    await expect(releaseSelect).toBeVisible({ timeout: 60_000 })
+
+    // Wait for map canvas to be ready (preset clicks need mapView to add markers)
+    await expect(page.locator('canvas')).toBeVisible({ timeout: 30_000 })
 
     // Click a location preset (Colosseum)
     await page.locator('button:has-text("Colosseum")').click()
