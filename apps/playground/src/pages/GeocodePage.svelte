@@ -1,21 +1,27 @@
 <script lang="ts">
   import {
-    queryObjects, queryObjectsWithRetry, tilePath, prefetchRegion, isRegionCached, onCacheLog, getTileSource, isTileCached,
-    cancelPendingQuery, getRegionTable,
+    queryObjects, queryObjectsWithRetry, tilePath, prefetchCountry, isCountryCached, onCacheLog,
+    getTileSource, isTileCached, expandTilesToBucketGroups, tileSourceExpr,
+    cancelPendingQuery, getCountryTable,
     SearchCache, searchCities as searchCitiesJS,
     getParser, stripJPCoordZone,
     esc, toArr, ms, addStep, updateLastStep, htmlEsc,
-    // Smart autocomplete (core)
     suggest, classifyInput, resolveTiles, rankSuggestions,
     buildPostcodeSQL, buildStreetSQL, buildPostcodeNarrowSQL, buildStreetNarrowSQL, buildNumberIndexSQL,
+    // Reverse geocode (core)
+    radiusToBbox, gridKForRadius, buildTileLookupSQL, buildReverseQuerySQL,
   } from '@walkthru-earth/geocoding-core'
-  import type { CityRow, SuggestRow, AddressRow, StepEntry, AutocompleteQueryFns, InputClassification, RegionRow } from '@walkthru-earth/geocoding-core'
+  import type { CityRow, SuggestRow, AddressRow, StepEntry, AutocompleteQueryFns, InputClassification, TileBucketRow } from '@walkthru-earth/geocoding-core'
   import MapView from '../lib/MapView.svelte'
   import SplitPane from '../lib/components/SplitPane.svelte'
   import StepLog from '../lib/components/StepLog.svelte'
   import ResultsTable from '../lib/components/ResultsTable.svelte'
-  import { startGeocodeTour, shouldShowReverseHint, showReverseGeocodingHint } from '../lib/tour'
+  import { startGeocodeTour } from '../lib/tour'
   import { track } from '../lib/analytics'
+  import maplibregl from 'maplibre-gl'
+  import { cellToBoundary } from 'h3-js'
+
+  // ── Forward geocode presets (per-country) ──────────────────
 
   const presetsByCountry: Record<string, { label: string; city: string; query: string }[]> = {
     NL: [
@@ -66,13 +72,34 @@
     ],
   }
 
+  // ── Reverse location presets ───────────────────────────────
+
+  const locationPresets = [
+    { label: 'Puerta del Sol', lat: 40.4168, lon: -3.7038 },
+    { label: 'Times Sq', lat: 40.7580, lon: -73.9855 },
+    { label: 'Champs-Élysées', lat: 48.8698, lon: 2.3078 },
+    { label: 'Colosseum', lat: 41.8902, lon: 12.4922 },
+    { label: 'Shibuya', lat: 35.6595, lon: 139.7004 },
+    { label: 'La Rambla', lat: 41.3818, lon: 2.1735 },
+    { label: 'Opera House', lat: -33.8568, lon: 151.2153 },
+    { label: 'Hamburg', lat: 53.5503, lon: 9.9928 },
+  ]
+
+  // ── Shared state ───────────────────────────────────────────
+
+  let results = $state.raw<AddressRow[]>([])
+  let searching = $state(false)
+  let error = $state('')
+  let searchTime = $state(0)
+  let steps = $state<StepEntry[]>([])
+  let mapView = $state<MapView>()
+  let lastMode = $state<'forward' | 'reverse' | null>(null)
+
+  // ── Forward geocode state ──────────────────────────────────
+
   let countries = $state.raw<string[]>([])
   let selectedCountry = $state('')
   let activePresets = $derived(presetsByCountry[selectedCountry] ?? [])
-
-  // Region state (new v3 layer between country and city)
-  let regions = $state.raw<RegionRow[]>([])
-  let selectedRegion = $state<RegionRow | null>(null)
 
   let cityQuery = $state('')
   let cities = $state.raw<CityRow[]>([])
@@ -82,26 +109,40 @@
   let addressQuery = $state('')
   let suggestions = $state.raw<SuggestRow[]>([])
   let selectedSuggestion = $state<SuggestRow | null>(null)
-  let results = $state.raw<AddressRow[]>([])
-  let searching = $state(false)
   let loadingSuggestions = $state(false)
   let prefetching = $state(false)
   let citiesReady = $state(false)
-  let error = $state('')
-  let searchTime = $state(0)
-  let limit = $state(5)
-  let steps = $state<StepEntry[]>([])
   let cacheInfo = $state('')
-  let mapView = $state<MapView>()
+  let limit = $state(5)
+  let searchScope = $state<'city' | 'country'>('city')
+  let lastClassification = $state<InputClassification | null>(null)
 
   let suggestTimer: ReturnType<typeof setTimeout> | null = null
   let searchGen = 0
   let autoGen = 0
   const suggestCache = new SearchCache<SuggestRow[]>()
+  let userNavigated = false
+
+  // ── Reverse geocode state ──────────────────────────────────
+
+  let clickLat = $state<number | null>(null)
+  let clickLon = $state<number | null>(null)
+  let radius = $state(250)
+  let resultLimit = $state(10)
+  let reverseGen = 0
+  let clickMarker: maplibregl.Marker | null = null
+  let pendingAutoCity = ''
+
+  // ── Lifecycle ──────────────────────────────────────────────
 
   $effect(() => {
     return () => { if (suggestTimer) clearTimeout(suggestTimer) }
   })
+
+  onCacheLog((msg: string) => { cacheInfo = msg })
+  $effect(() => { loadCountries() })
+
+  // ── Shared helpers ─────────────────────────────────────────
 
   function log(text: string, status?: StepEntry['status']) {
     steps = addStep(steps, text, status)
@@ -110,47 +151,106 @@
     steps = updateLastStep(steps, text, status)
   }
 
-  /** Current region string for SQL builders (empty string if none selected). */
-  let currentRegion = $derived(selectedRegion?.region ?? '')
+  function removeClickMarker() {
+    if (clickMarker) { clickMarker.remove(); clickMarker = null }
+  }
 
-  // ── Smart autocomplete query functions (bridge core engine to DuckDB) ──
+  function resultPopupHtml(r: AddressRow, idx: number): string {
+    const parts = [r.city, r.postcode].filter(Boolean).map(s => htmlEsc(s!)).join(' · ')
+    const distLine = r.distance_m != null
+      ? `<div style="display:flex;align-items:center;gap:8px;margin-left:2rem;margin-top:2px">
+          <span class="popup-distance">${r.distance_m < 1000 ? `${Math.round(r.distance_m)}m` : `${(r.distance_m / 1000).toFixed(1)}km`} away</span>
+          <span class="popup-coords" style="margin-left:0;margin-top:0">${r.lat?.toFixed(5)}, ${r.lon?.toFixed(5)}</span>
+        </div>`
+      : `<div class="popup-coords">${r.lat?.toFixed(5)}, ${r.lon?.toFixed(5)}</div>`
+    return `<div class="popup-body">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <span class="popup-badge ${idx === 0 ? 'popup-badge-primary' : 'popup-badge-secondary'}">${idx + 1}</span>
+        <span class="popup-title">${htmlEsc(r.full_address)}</span>
+      </div>
+      ${parts ? `<div class="popup-subtitle">${parts}</div>` : ''}
+      ${distLine}
+    </div>`
+  }
+
+  function updateMapMarkers(autoFit: boolean) {
+    if (!mapView || results.length === 0) return
+    if (lastMode === 'reverse') removeClickMarker()
+    const points = results.filter(r => r.lat && r.lon).map((r, i) => ({
+      lng: r.lon,
+      lat: r.lat,
+      popupHtml: resultPopupHtml(r, i),
+    }))
+    const shouldFit = autoFit && (lastMode === 'reverse' || !userNavigated)
+    mapView.setResultMarkers(points, shouldFit)
+  }
+
+  function flyToResult(r: AddressRow) {
+    if (!mapView || !r.lat || !r.lon) return
+    userNavigated = true
+    const idx = results.indexOf(r)
+    mapView.openResultPopup(idx)
+  }
+
+  /** When user clicks a disabled field, show the guided tour. */
+  function onDisabledFieldClick() {
+    if (!selectedCountry) startGeocodeTour()
+  }
+
+  // ── Map setup ──────────────────────────────────────────────
+
+  function onMapReady(map: maplibregl.Map) {
+    map.getCanvas().style.cursor = 'crosshair'
+    map.on('click', (e) => {
+      const target = e.originalEvent?.target as HTMLElement | null
+      if (target?.closest('.result-marker')) return
+
+      clickLat = Math.round(e.lngLat.lat * 10000) / 10000
+      clickLon = Math.round(e.lngLat.lng * 10000) / 10000
+
+      if (clickMarker) clickMarker.remove()
+      clickMarker = new maplibregl.Marker({
+        color: getComputedStyle(document.documentElement).getPropertyValue('--wt-marker-primary').trim() || '#36d399',
+      })
+        .setLngLat(e.lngLat)
+        .addTo(map)
+
+      map.flyTo({ center: e.lngLat, zoom: Math.max(map.getZoom(), 14), duration: 800 })
+      track('map_clicked', { lat: clickLat, lon: clickLon })
+      reverseSearch()
+    })
+  }
+
+  // ── Smart autocomplete query functions (bridge core to DuckDB) ──
 
   const autoQueryFns: AutocompleteQueryFns = {
-    async queryPostcodes(cc: string, region: string, query: string, cityTiles: string[]): Promise<SuggestRow[]> {
-      const sql = buildPostcodeSQL(cc, region, query, cityTiles)
+    async queryPostcodes(cc: string, query: string, cityTiles: string[]): Promise<SuggestRow[]> {
+      const sql = buildPostcodeSQL(cc, query, cityTiles)
       const rows = await queryObjects<{ postcode: string; tiles: string[]; addr_count: number }>(sql)
       return rows.map((r: { postcode: string; tiles: string[]; addr_count: number }) => ({
         type: 'postcode' as const, label: r.postcode, tiles: r.tiles, addr_count: r.addr_count,
       }))
     },
-    async queryStreets(cc: string, region: string, query: string, cityTiles: string[]): Promise<SuggestRow[]> {
+    async queryStreets(cc: string, query: string, cityTiles: string[]): Promise<SuggestRow[]> {
       try {
-        const sql = buildStreetSQL(cc, region, query, cityTiles)
+        const sql = buildStreetSQL(cc, query, cityTiles)
         const rows = await queryObjects<{ street_lower: string; tiles: string[]; addr_count: number; primary_city: string }>(sql)
         return rows.map((r: { street_lower: string; tiles: string[]; addr_count: number; primary_city: string }) => ({
           type: 'street' as const, label: r.street_lower, tiles: r.tiles, addr_count: r.addr_count, primary_city: r.primary_city,
         }))
       } catch { return [] }
     },
-    async queryAddresses(cc: string, region: string, street: string, numberPrefix: string, tiles: string[]): Promise<SuggestRow[]> {
+    async queryAddresses(cc: string, street: string, numberPrefix: string, tiles: string[]): Promise<SuggestRow[]> {
       try {
-        // Query number_index via HTTP range request (~150 KB with row-group pushdown).
-        // The number_index stores all distinct house numbers per street as a sorted array.
-        // DuckDB-WASM fetches only the row group containing this street, not the whole file.
-        const sql = buildNumberIndexSQL(cc, region, street)
+        const sql = buildNumberIndexSQL(cc, street)
         const rows = await queryObjects<{ street_lower: string; numbers: string[] }>(sql)
         if (rows.length === 0) return []
 
         const prefix = numberPrefix.toLowerCase()
         const isJP = cc === 'JP'
-
-        // JP numbers in the index are "banchi-coordZone" (e.g., "362-9") where
-        // the suffix is an MLIT survey grid zone, not a real address part.
-        // Strip it before matching and displaying.
         const matched = toArr(rows[0].numbers)
           .map((n: string) => isJP ? stripJPCoordZone(n) : n)
           .filter((n: string) => n.toLowerCase().startsWith(prefix))
-          // Deduplicate: after stripping coord zones, "362-7" and "362-9" both become "362"
           .filter((n: string, i: number, arr: string[]) => arr.indexOf(n) === i)
           .slice(0, 10)
 
@@ -164,158 +264,86 @@
     },
   }
 
-  let lastClassification = $state<InputClassification | null>(null)
-
-  onCacheLog((msg: string) => { cacheInfo = msg })
-
-  $effect(() => { loadCountries() })
-
-  // When the user interacts with the map (click or user-initiated zoom) thinking
-  // it's reverse geocoding, guide them to the Reverse page. Only shown once.
-  // We check originalEvent to ignore programmatic zooms (fitBounds, flyTo).
-  $effect(() => {
-    const map = mapView?.getMap()
-    if (!map) return
-    function onMapClick() {
-      if (shouldShowReverseHint()) showReverseGeocodingHint()
-    }
-    function onUserZoom(e: { originalEvent?: Event }) {
-      if (e.originalEvent && shouldShowReverseHint()) showReverseGeocodingHint()
-    }
-    map.on('click', onMapClick)
-    map.on('zoomstart', onUserZoom)
-    return () => {
-      map.off('click', onMapClick)
-      map.off('zoomstart', onUserZoom)
-    }
-  })
-
-  /** When user clicks a disabled field, show the full guided tour. */
-  function onDisabledFieldClick() {
-    if (!selectedCountry) startGeocodeTour()
-  }
+  // ── Forward geocode functions ──────────────────────────────
 
   async function loadCountries() {
     const rows = await queryObjects<{ country: string }>(`
-      SELECT DISTINCT country
-      FROM _manifest
-      ORDER BY country
+      SELECT DISTINCT country FROM _manifest ORDER BY country
     `)
     countries = rows.map((r: { country: string }) => r.country)
   }
 
-  /** Called when user picks a country. Load regions from cached region_index. */
-  async function onCountryChange() {
-    selectedRegion = null
+  async function onCountryChange(opts?: { keepResults?: boolean }) {
     selectedCity = null
+    searchScope = 'city'
     cities = []
     allCityRecords = []
-    results = []
-    steps = []
+    if (!opts?.keepResults) {
+      results = []
+      steps = []
+      mapView?.clearResultMarkers()
+    }
     suggestions = []
     selectedSuggestion = null
     cacheInfo = ''
     citiesReady = false
     suggestCache.clear()
-    mapView?.clearResultMarkers()
-    regions = []
 
     if (!selectedCountry) return
     track('country_selected', { country: selectedCountry })
 
-    // Load regions for this country from the global region_index (already in memory)
-    const rows = await queryObjects<RegionRow>(`
-      SELECT region, tiles, addr_count,
-             bbox_min_lon, bbox_max_lon, bbox_min_lat, bbox_max_lat
-      FROM _region_index
-      WHERE country = '${esc(selectedCountry)}'
-      ORDER BY addr_count DESC
-    `)
-    regions = rows
-
-    // Auto-select if only one region
-    if (rows.length === 1) {
-      selectedRegion = rows[0]
-      await onRegionChange()
-    }
-  }
-
-  /** Called when user picks a region. Prefetch region-scoped indexes. */
-  async function onRegionChange() {
-    selectedCity = null
-    cities = []
-    allCityRecords = []
-    results = []
-    steps = []
-    suggestions = []
-    selectedSuggestion = null
-    cacheInfo = ''
-    citiesReady = false
-    suggestCache.clear()
-    mapView?.clearResultMarkers()
-
-    if (!selectedRegion || !selectedCountry) return
-    track('region_selected', { country: selectedCountry, region: selectedRegion.region })
-
-    // Zoom to region bbox
-    if (selectedRegion.bbox_min_lon && selectedRegion.bbox_max_lat && mapView) {
-      const pad = 0.05
-      mapView.getMap()?.fitBounds(
-        [[selectedRegion.bbox_min_lon - pad, selectedRegion.bbox_min_lat - pad],
-         [selectedRegion.bbox_max_lon + pad, selectedRegion.bbox_max_lat + pad]],
-        { padding: 40 }
-      )
-    }
-
-    if (isRegionCached(selectedCountry, selectedRegion.region)) {
+    if (!isCountryCached(selectedCountry)) {
+      prefetching = true
+      await prefetchCountry(selectedCountry, {
+        onCitiesReady: async (count: number) => {
+          citiesReady = true
+          cacheInfo = `${selectedCountry}: ${count} cities ready, loading streets & postcodes...`
+          const citiesT = getCountryTable('_cities', selectedCountry)
+          const rows = await queryObjects<CityRow>(
+            `SELECT city, region, tiles, addr_count, bbox_min_lon_e6, bbox_max_lon_e6, bbox_min_lat_e6, bbox_max_lat_e6 FROM ${citiesT}`
+          )
+          allCityRecords = rows
+          if (pendingAutoCity) {
+            autoSelectCity(pendingAutoCity)
+            pendingAutoCity = ''
+          }
+        },
+      })
+      prefetching = false
+    } else {
       citiesReady = true
-      cacheInfo = `${selectedCountry}/${selectedRegion.region}: indexes already cached`
-      // Load city records for JS search if not already loaded
+      cacheInfo = `${selectedCountry}: indexes already cached`
       if (allCityRecords.length === 0) {
-        const citiesT = getRegionTable('_cities', selectedCountry, selectedRegion.region)
+        const citiesT = getCountryTable('_cities', selectedCountry)
         const rows = await queryObjects<CityRow>(
-          `SELECT city, tiles, addr_count, bbox_min_lon_e6, bbox_max_lon_e6, bbox_min_lat_e6, bbox_max_lat_e6 FROM ${citiesT}`
+          `SELECT city, region, tiles, addr_count, bbox_min_lon_e6, bbox_max_lon_e6, bbox_min_lat_e6, bbox_max_lat_e6 FROM ${citiesT}`
         )
         allCityRecords = rows
       }
-      return
+      if (pendingAutoCity) {
+        autoSelectCity(pendingAutoCity)
+        pendingAutoCity = ''
+      }
     }
-
-    prefetching = true
-    await prefetchRegion(selectedCountry, selectedRegion.region, {
-      onCitiesReady: async (count: number) => {
-        citiesReady = true
-        cacheInfo = `${selectedCountry}/${selectedRegion!.region}: ${count} cities ready, loading streets & postcodes...`
-        // Load city records into JS array for sub-ms search (one-time cost)
-        const citiesT = getRegionTable('_cities', selectedCountry, selectedRegion!.region)
-        const rows = await queryObjects<CityRow>(
-          `SELECT city, tiles, addr_count, bbox_min_lon_e6, bbox_max_lon_e6, bbox_min_lat_e6, bbox_max_lat_e6 FROM ${citiesT}`
-        )
-        allCityRecords = rows
-      },
-    })
-    prefetching = false
   }
 
-  /** City autocomplete, sub-ms JS array search on pre-loaded records */
   function searchCities() {
-    if (!selectedCountry || !selectedRegion || cityQuery.length < 2) { cities = []; return }
-    // Sub-ms JS search instead of DuckDB SQL round-trip.
-    // searchCitiesJS does prefix match with contains fallback + similarity ranking.
+    if (!selectedCountry || cityQuery.length < 2) { cities = []; return }
     cities = searchCitiesJS(allCityRecords as any, cityQuery, 20) as CityRow[]
   }
 
-  function selectCity(city: CityRow) {
+  function selectCity(city: CityRow, opts?: { keepResults?: boolean; skipZoom?: boolean }) {
     track('city_selected', { city: city.city, country: selectedCountry })
     selectedCity = city
     cityQuery = city.city
     cities = []
     selectedSuggestion = null
     suggestions = []
-    results = []
-    steps = []
-    // Zoom map to city bbox if available
-    if (city.bbox_min_lon_e6 && city.bbox_max_lat_e6 && mapView) {
+    if (!opts?.keepResults) {
+      results = []
+      steps = []
+    }
+    if (!opts?.skipZoom && city.bbox_min_lon_e6 && city.bbox_max_lat_e6 && mapView) {
       const pad = 0.01
       const minLon = (city.bbox_min_lon_e6 ?? 0) / 1e6 - pad
       const minLat = (city.bbox_min_lat_e6 ?? 0) / 1e6 - pad
@@ -325,27 +353,20 @@
     }
   }
 
-  /** Address/postcode autocomplete via smart engine (core) with debounce */
   function autocomplete() {
-    if (!selectedCountry || !selectedRegion || addressQuery.length < 2) { suggestions = []; lastClassification = null; return }
+    if (!selectedCountry || !isCountryCached(selectedCountry) || addressQuery.length < 2) { suggestions = []; lastClassification = null; return }
     if (suggestTimer) clearTimeout(suggestTimer)
     suggestTimer = setTimeout(() => doAutocomplete(), 150)
   }
 
   async function doAutocomplete() {
-    if (!selectedRegion || !isRegionCached(selectedCountry, selectedRegion.region)) return
-
+    if (!isCountryCached(selectedCountry)) return
     const gen = ++autoGen
     loadingSuggestions = true
     try {
       const { classification, suggestions: results } = await suggest(
-        addressQuery,
-        selectedCountry,
-        selectedRegion.region,
-        selectedCity?.city ?? null,
-        selectedCityTiles,
-        autoQueryFns,
-        suggestCache,
+        addressQuery, selectedCountry, selectedCity?.city ?? null,
+        selectedCityTiles, autoQueryFns, suggestCache,
       )
       if (gen !== autoGen) return
       lastClassification = classification
@@ -365,11 +386,7 @@
     addressQuery = s.label
     suggestions = []
     lastClassification = null
-
-    // Address suggestions (street + number) are ready to search immediately
-    if (s.type === 'address') {
-      search()
-    }
+    if (s.type === 'address') forwardSearch()
   }
 
   function getSearchTiles(): { tiles: string[]; source: string } {
@@ -378,40 +395,39 @@
 
   async function runPreset(preset: { label: string; city: string; query: string }) {
     const cc = selectedCountry
-    if (!cc || !selectedRegion) return
-    const reg = selectedRegion.region
+    if (!cc) return
     track('preset_clicked', { preset: preset.label, country: cc })
 
     steps = []
     error = ''
     results = []
+    lastMode = 'forward'
     selectedSuggestion = null
     addressQuery = preset.query
+    removeClickMarker()
     mapView?.clearResultMarkers()
 
-    // Ensure region is cached
-    if (!isRegionCached(cc, reg)) {
-      log(`Step 1  Caching ${cc}/${reg} indexes...`, 'loading')
+    if (!isCountryCached(cc)) {
+      log(`Step 1  Caching ${cc} indexes...`, 'loading')
       prefetching = true
-      const info = await prefetchRegion(cc, reg)
+      const info = await prefetchCountry(cc)
       prefetching = false
       citiesReady = true
-      updateLast(`Step 1  ${cc}/${reg} cached: ${info.cities} cities, ${info.postcodes} postcodes, ${info.streets} streets`, 'done')
+      updateLast(`Step 1  ${cc} cached: ${info.cities} cities, ${info.postcodes} postcodes, ${info.streets} streets`, 'done')
     } else {
-      log(`Step 1  ${cc}/${reg} indexes already cached`, 'done')
+      log(`Step 1  ${cc} indexes already cached`, 'done')
     }
 
-    // Find city from cache
     let t0 = performance.now()
     log(`Step 2  Looking up "${preset.city}"...`, 'loading')
-    const citiesT = getRegionTable('_cities', cc, reg)
+    const citiesT = getCountryTable('_cities', cc)
     const cityResults = await queryObjects<CityRow>(`
-      SELECT city,
+      SELECT city, region,
              list_distinct(flatten(list(tiles))) AS tiles,
              sum(addr_count)::INTEGER AS addr_count
       FROM ${citiesT}
       WHERE lower(city) = '${esc(preset.city.toLowerCase())}'
-      GROUP BY city
+      GROUP BY city, region
       ORDER BY addr_count DESC LIMIT 1
     `)
     if (cityResults.length === 0) { updateLast(`Step 2  City not found!`, 'error'); return }
@@ -420,13 +436,12 @@
     cityQuery = city.city
     updateLast(`Step 2  ${city.city}, ${toArr(city.tiles).length} tile(s), ${city.addr_count.toLocaleString()} addr (${ms(t0)})`, 'done')
 
-    // Narrow via postcode or street index (from cache)
     t0 = performance.now()
     const q = preset.query.toLowerCase()
     const cls = classifyInput(q, cc)
     if (cls.hasPostcode || cls.mode === 'postcode') {
       log(`Step 3  Narrowing via postcodes for "${q}"...`, 'loading')
-      const postcodesT = getRegionTable('_postcodes', cc, reg)
+      const postcodesT = getCountryTable('_postcodes', cc)
       const rows = await queryObjects<{ postcode: string; tiles: string[]; addr_count: number }>(`
         SELECT postcode, tiles, addr_count FROM ${postcodesT}
         WHERE lower(postcode) LIKE '${esc(q)}%'
@@ -434,14 +449,14 @@
       `)
       if (rows.length > 0) {
         selectedSuggestion = { type: 'postcode', label: rows[0].postcode, tiles: rows[0].tiles, addr_count: rows[0].addr_count }
-        updateLast(`Step 3  Postcode "${rows[0].postcode}" → ${toArr(rows[0].tiles).length} tile(s) (${ms(t0)})`, 'done')
+        updateLast(`Step 3  Postcode "${rows[0].postcode}" -> ${toArr(rows[0].tiles).length} tile(s) (${ms(t0)})`, 'done')
       } else {
         updateLast(`Step 3  No postcode match, using city tiles (${ms(t0)})`, 'done')
       }
     } else {
       log(`Step 3  Narrowing via streets for "${q.split(/\s+/)[0]}"...`, 'loading')
       try {
-        const streetsT = getRegionTable('_streets', cc, reg)
+        const streetsT = getCountryTable('_streets', cc)
         const rows = await queryObjects<{ street_lower: string; tiles: string[]; addr_count: number }>(`
           SELECT street_lower, tiles, addr_count FROM ${streetsT}
           WHERE street_lower LIKE '${esc(q.split(/\s+/)[0])}%'
@@ -449,7 +464,7 @@
         `)
         if (rows.length > 0) {
           selectedSuggestion = { type: 'street', label: rows[0].street_lower, tiles: rows[0].tiles, addr_count: rows[0].addr_count }
-          updateLast(`Step 3  Street "${rows[0].street_lower}" → ${toArr(rows[0].tiles).length} tile(s) (${ms(t0)})`, 'done')
+          updateLast(`Step 3  Street "${rows[0].street_lower}" -> ${toArr(rows[0].tiles).length} tile(s) (${ms(t0)})`, 'done')
         } else {
           updateLast(`Step 3  No street match, using city tiles (${ms(t0)})`, 'done')
         }
@@ -462,8 +477,7 @@
   }
 
   async function searchDirect() {
-    if (addressQuery.length < 2 || !selectedRegion) return
-    // Cancel any in-flight query before starting a new one
+    if (addressQuery.length < 2) return
     await cancelPendingQuery()
     const gen = ++searchGen
     searching = true
@@ -473,12 +487,10 @@
     userNavigated = false
 
     const cc = selectedCountry
-    const reg = selectedRegion.region
     const parser = getParser(cc)
     const parsed = parser.parseAddress(addressQuery)
     const where = parser.buildWhereClause(parsed)
 
-    // Show what the parser detected
     const detected: string[] = []
     if (parsed.postcode) detected.push(`postcode=${parsed.postcode}`)
     if (parsed.street) detected.push(`street="${parsed.street}"`)
@@ -488,56 +500,59 @@
       log(`Parse   ${detected.join(', ')}`, 'done')
     }
 
-    // Auto-narrow tiles using parsed fields (postcode → street → city fallback)
     let tiles: string[] = []
     let source = 'none'
 
-    // Try postcode narrowing first
-    if (parsed.postcode && isRegionCached(cc, reg)) {
+    if (parsed.postcode && isCountryCached(cc)) {
       const t0 = performance.now()
       try {
-        const rows = await queryObjects<{ postcode: string; tiles: string[]; addr_count: number }>(buildPostcodeNarrowSQL(cc, reg, parsed.postcode))
+        const rows = await queryObjects<{ postcode: string; tiles: string[]; addr_count: number }>(buildPostcodeNarrowSQL(cc, parsed.postcode))
         if (rows.length > 0) {
           tiles = toArr(rows[0].tiles)
           source = `postcode "${rows[0].postcode}" (${rows[0].addr_count.toLocaleString()} addr)`
-          log(`Narrow  Postcode ${rows[0].postcode} \u2192 ${tiles.length} tile(s) (${ms(t0)})`, 'done')
+          log(`Narrow  Postcode ${rows[0].postcode} -> ${tiles.length} tile(s) (${ms(t0)})`, 'done')
         }
       } catch { /* no postcode table */ }
     }
 
-    // Try street narrowing if no postcode tiles (exact then prefix)
-    if (tiles.length === 0 && parsed.street && isRegionCached(cc, reg)) {
+    if (tiles.length === 0 && parsed.street && isCountryCached(cc)) {
       const t0 = performance.now()
       try {
-        let rows = await queryObjects<{ street_lower: string; tiles: string[]; addr_count: number }>(buildStreetNarrowSQL(cc, reg, parsed.street, true))
+        let rows = await queryObjects<{ street_lower: string; tiles: string[]; addr_count: number }>(buildStreetNarrowSQL(cc, parsed.street, true))
         if (rows.length === 0) {
-          rows = await queryObjects<{ street_lower: string; tiles: string[]; addr_count: number }>(buildStreetNarrowSQL(cc, reg, parsed.street, false))
+          rows = await queryObjects<{ street_lower: string; tiles: string[]; addr_count: number }>(buildStreetNarrowSQL(cc, parsed.street, false))
         }
         if (rows.length > 0) {
           tiles = toArr(rows[0].tiles)
           source = `street "${rows[0].street_lower}" (${rows[0].addr_count.toLocaleString()} addr)`
-          log(`Narrow  Street "${rows[0].street_lower}" \u2192 ${tiles.length} tile(s) (${ms(t0)})`, 'done')
+          log(`Narrow  Street "${rows[0].street_lower}" -> ${tiles.length} tile(s) (${ms(t0)})`, 'done')
         }
       } catch { /* no street table */ }
     }
 
-    // Sort and narrow tiles by selected city proximity.
-    // City-matching tiles first, then remaining tiles sorted by distance
-    // to city centroid so nearby results are found faster.
+    const effectiveScope = selectedCity ? searchScope : 'country'
     if (tiles.length > 0 && selectedCityTiles && selectedCity) {
       const cityTiles = tiles.filter((t: string) => selectedCityTiles.has(t))
       const otherTiles = tiles.filter((t: string) => !selectedCityTiles.has(t))
-      if (cityTiles.length > 0 && cityTiles.length < tiles.length) {
-        tiles = [...cityTiles, ...otherTiles]
-        log(`Narrow  City "${selectedCity.city}" intersection: ${cityTiles.length} tile(s) first, ${otherTiles.length} remaining`, 'done')
-        source += ` ∩ city`
+      if (cityTiles.length > 0) {
+        if (effectiveScope === 'city') {
+          tiles = cityTiles
+          log(`Narrow  City "${selectedCity.city}": ${cityTiles.length} tile(s) (city scope)`, 'done')
+        } else {
+          tiles = [...cityTiles, ...otherTiles]
+          log(`Narrow  City "${selectedCity.city}" intersection: ${cityTiles.length} tile(s) first, ${otherTiles.length} remaining`, 'done')
+        }
+        source += ' + city'
       } else if (cityTiles.length === 0 && otherTiles.length > 0) {
-        // Street doesn't exist in selected city. Keep all tiles but log it.
-        log(`Narrow  "${parsed.street}" not in "${selectedCity.city}", searching all ${tiles.length} tile(s)`, 'done')
+        if (effectiveScope === 'city') {
+          error = `"${parsed.street || addressQuery}" not found in ${selectedCity.city}. Switch to Country scope to search nationwide.`
+          searching = false
+          return
+        }
+        log(`Narrow  "${parsed.street}" not in "${selectedCity.city}", searching ${tiles.length} tile(s) nationwide`, 'done')
       }
     }
 
-    // Fallback: use manually selected suggestion or city tiles
     if (tiles.length === 0) {
       const manual = getSearchTiles()
       tiles = manual.tiles
@@ -550,102 +565,127 @@
       return
     }
 
+    const tileGroups = await expandTilesToBucketGroups(cc, tiles)
+    if (tileGroups.length === 0) {
+      error = 'No tile data found for these tiles.'
+      searching = false
+      return
+    }
+
+    const totalBuckets = tileGroups.reduce((s, g) => s + g.buckets.length, 0)
     const totalT0 = performance.now()
     let remaining = limit
 
-    // Decide strategy: use filter pushdown on remote file (fast for specific queries)
-    // or use cached tile (fast for broad/repeated queries)
     const hasSpecificFilters = !!(parsed.postcode || (parsed.street && parsed.number))
 
-    log(`Search  ${tiles.length} tile(s) via ${source}`)
+    log(`Search  ${tileGroups.length} tile(s), ${totalBuckets} bucket(s) via ${source}`)
     log(`SQL     WHERE ${where}`, undefined)
-    if (hasSpecificFilters) {
-      log(`Mode    Direct query with Parquet filter pushdown (~3 MB vs ~48 MB)`, undefined)
-    }
 
     try {
-      let consecutiveEmpty = 0
-      const MAX_EMPTY_AFTER_RESULTS = 5
-
-      for (let i = 0; i < tiles.length; i++) {
-        if (gen !== searchGen) return
-        if (remaining <= 0) {
-          log(`        Limit reached, skipping ${tiles.length - i} tile(s)`, 'done')
-          break
-        }
-
-        // Early stop: if we already have results and hit too many empty tiles in a row, stop.
-        // This prevents scanning 30 tiles across the country when results are already found.
-        if (results.length > 0 && consecutiveEmpty >= MAX_EMPTY_AFTER_RESULTS) {
-          log(`        ${tiles.length - i} tile(s) skipped (${consecutiveEmpty} consecutive empty)`, 'done')
-          break
-        }
-
-        const tile = tiles[i]
-        const t0 = performance.now()
-        log(`        ${tile}, querying...`, 'loading')
-
-        let tileResults: AddressRow[] = []
-        try {
-          // If tile is already cached, always use cache (free)
-          // If query has specific filters, use direct remote read (filter pushdown = less data)
-          // Otherwise, cache the full tile for subsequent queries
-          let src: string
-          let useRetry = false
-          if (isTileCached(cc, reg, tile)) {
-            src = await getTileSource(cc, reg, tile)
-          } else if (hasSpecificFilters) {
-            src = `read_parquet('${tilePath(cc, reg, tile)}')`
-            useRetry = true
-          } else {
-            src = await getTileSource(cc, reg, tile)
+      if (hasSpecificFilters && tileGroups.length > 1) {
+        log(`Mode    Batch query with Parquet filter pushdown`, undefined)
+        const allUrls: string[] = []
+        for (const { h3Res4, buckets: tileBuckets } of tileGroups) {
+          for (const b of tileBuckets) {
+            allUrls.push(tilePath(cc, h3Res4, b))
           }
-
-          const queryFn = useRetry ? queryObjectsWithRetry : queryObjects
-          tileResults = await queryFn<AddressRow>(`
+        }
+        const src = `read_parquet([${allUrls.map(u => `'${u}'`).join(',')}])`
+        const t0 = performance.now()
+        log(`        Batch across ${allUrls.length} file(s)...`, 'loading')
+        try {
+          results = await queryObjectsWithRetry<AddressRow>(`
             SELECT full_address, street, number, city, region, postcode,
-                   ST_Y(geometry) AS lat,
-                   ST_X(geometry) AS lon,
+                   ST_Y(geometry) AS lat, ST_X(geometry) AS lon,
                    h3_h3_to_string(h3_index) AS h3_index
             FROM ${src}
             WHERE ${where}
-            LIMIT ${remaining}
+            LIMIT ${limit}
           `)
-        } catch (tileErr: any) {
-          console.warn(`[geocode] Tile ${tile} failed:`, tileErr.message)
-          updateLast(`        ${tile}, failed (${ms(t0)})`, 'error')
-          continue
-        }
-
-        if (gen !== searchGen) return
-
-        if (tileResults.length > 0) {
-          consecutiveEmpty = 0
-        } else {
-          consecutiveEmpty++
-        }
-
-        results = [...results, ...tileResults].slice(0, limit)
-        remaining = limit - results.length
-        updateLast(`        ${tile}, ${tileResults.length} match${tileResults.length !== 1 ? 'es' : ''} (${ms(t0)})`, 'done')
-
-        // Mark search visually done once we have any results, even while still loading more
-        if (results.length > 0 && searching) {
+          if (gen !== searchGen) return
+          updateLast(`        Batch across ${allUrls.length} file(s), ${results.length} match(es) (${ms(t0)})`, 'done')
           searching = false
+          updateMapMarkers(true)
+        } catch (batchErr: any) {
+          console.warn('[geocode] Batch query failed, falling back to per-tile:', batchErr.message)
+          updateLast(`        Batch failed (${ms(t0)}), falling back to per-tile...`, 'error')
+          results = []
         }
+      }
 
-        // Update map progressively, only auto-fit on first batch
-        updateMapMarkers(i === 0)
+      // ── Sequential mode: fallback or broad queries without specific filters ──
+      if (results.length === 0) {
+        if (!hasSpecificFilters) {
+          log(`Mode    Sequential tile queries`, undefined)
+        }
+        let consecutiveEmpty = 0
+        const MAX_EMPTY_AFTER_RESULTS = 5
+
+        for (let i = 0; i < tileGroups.length; i++) {
+          if (gen !== searchGen) return
+          if (remaining <= 0) {
+            log(`        Limit reached, skipping ${tileGroups.length - i} tile(s)`, 'done')
+            break
+          }
+          if (results.length > 0 && consecutiveEmpty >= MAX_EMPTY_AFTER_RESULTS) {
+            log(`        ${tileGroups.length - i} tile(s) skipped (${consecutiveEmpty} consecutive empty)`, 'done')
+            break
+          }
+
+          const { h3Res4, buckets: tileBuckets } = tileGroups[i]
+          const label = tileBuckets.length === 1 && tileBuckets[0] === '_'
+            ? h3Res4 : `${h3Res4} (${tileBuckets.length} buckets)`
+          const t0 = performance.now()
+          log(`        ${label}, querying...`, 'loading')
+
+          let tileResults: AddressRow[] = []
+          try {
+            let src: string
+            let useRetry = false
+            if (tileBuckets.length === 1 && isTileCached(cc, h3Res4, tileBuckets[0])) {
+              src = await getTileSource(cc, h3Res4, tileBuckets[0])
+            } else if (hasSpecificFilters || tileBuckets.length > 1) {
+              src = tileSourceExpr(cc, h3Res4, tileBuckets)
+              useRetry = true
+            } else {
+              src = await getTileSource(cc, h3Res4, tileBuckets[0])
+            }
+
+            const queryFn = useRetry ? queryObjectsWithRetry : queryObjects
+            tileResults = await queryFn<AddressRow>(`
+              SELECT full_address, street, number, city, region, postcode,
+                     ST_Y(geometry) AS lat, ST_X(geometry) AS lon,
+                     h3_h3_to_string(h3_index) AS h3_index
+              FROM ${src}
+              WHERE ${where}
+              LIMIT ${remaining}
+            `)
+          } catch (tileErr: any) {
+            console.warn(`[geocode] Tile ${h3Res4} failed:`, tileErr.message)
+            updateLast(`        ${label}, failed (${ms(t0)})`, 'error')
+            continue
+          }
+
+          if (gen !== searchGen) return
+
+          if (tileResults.length > 0) { consecutiveEmpty = 0 } else { consecutiveEmpty++ }
+
+          results = [...results, ...tileResults].slice(0, limit)
+          remaining = limit - results.length
+          updateLast(`        ${label}, ${tileResults.length} match${tileResults.length !== 1 ? 'es' : ''} (${ms(t0)})`, 'done')
+
+          if (results.length > 0 && searching) searching = false
+          updateMapMarkers(i === 0)
+        }
       }
 
       searchTime = performance.now() - totalT0
       log(`Done    ${results.length} results, total: ${ms(totalT0)}`, 'done')
       track('forward_geocode_search', {
-        country: cc,
-        region: reg,
+        country: cc, region: '',
         result_count: results.length,
         duration_ms: Math.round(searchTime),
-        tile_count: tiles.length,
+        tile_count: tileGroups.length,
         has_postcode: !!parsed.postcode,
         has_street: !!parsed.street,
         has_number: !!parsed.number,
@@ -660,51 +700,196 @@
     }
   }
 
-  let userNavigated = false
-
-  function resultPopupHtml(r: AddressRow, idx: number): string {
-    const parts = [r.city, r.postcode].filter(Boolean).map(s => htmlEsc(s!)).join(' · ')
-    return `<div class="popup-body">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-        <span class="popup-badge popup-badge-primary">${idx + 1}</span>
-        <span class="popup-title">${htmlEsc(r.full_address)}</span>
-      </div>
-      ${parts ? `<div class="popup-subtitle">${parts}</div>` : ''}
-      <div class="popup-coords">${r.lat?.toFixed(5)}, ${r.lon?.toFixed(5)}</div>
-    </div>`
-  }
-
-  /** Update markers progressively. Only auto-fit on first batch unless user clicked a row. */
-  function updateMapMarkers(isFirstBatch: boolean) {
-    if (!mapView || results.length === 0) return
-    const points = results.filter(r => r.lat && r.lon).map((r, i) => ({
-      lng: r.lon,
-      lat: r.lat,
-      popupHtml: resultPopupHtml(r, i),
-    }))
-    const shouldFit = isFirstBatch && !userNavigated
-    mapView.setResultMarkers(points, shouldFit)
-  }
-
-  function flyToResult(r: AddressRow) {
-    if (!mapView || !r.lat || !r.lon) return
-    userNavigated = true
-    const idx = results.indexOf(r)
-    mapView.openResultPopup(idx)
-  }
-
-  async function search() {
+  function forwardSearch() {
     if (suggestTimer) { clearTimeout(suggestTimer); suggestTimer = null }
     suggestions = []
     cities = []
     steps = []
+    lastMode = 'forward'
+    removeClickMarker()
     mapView?.clearResultMarkers()
-    if (selectedRegion && isRegionCached(selectedCountry, selectedRegion.region)) {
-      log(`Step 1  ${selectedCountry}/${selectedRegion.region} indexes cached`, 'done')
+    if (isCountryCached(selectedCountry)) {
+      log(`Step 1  ${selectedCountry} indexes cached`, 'done')
     }
     if (selectedCity) log(`Step 2  City: ${selectedCity.city}`, 'done')
     if (selectedSuggestion) log(`Step 3  ${selectedSuggestion.type}: ${selectedSuggestion.label}`, 'done')
-    await searchDirect()
+    searchDirect()
+  }
+
+  // ── Reverse geocode functions ──────────────────────────────
+
+  async function reverseSearch() {
+    if (clickLat === null || clickLon === null) return
+    const gen = ++reverseGen
+    searching = true
+    lastMode = 'reverse'
+    error = ''
+    results = []
+    steps = []
+    mapView?.clearResultMarkers()
+
+    const lat = clickLat, lon = clickLon
+    const totalT0 = performance.now()
+
+    try {
+      const k = gridKForRadius(radius)
+      log(`Step 1  Tile lookup${k > 0 ? ` (grid_disk k=${k})` : ''}...`, 'loading')
+
+      const tiles = await queryObjects<TileBucketRow>(buildTileLookupSQL(lat, lon, k))
+      if (gen !== reverseGen) return
+
+      if (tiles.length === 0) {
+        updateLast('Step 1  No coverage at this location', 'error')
+        error = 'No address coverage at this location.'
+        return
+      }
+
+      tiles.sort((a, b) => b.address_count - a.address_count)
+      updateLast(`Step 1  ${tiles[0].country}/${tiles[0].region || '-'}, ${tiles.length} bucket(s) (${ms(totalT0)})`, 'done')
+
+      tiles.forEach(t => {
+        const label = t.bucket === '_' ? t.h3_res4 : `${t.h3_res4}/${t.bucket}`
+        const cached = isTileCached(t.country, t.h3_res4, t.bucket)
+        log(`        ${label}, ${t.address_count.toLocaleString()} addr${cached ? ' [cached]' : ''}`)
+      })
+
+      const queriedTiles = new Set<string>()
+      const skippedTiles = new Set<string>()
+      showTilesOnMap(tiles, queriedTiles, skippedTiles)
+
+      const bbox = radiusToBbox(lat, lon, radius)
+
+      for (let i = 0; i < tiles.length; i++) {
+        const { country, h3_res4, bucket } = tiles[i]
+        const label = bucket === '_' ? h3_res4 : `${h3_res4}/${bucket}`
+        const t0 = performance.now()
+        const cached = isTileCached(country, h3_res4, bucket)
+        log(`Step 2  Bucket ${i + 1}/${tiles.length}: ${label}, ${cached ? 'cached' : 'fetching'}...`, 'loading')
+
+        let tileAddresses: AddressRow[] = []
+        try {
+          const src = cached
+            ? await getTileSource(country, h3_res4, bucket)
+            : `read_parquet('${tilePath(country, h3_res4, bucket)}')`
+
+          tileAddresses = await queryObjects<AddressRow>(buildReverseQuerySQL(src, country, lat, lon, bbox, resultLimit))
+        } catch (err: any) {
+          console.warn(`[reverse] Bucket ${label} failed:`, err.message)
+          updateLast(`Step 2  Bucket ${i + 1}/${tiles.length}: ${label}, failed (${ms(t0)})`, 'error')
+          continue
+        }
+
+        if (gen !== reverseGen) return
+        queriedTiles.add(h3_res4)
+
+        results = [...results, ...tileAddresses].sort((a, b) => (a.distance_m ?? 0) - (b.distance_m ?? 0)).slice(0, resultLimit)
+        updateLast(`Step 2  Bucket ${i + 1}/${tiles.length}: ${label}, ${tileAddresses.length} nearby (${ms(t0)})`, 'done')
+
+        updateMapMarkers(true)
+        showTilesOnMap(tiles, queriedTiles, skippedTiles)
+
+        if (results.length >= resultLimit) {
+          const skipped = tiles.length - i - 1
+          if (skipped > 0) {
+            for (let j = i + 1; j < tiles.length; j++) skippedTiles.add(tiles[j].h3_res4)
+            showTilesOnMap(tiles, queriedTiles, skippedTiles)
+            log(`        Limit reached, skipping ${skipped} bucket(s)`, 'done')
+          }
+          break
+        }
+      }
+
+      searchTime = performance.now() - totalT0
+      log(`Done    ${results.length} results in ${ms(totalT0)}`, 'done')
+      track('reverse_geocode_search', {
+        lat, lon, radius_m: radius,
+        result_count: results.length,
+        duration_ms: Math.round(searchTime),
+        tiles_queried: queriedTiles.size,
+      })
+
+      // Auto-fill country and city from reverse results
+      if (results.length > 0) {
+        autoFillFromReverse(tiles[0].country, results[0].city)
+      }
+    } catch (e: any) {
+      console.error('[reverse] Error:', e)
+      error = e.message
+      log(`Error: ${e.message}`, 'error')
+      track('reverse_geocode_error', { lat, lon, error: e.message })
+    } finally {
+      searching = false
+    }
+  }
+
+  async function autoFillFromReverse(cc: string, cityName: string) {
+    pendingAutoCity = cityName
+    if (cc === selectedCountry) {
+      if (citiesReady && allCityRecords.length > 0) {
+        autoSelectCity(cityName)
+        pendingAutoCity = ''
+      }
+      return
+    }
+    selectedCountry = cc
+    await onCountryChange({ keepResults: true })
+  }
+
+  function autoSelectCity(cityName: string) {
+    if (!cityName || allCityRecords.length === 0) return
+    const match = searchCitiesJS(allCityRecords as any, cityName, 1) as CityRow[]
+    if (match.length > 0) {
+      selectCity(match[0], { keepResults: true, skipZoom: true })
+    }
+  }
+
+  function setLocationPreset(name: string, lt: number, ln: number) {
+    track('preset_clicked', { preset: name, lat: lt, lon: ln })
+    clickLat = lt
+    clickLon = ln
+    if (clickMarker) clickMarker.remove()
+    clickMarker = new maplibregl.Marker({
+      color: getComputedStyle(document.documentElement).getPropertyValue('--wt-marker-primary').trim() || '#36d399',
+    })
+      .setLngLat([ln, lt])
+      .addTo(mapView!.getMap()!)
+    mapView?.flyTo(ln, lt, 16)
+    reverseSearch()
+  }
+
+  /** Show tile boundaries on the map (res-4 hexagons) */
+  function showTilesOnMap(
+    tiles: { country: string; h3_res4: string; bucket: string; address_count: number }[],
+    queriedTiles: Set<string>,
+    skippedTiles: Set<string>,
+  ) {
+    if (!mapView) return
+
+    const seen = new Set<string>()
+    const uniqueTiles = tiles.filter(t => {
+      if (seen.has(t.h3_res4)) return false
+      seen.add(t.h3_res4)
+      return true
+    })
+
+    const tileFeatures: GeoJSON.Feature[] = uniqueTiles.map(t => {
+      const boundary = cellToBoundary(t.h3_res4)
+      const coords = boundary.map(([lt, ln]) => [ln, lt])
+      coords.push(coords[0])
+      const status = queriedTiles.has(t.h3_res4) ? 'queried' : skippedTiles.has(t.h3_res4) ? 'skipped' : 'pending'
+      return {
+        type: 'Feature',
+        properties: { h3_res4: t.h3_res4, country: t.country, address_count: t.address_count, status },
+        geometry: { type: 'Polygon', coordinates: [coords] },
+      }
+    })
+
+    mapView.addGeoJSONLayer('h3-tiles', { type: 'FeatureCollection', features: tileFeatures }, {
+      fillColor: ['match', ['get', 'status'], 'queried', '#22c55e', 'skipped', '#64748b', '#eab308'] as any,
+      fillOpacity: 0.1,
+      lineColor: ['match', ['get', 'status'], 'queried', '#22c55e', 'skipped', '#64748b', '#eab308'] as any,
+      lineWidth: 1.5,
+    })
   }
 </script>
 
@@ -713,13 +898,13 @@
   <div class="p-3 md:p-6 space-y-4 md:space-y-5">
     <!-- Header row -->
     <div class="flex items-center gap-2 md:gap-3 flex-wrap">
-      <h2 class="text-lg md:text-xl font-bold tracking-tight flex-1 min-w-0">Forward Geocode</h2>
+      <h2 class="text-lg md:text-xl font-bold tracking-tight flex-1 min-w-0">Geocoding Playground</h2>
       <button class="btn btn-ghost btn-xs btn-circle opacity-40 hover:opacity-100" onclick={startGeocodeTour} aria-label="Show guided tour">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       </button>
-      <select id="tour-country-select" class="select select-bordered select-sm md:select-md w-28 md:w-40" bind:value={selectedCountry} onchange={onCountryChange}>
+      <select id="tour-country-select" class="select select-bordered select-sm md:select-md w-28 md:w-40" bind:value={selectedCountry} onchange={() => onCountryChange()}>
         <option value="">Country...</option>
         {#each countries as c}
           <option value={c}>{c}</option>
@@ -730,24 +915,12 @@
       {/if}
     </div>
 
-    <!-- Region selector (new v3 step) -->
-    {#if regions.length > 1}
-      <div class="flex items-center gap-2">
-        <select class="select select-bordered select-sm md:select-md flex-1" bind:value={selectedRegion} onchange={onRegionChange}>
-          <option value={null}>Region...</option>
-          {#each regions as r}
-            <option value={r}>{r.region} ({r.addr_count.toLocaleString()} addr)</option>
-          {/each}
-        </select>
-      </div>
-    {/if}
-
     {#if cacheInfo && prefetching}
       <div class="text-xs md:text-sm text-base-content/50 -mt-2 md:-mt-3 break-words">{cacheInfo}</div>
     {/if}
 
-    <!-- Presets -->
-    {#if activePresets.length > 0 && selectedRegion}
+    <!-- Forward presets -->
+    {#if activePresets.length > 0 && citiesReady}
       <div id="tour-presets" class="flex gap-2 overflow-x-auto scrollbar-thin pb-1">
         {#each activePresets as p}
           <button class="preset-pill" onclick={() => runPreset(p)} disabled={searching || prefetching}>{p.label}</button>
@@ -758,17 +931,14 @@
     <!-- Search fields -->
     <div class="space-y-3">
       <div class="relative">
-        <input
-          type="text"
-          class="input input-bordered input-sm md:input-md w-full"
-          id="tour-city-input"
+        <input type="text" class="input input-bordered input-sm md:input-md w-full" id="tour-city-input"
           placeholder="City (optional)..."
           bind:value={cityQuery}
           oninput={() => searchCities()}
-          disabled={!selectedCountry || !selectedRegion || !citiesReady}
+          disabled={!selectedCountry || !citiesReady}
         />
-        {#if !selectedCountry || !selectedRegion}
-          <div class="absolute inset-0 cursor-pointer" role="button" tabindex="0" aria-label={!selectedCountry ? "Select a country first" : "Select a region first"} onclick={onDisabledFieldClick} onkeydown={(e) => e.key === 'Enter' && onDisabledFieldClick()}></div>
+        {#if !selectedCountry}
+          <div class="absolute inset-0 cursor-pointer" role="button" tabindex="0" aria-label="Select a country first" onclick={onDisabledFieldClick} onkeydown={(e) => e.key === 'Enter' && onDisabledFieldClick()}></div>
         {/if}
         {#if cities.length > 0}
           <ul class="menu bg-base-200 rounded-lg shadow-xl absolute z-50 w-full mt-1 max-h-60 overflow-y-auto border border-base-content/10">
@@ -785,18 +955,15 @@
       </div>
 
       <div class="relative">
-        <input
-          type="text"
-          class="input input-bordered input-sm md:input-md w-full"
-          id="tour-address-input"
+        <input type="text" class="input input-bordered input-sm md:input-md w-full" id="tour-address-input"
           placeholder="Street, postcode, or address..."
           bind:value={addressQuery}
           oninput={() => { selectedSuggestion = null; autocomplete() }}
-          onkeydown={(e: KeyboardEvent) => e.key === 'Enter' && search()}
-          disabled={!selectedCountry || !selectedRegion || prefetching}
+          onkeydown={(e: KeyboardEvent) => e.key === 'Enter' && forwardSearch()}
+          disabled={!selectedCountry || prefetching}
         />
-        {#if !selectedCountry || !selectedRegion}
-          <div class="absolute inset-0 cursor-pointer" role="button" tabindex="0" aria-label={!selectedCountry ? "Select a country first" : "Select a region first"} onclick={onDisabledFieldClick} onkeydown={(e) => e.key === 'Enter' && onDisabledFieldClick()}></div>
+        {#if !selectedCountry}
+          <div class="absolute inset-0 cursor-pointer" role="button" tabindex="0" aria-label="Select a country first" onclick={onDisabledFieldClick} onkeydown={(e) => e.key === 'Enter' && onDisabledFieldClick()}></div>
         {/if}
         {#if loadingSuggestions}
           <span class="loading loading-spinner loading-sm absolute right-3 top-3"></span>
@@ -834,27 +1001,62 @@
           <option value={40}>40</option>
           <option value={80}>80</option>
         </select>
-        <button id="tour-search-btn" class="btn btn-primary btn-sm md:btn-md rounded-full flex-1" onclick={search} disabled={!selectedCountry || !selectedRegion || addressQuery.length < 2 || searching || prefetching}>
-          {#if searching}
+        {#if selectedCity}
+          <select class="select select-bordered select-sm md:select-md w-24 md:w-28" bind:value={searchScope} title="Search scope">
+            <option value="city">City</option>
+            <option value="country">Country</option>
+          </select>
+        {/if}
+        <button id="tour-search-btn" class="btn btn-primary btn-sm md:btn-md rounded-full flex-1" onclick={forwardSearch} disabled={!selectedCountry || addressQuery.length < 2 || searching || prefetching}>
+          {#if searching && lastMode === 'forward'}
             <span class="loading loading-spinner loading-sm"></span>
           {:else}
             Search
           {/if}
         </button>
-        {#if !selectedCountry || !selectedRegion}
-          <div class="absolute inset-0 cursor-pointer" role="button" tabindex="0" aria-label={!selectedCountry ? "Select a country first" : "Select a region first"} onclick={onDisabledFieldClick} onkeydown={(e) => e.key === 'Enter' && onDisabledFieldClick()}></div>
+        {#if !selectedCountry}
+          <div class="absolute inset-0 cursor-pointer" role="button" tabindex="0" aria-label="Select a country first" onclick={onDisabledFieldClick} onkeydown={(e) => e.key === 'Enter' && onDisabledFieldClick()}></div>
         {/if}
       </div>
     </div>
 
+    <!-- Reverse geocode context (shown after map click) -->
+    {#if clickLat !== null && clickLon !== null}
+      <div class="flex items-center gap-2 flex-wrap border border-base-content/10 rounded-lg px-3 py-2 bg-base-200/30">
+        <span class="text-xs font-mono text-base-content/50">{clickLat}, {clickLon}</span>
+        <select class="select select-bordered select-xs w-16" bind:value={radius}>
+          <option value={250}>250m</option>
+          <option value={500}>500m</option>
+          <option value={1000}>1km</option>
+          <option value={2000}>2km</option>
+        </select>
+        <select class="select select-bordered select-xs w-14" bind:value={resultLimit}>
+          <option value={10}>10</option>
+          <option value={25}>25</option>
+          <option value={50}>50</option>
+        </select>
+        <button class="btn btn-outline btn-xs rounded-full flex-1 min-w-[6rem]" onclick={reverseSearch} disabled={searching}>
+          {#if searching && lastMode === 'reverse'}
+            <span class="loading loading-spinner loading-xs"></span>
+          {:else}
+            Find Nearby
+          {/if}
+        </button>
+      </div>
+    {/if}
+
+    <!-- Location presets -->
+    <div class="flex gap-2 overflow-x-auto scrollbar-thin pb-1">
+      {#each locationPresets as p}
+        <button class="preset-pill !text-[10px] md:!text-xs" onclick={() => setLocationPreset(p.label, p.lat, p.lon)} disabled={searching}>{p.label}</button>
+      {/each}
+    </div>
+
     <!-- Context badges -->
-    {#if selectedRegion || selectedCity || selectedSuggestion || (cacheInfo && !prefetching)}
+    {#if selectedCity || selectedSuggestion || (cacheInfo && !prefetching)}
       <div class="flex flex-col sm:flex-row flex-wrap gap-1.5 md:gap-2">
         {#if cacheInfo && !prefetching}
           <span class="text-xs text-base-content/40 border border-base-content/10 rounded-lg px-2.5 py-1 leading-snug">{cacheInfo}</span>
-        {/if}
-        {#if selectedRegion}
-          <span class="badge badge-sm badge-outline whitespace-nowrap">{selectedRegion.region}</span>
         {/if}
         {#if selectedCity}
           <span class="badge badge-sm badge-info whitespace-nowrap">{selectedCity.city} · {selectedCityTiles?.size ?? 0} tiles</span>
@@ -862,7 +1064,7 @@
         {#if selectedSuggestion}
           {@const sugTileCount = toArr(selectedSuggestion.tiles).length}
           <span class="badge badge-sm whitespace-nowrap" class:badge-primary={selectedSuggestion.type === 'street'} class:badge-secondary={selectedSuggestion.type === 'postcode'}>
-            {selectedSuggestion.label} → {sugTileCount} tile{sugTileCount > 1 ? 's' : ''}
+            {selectedSuggestion.label} -> {sugTileCount} tile{sugTileCount > 1 ? 's' : ''}
           </span>
         {/if}
       </div>
@@ -879,13 +1081,20 @@
     <ResultsTable
       {results}
       {searchTime}
+      showDistance={lastMode === 'reverse'}
       onRowClick={flyToResult}
-      emptyMessage={!searching && addressQuery.length > 1 && (selectedCity || selectedSuggestion) ? 'No results yet. Hit search or press Enter.' : ''}
+      emptyMessage={
+        !searching && lastMode === 'reverse' && steps.length > 0 && !error
+          ? 'No addresses found nearby. Try increasing the radius.'
+          : !searching && lastMode === 'forward' && addressQuery.length > 1 && (selectedCity || selectedSuggestion)
+            ? 'No results yet. Hit search or press Enter.'
+            : ''
+      }
     />
   </div>
   {/snippet}
 
   {#snippet right()}
-    <MapView bind:this={mapView} class="h-full w-full" />
+    <MapView bind:this={mapView} class="h-full w-full" onMapReady={onMapReady} />
   {/snippet}
 </SplitPane>
