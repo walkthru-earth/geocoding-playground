@@ -376,7 +376,7 @@ describe('buildWhereClause', () => {
     const parser = getParser('JP')
     const parsed = parser.parseAddress('本郷 362')
     const sql = parser.buildWhereClause(parsed)
-    expect(sql).toContain("lower(street) LIKE '本郷%'")
+    expect(sql).toContain("street_lower LIKE '本郷%'")
     expect(sql).toContain("split_part(number, '-', 1) = '362'")
     // Must NOT use plain "number = '362'" (would miss "362-9" in data)
     expect(sql).not.toContain("number = '362'")

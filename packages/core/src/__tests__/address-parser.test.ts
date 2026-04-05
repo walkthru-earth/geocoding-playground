@@ -57,7 +57,7 @@ describe('NUMBER_FIRST', () => {
 describe('buildDefaultWhere', () => {
   it('builds street + number conditions', () => {
     const sql = buildDefaultWhere({ street: 'Broadway', number: '25', tokens: ['25', 'Broadway'], raw: '25 Broadway' })
-    expect(sql).toContain("lower(street) LIKE 'broadway%'")
+    expect(sql).toContain("street_lower LIKE 'broadway%'")
     expect(sql).toContain("number = '25'")
   })
 
