@@ -23,10 +23,13 @@ Svelte 5 app with reactive variables ($state, $derived, $effect). Uses Tailwind 
 - All geocoding logic lives in core, not in Svelte components
 - The app injects query functions into the autocomplete engine via `AutocompleteQueryFns`
 - Debounced autocomplete (150ms)
-- Async search flows use generation counters (`searchGen`, `autoGen`) to discard stale results from superseded requests
+- Async search flows use generation counters (`searchGen`, `autoGen`) + `cancelPendingQuery()` to cancel in-flight DuckDB queries before new searches
+- City search uses sub-ms JS `searchCities()` from core (not DuckDB SQL). City records loaded into `allCityRecords` array after prefetch
+- Use `$state.raw` (not `$state`) for immutable DuckDB result arrays: `results`, `cities`, `suggestions`, `countries`. These are never mutated in place, so deep reactivity proxy is wasted overhead
 - Map popup HTML uses `htmlEsc()` from core for all user-facing data
 - Theme switching persists to localStorage
 - PostHog analytics is optional, gated by env vars
+- Release list accessed via `getAvailableReleases()` getter (not the old `availableReleases` export)
 
 ## Analytics (PostHog)
 - Config: `src/lib/analytics.ts`. Gated by `VITE_POSTHOG_KEY` env var. EU instance (`eu.i.posthog.com`), project ID `103270`.

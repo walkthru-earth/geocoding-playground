@@ -7,9 +7,9 @@ paths:
 This is `@walkthru-earth/geocoding-core`, a framework-agnostic library. Zero UI dependencies allowed.
 
 ## Module responsibilities
-- `duckdb.ts` - DB init, tile cache (LRU ~4M addr budget), HTTP cache busting, prefetch
+- `duckdb.ts` - DB init, tile cache (LRU ~4M addr budget), HTTP cache busting, prefetch, cancelPendingQuery(), getAvailableReleases()
 - `autocomplete.ts` - classifyInput() -> suggest() -> rankSuggestions(), SQL builders
-- `search.ts` - SearchCache<T> (LRU+TTL), jaccardSimilarity(), array search (sub-ms)
+- `search.ts` - SearchCache<T> (LRU+TTL), jaccardSimilarity(), preNormalize(), array search (sub-ms with optional pre-normalization)
 - `address-parser.ts` - 10 country parsers + GenericParser, POSTCODE_RE, NUMBER_FIRST
 - `types.ts` - AddressRow, CityRow, SuggestRow, ManifestRow, index types
 - `utils.ts` - fmt(), esc(), htmlEsc(), validateCC(), toArr(), step logging
@@ -21,9 +21,12 @@ This is `@walkthru-earth/geocoding-core`, a framework-agnostic library. Zero UI 
 - Tile IDs validated against `/^[0-9a-f]+$/i` before interpolation into URLs
 - `htmlEsc()` used in all map popup HTML templates (prevents XSS from address data)
 - Autocomplete never fetches remote data. Only queries what is already cached in WASM memory
-- Country prefetch is progressive: cities first (Phase 1, unlocks UI), then postcodes, then streets
+- Country prefetch is progressive: cities first (Phase 1, unlocks UI), then postcodes, then streets. City records also loaded into a JS array for sub-ms search
 - Tile cache uses LRU eviction at ~4M address budget
 - `queryRemoteWithRetry()` wraps all remote reads with cache-bust retry on failure
+- `cancelPendingQuery()` cancels in-flight DuckDB queries before starting new searches
+- `getAvailableReleases()` returns `readonly string[]` (getter, not exported mutable variable)
+- `preNormalize()` pre-computes NFKD-normalized names at prefetch time for sub-ms search on large indexes (avoids per-keystroke normalization of 200K-400K records)
 
 ## Parser system
 - `getParser(cc)` returns country-specific parser or GenericParser

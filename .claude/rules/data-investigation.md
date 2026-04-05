@@ -4,7 +4,7 @@ When investigating data issues, always query live S3 parquet files. Never guess 
 
 ## S3 base URL
 ```
-https://s3.us-west-2.amazonaws.com/us-west-2.opendata.source.coop/walkthru-earth/indices/addresses-index/v1/release=2026-03-18.0/
+https://s3.us-west-2.amazonaws.com/us-west-2.opendata.source.coop/walkthru-earth/indices/addresses-index/v4/release=2026-03-18.0/
 ```
 
 ## Query tools (in preference order)
@@ -21,9 +21,17 @@ https://s3.us-west-2.amazonaws.com/us-west-2.opendata.source.coop/walkthru-earth
 
 **Simulate fixes**: Create temp table, run proposed query, verify single-row output
 
-## File paths
-- Flat files: `city_index/XX.parquet`, `street_index/XX.parquet`, `postcode_index/XX.parquet`, `number_index/XX.parquet`
-- Tiles: `geocoder/country=XX/h3/HEXHASH.parquet`
+## File paths (all Hive-partitioned by country)
+- `city_index/country=XX/data_0.parquet` - per-country cities
+- `street_index/country=XX/data_0.parquet` - per-country streets
+- `postcode_index/country=XX/data_0.parquet` - per-country postcodes
+- `number_index/country=XX/data_0.parquet` - per-country house numbers
+- `geocoder/country=XX/h3_parent=HEXHASH/data_0.parquet` - address tiles
+
+## Parquet features to verify after pipeline runs
+- **number_index**: Should have ~68 row groups for NL (ROW_GROUP_SIZE 2000), bloom filters on `street_lower`, sorting metadata. Check with `parquet_file_metadata()` and `parquet_metadata()`
+- **geocoder tiles**: Should have bloom filters on `street` column. Check `bloom_filter_offset IS NOT NULL`
+- **All files**: ZSTD compression, Parquet v2 (`format_version = 2`), page indexes (`write_page_index=True`)
 
 ## Known data gaps (verified 2026-03-28)
 - IT, JP, TW, CO: no postcode_index (Overture has no postcode data)

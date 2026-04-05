@@ -29,6 +29,8 @@ Validate the smart autocomplete engine against documented test scenarios.
    - What does `parseAddress(input)` extract? (street, number, postcode, unit)
    - What SQL would `buildStreetSQL()` or `buildPostcodeSQL()` generate?
    - How would `rankSuggestions()` order the results with the given city?
+   - City search now uses `searchCities()` JS array search (not DuckDB SQL). It does prefix match with contains fallback + similarity ranking
+   - `preNormalize()` can be used to pre-compute normalized names at prefetch time for faster search
 
 4. **Check for regressions** against the 3 known issues:
    - Issue 1: Duplicate cities (GROUP BY region, city dedup)

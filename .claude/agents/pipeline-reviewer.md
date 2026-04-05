@@ -1,7 +1,7 @@
 ---
 name: pipeline-reviewer
 description: >
-  Reviews changes to the geocoder data pipeline (addresses.sql and geocoder.py).
+  Reviews changes to the geocoder data pipeline (addresses.sql and main.py).
   Use when reviewing pipeline PRs, planning new index additions, or debugging
   the DuckDB SQL that generates the geocoder tiles and lookup indexes.
 model: sonnet
@@ -14,7 +14,7 @@ Overture Maps source to the S3 output that DuckDB-WASM consumes in the browser.
 ## Pipeline location
 The pipeline lives in `walkthru-earth/walkthru-overture-index`:
 - `sql/addresses.sql` - DuckDB 1.5 SQL, 12 steps
-- `geocoder.py` - Python post-processing (flatten Hive partitions + S3 upload)
+- `main.py` - Orchestration, DuckDB init, local scratch write + s5cmd parallel S3 upload
 
 ## Pipeline steps (addresses.sql)
 1. Enrich 469M rows: CRS, h3_index(res5), h3_parent(res4), city/region COALESCE, full_address
@@ -37,6 +37,10 @@ The pipeline lives in `walkthru-earth/walkthru-overture-index`:
 - LEFT(postcode, 3) grouping ONLY when region IS NULL (prevents CA/US fragmentation)
 - ROW_GROUP_SIZE 2000 for number_index (narrow street_lower ranges per group)
 - Memory optimization: _enriched scanned only twice then dropped immediately
+- Bloom filters on `street_lower` in number_index (enables DuckDB-WASM to skip non-matching row groups via HTTP range requests)
+- Bloom filters on `street` in geocoder tiles (enables row-group skipping for direct forward-geocode queries)
+- All output is Hive-partitioned by country (no Python flatten step). DuckDB writes directly, preserving bloom filters and ROW_GROUP_SIZE
+- Sorting metadata (`sorting_columns`) written for number_index (street_lower ASC) and geocoder tiles (h3_index ASC)
 
 ## Review checklist
 - Does the change maintain NUMBER_FIRST consistency with frontend parsers?

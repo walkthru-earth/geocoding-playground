@@ -16,7 +16,7 @@ Investigate geocoder data issues by querying live parquet files on S3.
 
 ## S3 Base URL
 ```
-https://s3.us-west-2.amazonaws.com/us-west-2.opendata.source.coop/walkthru-earth/indices/addresses-index/v1/release=2026-03-18.0/
+https://s3.us-west-2.amazonaws.com/us-west-2.opendata.source.coop/walkthru-earth/indices/addresses-index/v4/release=2026-03-18.0/
 ```
 
 ## Workflow
@@ -25,15 +25,15 @@ https://s3.us-west-2.amazonaws.com/us-west-2.opendata.source.coop/walkthru-earth
 
 2. **Check the schema first** if unsure about columns:
    ```sql
-   DESCRIBE SELECT * FROM read_parquet('...BASE_URL.../city_index/XX.parquet') LIMIT 1;
+   DESCRIBE SELECT * FROM read_parquet('...BASE_URL.../city_index/country=XX/data_0.parquet') LIMIT 1;
    ```
 
 3. **Query the relevant index** using MotherDuck MCP (`mcp__motherduck__execute_query`):
-   - City issues: `city_index/XX.parquet`
-   - Street issues: `street_index/XX.parquet`
-   - Postcode issues: `postcode_index/XX.parquet`
-   - Number issues: `number_index/XX.parquet`
-   - Tile data: `geocoder/country=XX/h3/HEXHASH.parquet`
+   - City issues: `city_index/country=XX/data_0.parquet`
+   - Street issues: `street_index/country=XX/data_0.parquet`
+   - Postcode issues: `postcode_index/country=XX/data_0.parquet`
+   - Number issues: `number_index/country=XX/data_0.parquet`
+   - Tile data: `geocoder/country=XX/h3_parent=HEXHASH/data_0.parquet`
    - Global stats: `manifest.parquet`, `tile_index.parquet`
 
 4. **Diagnose the root cause** using these patterns:
@@ -57,3 +57,21 @@ https://s3.us-west-2.amazonaws.com/us-west-2.opendata.source.coop/walkthru-earth
 - FR has no region (depth-1 address_levels only)
 - JP numbers in raw Overture are "banchi-coordZone", pipeline strips the zone suffix
 - City index uses per-country flat files, not global
+
+## Parquet Verification Queries
+After pipeline rebuilds, verify Parquet optimization with:
+```sql
+-- number_index: should have many small row groups + bloom filters
+SELECT num_rows, num_row_groups, file_size_bytes
+FROM parquet_file_metadata('...BASE_URL.../number_index/country=NL/data_0.parquet');
+
+-- Bloom filters present?
+SELECT path_in_schema, bloom_filter_offset, bloom_filter_length
+FROM parquet_metadata('...BASE_URL.../number_index/country=NL/data_0.parquet')
+WHERE path_in_schema = 'street_lower' LIMIT 5;
+
+-- Geocoder tile bloom filters on street?
+SELECT path_in_schema, bloom_filter_offset
+FROM parquet_metadata('...BASE_URL.../geocoder/country=NL/h3_parent=841969dffffffff/data_0.parquet')
+WHERE path_in_schema = 'street' LIMIT 3;
+```

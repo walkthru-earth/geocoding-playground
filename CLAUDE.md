@@ -37,21 +37,21 @@ The core package is designed to work with React, Vue, Next.js, or any framework.
 ## Upstream Pipeline
 
 The data pipeline lives in a separate repo: `walkthru-earth/walkthru-overture-index`.
-Key files: `sql/addresses.sql` (DuckDB 1.5 SQL) + `geocoder.py` (Python flatten + S3 upload).
+Key files: `sql/addresses.sql` (DuckDB 1.5 SQL) + `main.py` (orchestration + s5cmd parallel S3 upload).
 Pipeline processes 469M Overture Maps addresses into partitioned GeoParquet tiles on S3.
 
 ## Data on S3
 
-Base URL: `https://s3.us-west-2.amazonaws.com/us-west-2.opendata.source.coop/walkthru-earth/indices/addresses-index/v1/release=2026-03-18.0/`
+Base URL: `https://s3.us-west-2.amazonaws.com/us-west-2.opendata.source.coop/walkthru-earth/indices/addresses-index/v4/release=2026-03-18.0/`
 
-Key files:
+Key files (all Hive-partitioned by country):
 - `manifest.parquet` - 39 countries (3 KB)
 - `tile_index.parquet` - 17,499 tiles (561 KB)
-- `city_index/XX.parquet` - per-country cities
-- `postcode_index/XX.parquet` - per-country postcodes
-- `street_index/XX.parquet` - per-country streets
-- `number_index/XX.parquet` - per-country house numbers
-- `geocoder/country=XX/h3/YYY.parquet` - address tiles (0.5-48 MB)
+- `city_index/country=XX/data_0.parquet` - per-country cities
+- `postcode_index/country=XX/data_0.parquet` - per-country postcodes
+- `street_index/country=XX/data_0.parquet` - per-country streets
+- `number_index/country=XX/data_0.parquet` - per-country house numbers
+- `geocoder/country=XX/h3_parent=YYY/data_0.parquet` - address tiles (0.5-48 MB)
 
 ## Key Conventions
 
@@ -61,6 +61,10 @@ Key files:
 - **Per-country index files**: Not global. Avoids 73 MB footer overhead in WASM
 - **NUMBER_FIRST countries**: US, CA, AU, NZ, BR, MX, CL, CO, UY, SG, HK, TW, GB, IE (house number before street)
 - **Street-first countries**: NL, DE, FR, IT, AT, CH, ES, PT, BE + Nordic + Baltic + Balkans
+- **Parquet optimization**: All files use ZSTD compression, Parquet v2 data pages. Geocoder tiles have bloom filters on `street` for row-group skipping. number_index uses ROW_GROUP_SIZE 2000 + bloom filters on `street_lower` for HTTP range-request pushdown (~150 KB per query vs full file)
+- **`$state.raw` for query results**: Use `$state.raw` (not `$state`) for arrays of immutable DuckDB results (`results`, `cities`, `suggestions`, `countries`) to avoid Svelte 5 deep-proxy overhead
+- **JS array search over DuckDB for cached data**: City search uses `searchCities()` from core (sub-ms JS) instead of DuckDB SQL round-trips. Street/postcode autocomplete queries DuckDB in-memory tables
+- **`getAvailableReleases()` not `availableReleases`**: Release list is exposed via a getter function, not an exported mutable variable
 
 ## Investigating Data Issues
 
@@ -70,7 +74,7 @@ Never guess data shapes. Always verify against real data.
 Example: check a country's city index:
 ```sql
 SELECT city, region, addr_count, len(tiles) AS tile_count
-FROM read_parquet('...BASE_URL.../city_index/NL.parquet')
+FROM read_parquet('...BASE_URL.../city_index/country=NL/data_0.parquet')
 ORDER BY addr_count DESC LIMIT 10;
 ```
 
@@ -94,6 +98,7 @@ See `_study/` for detailed architecture docs, data profiles, and issue history.
 ### Async race conditions
 - Any async function triggered by user interaction (search, autocomplete, map click) MUST use a generation counter pattern: `const gen = ++searchGen` at the top, `if (gen !== searchGen) return` after each `await`
 - Use separate counters for independent flows (e.g., `searchGen` for search, `autoGen` for autocomplete)
+- `cancelPendingQuery()` is called before new searches to cancel in-flight DuckDB queries (stops network + WASM compute, not just result discard)
 
 ### Defaults and constants
 - When the same default value exists in multiple files (e.g., default page), keep them in sync. Grep for the value after changing it

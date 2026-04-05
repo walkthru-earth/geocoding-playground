@@ -14,7 +14,7 @@ import { execSync } from 'node:child_process'
 import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs'
 
 const BASE =
-  'https://s3.us-west-2.amazonaws.com/us-west-2.opendata.source.coop/walkthru-earth/indices/addresses-index/v1/release=2026-03-18.0'
+  'https://s3.us-west-2.amazonaws.com/us-west-2.opendata.source.coop/walkthru-earth/indices/addresses-index/v4/release=2026-03-18.0'
 const writeSummary = process.argv.includes('--summary')
 
 // ── Test cases: what the parser produces, what we expect in real data ──
