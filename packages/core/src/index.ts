@@ -47,6 +47,12 @@ export {
   tileSourceExpr,
   toggleExplain,
 } from './duckdb'
+// ── Forward geocode ─────────────────────────────────────────
+export {
+  batchTilesSourceExpr,
+  buildForwardTileQuerySQL,
+  resolveTileSource,
+} from './forward-geocode'
 export { stripJPCoordZone } from './parsers/jp'
 // ── Reverse geocode ─────────────────────────────────────────
 export type { Bbox, TileBucketRow } from './reverse-geocode'
