@@ -77,6 +77,8 @@ jobs:
         with:
           working-directory: packages/core
           vite-config-path: vitest.config.ts
+          json-summary-path: ../../test-output/unit/coverage/coverage-summary.json
+          json-final-path: ../../test-output/unit/coverage/coverage-final.json
 
   e2e-tests:
     runs-on: ubuntu-latest

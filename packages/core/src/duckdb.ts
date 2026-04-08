@@ -1,4 +1,5 @@
 import * as duckdb from '@duckdb/duckdb-wasm'
+import { validateBucket, validateCC, validateH3 } from './utils'
 
 // Public HTTPS URL for all data access. S3 protocol is slower in WASM
 // and glob support is experimental. Pipeline ensures one file per partition.
@@ -199,6 +200,9 @@ export function indexPath(type: string, cc: string): string {
  * Normal tiles have bucket='_', mega-tiles have bucket='01','02',...
  */
 export function tilePath(country: string, h3Res4: string, bucket: string): string {
+  validateCC(country)
+  validateH3(h3Res4)
+  validateBucket(bucket)
   return `${DATA_BASE}/geocoder/country=${country}/h3_res4=${h3Res4}/bucket=${bucket}/data_0.parquet`
 }
 
@@ -431,6 +435,9 @@ async function evictTiles(neededAddr: number): Promise<void> {
  * v4: tiles are identified by (country, h3Res4, bucket).
  */
 export async function getTileSource(country: string, h3Res4: string, bucket: string): Promise<string> {
+  validateCC(country)
+  validateH3(h3Res4)
+  validateBucket(bucket)
   const key = tileCacheKey(country, h3Res4, bucket)
   const cached = tileCache.get(key)
   if (cached) {
@@ -474,6 +481,9 @@ export async function getTileSource(country: string, h3Res4: string, bucket: str
 
 /** Check if a tile bucket is already cached in memory. */
 export function isTileCached(country: string, h3Res4: string, bucket: string): boolean {
+  validateCC(country)
+  validateH3(h3Res4)
+  validateBucket(bucket)
   return tileCache.has(tileCacheKey(country, h3Res4, bucket))
 }
 
@@ -491,7 +501,9 @@ export async function expandTilesToBucketGroups(
   h3Res4s: string[],
 ): Promise<{ h3Res4: string; buckets: string[]; totalAddresses: number }[]> {
   if (h3Res4s.length === 0) return []
-  const tileList = h3Res4s.map((t) => `'${t.replace(/'/g, "''")}'`).join(',')
+  validateCC(country)
+  for (const t of h3Res4s) validateH3(t)
+  const tileList = h3Res4s.map((t) => `'${t}'`).join(',')
   return queryObjects<{ h3Res4: string; buckets: string[]; totalAddresses: number }>(`
     SELECT h3_res4 AS "h3Res4",
            list(bucket ORDER BY bucket) AS buckets,

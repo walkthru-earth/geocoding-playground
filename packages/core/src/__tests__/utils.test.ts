@@ -1,5 +1,18 @@
 import { describe, expect, it } from 'vitest'
-import { addStep, esc, fmt, fmtFull, formatSize, toArr, updateLastStep, validateCC } from '../utils'
+import {
+  addStep,
+  esc,
+  fmt,
+  fmtFull,
+  formatSize,
+  toArr,
+  updateLastStep,
+  validateBucket,
+  validateCC,
+  validateFiniteNumber,
+  validateH3,
+  validateSourceExpr,
+} from '../utils'
 
 describe('fmt', () => {
   it.each([
@@ -75,6 +88,70 @@ describe('validateCC', () => {
 
   it('rejects empty string', () => {
     expect(() => validateCC('')).toThrow('Invalid country code')
+  })
+})
+
+describe('validateH3', () => {
+  it('accepts hex digits', () => {
+    expect(() => validateH3('841f8bfffffffff')).not.toThrow()
+    expect(() => validateH3('ABCDEF0123')).not.toThrow()
+  })
+  it('rejects injection attempts', () => {
+    expect(() => validateH3("'; DROP TABLE x; --")).toThrow('Invalid h3 id')
+    expect(() => validateH3('abc xyz')).toThrow('Invalid h3 id')
+    expect(() => validateH3('')).toThrow('Invalid h3 id')
+  })
+})
+
+describe('validateBucket', () => {
+  it('accepts alphanumerics and underscore', () => {
+    expect(() => validateBucket('_')).not.toThrow()
+    expect(() => validateBucket('01')).not.toThrow()
+    expect(() => validateBucket('bucket_1')).not.toThrow()
+  })
+  it('rejects injection attempts', () => {
+    expect(() => validateBucket("'; DROP--")).toThrow('Invalid bucket')
+    expect(() => validateBucket('a/b')).toThrow('Invalid bucket')
+    expect(() => validateBucket('')).toThrow('Invalid bucket')
+  })
+})
+
+describe('validateFiniteNumber', () => {
+  it('accepts finite numbers', () => {
+    expect(() => validateFiniteNumber(0, 'x')).not.toThrow()
+    expect(() => validateFiniteNumber(-12.5, 'x')).not.toThrow()
+  })
+  it('rejects NaN/Infinity/non-numbers', () => {
+    expect(() => validateFiniteNumber(Number.NaN, 'lat')).toThrow('Invalid lat')
+    expect(() => validateFiniteNumber(Number.POSITIVE_INFINITY, 'lat')).toThrow('Invalid lat')
+    expect(() => validateFiniteNumber('1' as unknown as number, 'lat')).toThrow('Invalid lat')
+  })
+})
+
+describe('validateSourceExpr', () => {
+  it('accepts a cached tile identifier', () => {
+    expect(() => validateSourceExpr('"_tile_NL_841f8b_01"')).not.toThrow()
+    expect(() => validateSourceExpr('"_tile_US_8a2a1072b59ffff_mega_02"')).not.toThrow()
+  })
+  it('accepts a single read_parquet HTTPS url', () => {
+    expect(() => validateSourceExpr("read_parquet('https://s3.example.com/tile.parquet')")).not.toThrow()
+  })
+  it('accepts a read_parquet list of HTTPS urls', () => {
+    expect(() =>
+      validateSourceExpr("read_parquet(['https://s3.example.com/a.parquet','https://s3.example.com/b.parquet'])"),
+    ).not.toThrow()
+  })
+  it('rejects raw identifiers', () => {
+    expect(() => validateSourceExpr('tbl')).toThrow('Invalid src')
+    expect(() => validateSourceExpr('_tile_NL_ab_01')).toThrow('Invalid src')
+  })
+  it('rejects non-HTTPS urls', () => {
+    expect(() => validateSourceExpr("read_parquet('http://evil.com/x.parquet')")).toThrow('Invalid src')
+    expect(() => validateSourceExpr("read_parquet('s3://bucket/x.parquet')")).toThrow('Invalid src')
+  })
+  it('rejects injection attempts', () => {
+    expect(() => validateSourceExpr('tbl; DROP TABLE users; --')).toThrow('Invalid src')
+    expect(() => validateSourceExpr("read_parquet('https://x.parquet') UNION SELECT 1")).toThrow('Invalid src')
   })
 })
 

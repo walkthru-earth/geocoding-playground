@@ -8,6 +8,7 @@ export default defineConfig({
     },
     coverage: {
       provider: 'v8',
+      reporter: ['text', 'json', 'json-summary', 'html'],
       reportsDirectory: '../../test-output/unit/coverage',
       include: ['src/**/*.ts'],
       exclude: ['src/duckdb.ts', 'src/index.ts', 'src/__tests__/**'],

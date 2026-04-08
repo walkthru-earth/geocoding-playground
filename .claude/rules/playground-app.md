@@ -20,7 +20,7 @@ Svelte 5 app with reactive variables ($state, $derived, $effect). Uses Tailwind 
 - `StepLog.svelte` - Execution step log for transparency
 
 ## Conventions
-- All geocoding logic lives in core, not in Svelte components
+- All geocoding logic lives in core, not in Svelte components. Specifically, tile source strings (cached identifiers or `read_parquet(...)` expressions) are built via `resolveTileSource` / `batchTilesSourceExpr`, and the per-tile SELECT is built via `buildForwardTileQuerySQL` / `buildReverseQuerySQL`. Pages never concatenate SQL or parquet URLs inline
 - The app injects query functions into the autocomplete engine via `AutocompleteQueryFns`
 - Debounced autocomplete (150ms)
 - Async search flows use generation counters (`searchGen`, `autoGen`) + `cancelPendingQuery()` to cancel in-flight DuckDB queries before new searches
