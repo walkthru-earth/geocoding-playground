@@ -12,13 +12,15 @@ This is `@walkthru-earth/geocoding-core`, a framework-agnostic library. Zero UI 
 - `search.ts` - SearchCache<T> (LRU+TTL), jaccardSimilarity(), preNormalize(), array search (sub-ms with optional pre-normalization)
 - `address-parser.ts` - 10 country parsers + GenericParser, POSTCODE_RE, NUMBER_FIRST
 - `types.ts` - AddressRow, CityRow, SuggestRow, ManifestRow, index types
-- `utils.ts` - fmt(), esc(), htmlEsc(), validateCC(), toArr(), step logging
+- `utils.ts` - fmt(), esc(), htmlEsc(), validateCC(), validateH3(), validateBucket(), validateFiniteNumber(), toArr(), step logging
 
 ## Key patterns
 - All SQL uses HTTPS URLs, never s3://
 - SQL strings use `esc()` for single-quote escaping (prevent injection)
 - `validateCC(cc)` asserts `/^[A-Z]{2}$/` at every SQL builder entry point (prevents table name injection)
-- Tile IDs validated against `/^[0-9a-f]+$/i` before interpolation into URLs
+- `validateH3(h)` asserts `H3_RE = /^[0-9a-f]+$/i` before tile ids are interpolated into URLs or SQL
+- `validateBucket(b)` asserts `/^[0-9a-z_]+$/i` before bucket ids are interpolated into URLs, SQL, or cached table names
+- `validateFiniteNumber(n, label)` guards all numeric SQL parameters (lat, lon, bbox, limit, gridK). Integer-only params also use `Number.isInteger()` with explicit bounds
 - `htmlEsc()` used in all map popup HTML templates (prevents XSS from address data)
 - Autocomplete never fetches remote data. Only queries what is already cached in WASM memory
 - Country prefetch is progressive: cities first (Phase 1, unlocks UI), then postcodes, then streets. City records also loaded into a JS array for sub-ms search
