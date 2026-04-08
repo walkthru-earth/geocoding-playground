@@ -1,13 +1,15 @@
 <script lang="ts">
   import {
-    queryObjects, queryObjectsWithRetry, tilePath, prefetchCountry, isCountryCached, onCacheLog,
-    getTileSource, isTileCached, expandTilesToBucketGroups, tileSourceExpr,
+    queryObjects, queryObjectsWithRetry, prefetchCountry, isCountryCached, onCacheLog,
+    isTileCached, expandTilesToBucketGroups,
     cancelPendingQuery, getCountryTable,
     SearchCache, searchCities as searchCitiesJS,
     getParser, stripJPCoordZone,
     esc, toArr, ms, addStep, updateLastStep, htmlEsc,
     suggest, classifyInput, resolveTiles, rankSuggestions,
     buildPostcodeSQL, buildStreetSQL, buildPostcodeNarrowSQL, buildStreetNarrowSQL, buildNumberIndexSQL,
+    // Forward geocode (core)
+    resolveTileSource, batchTilesSourceExpr, buildForwardTileQuerySQL,
     // Reverse geocode (core)
     radiusToBbox, gridKForRadius, buildTileLookupSQL, buildReverseQuerySQL,
   } from '@walkthru-earth/geocoding-core'
@@ -584,26 +586,14 @@
     try {
       if (hasSpecificFilters && tileGroups.length > 1) {
         log(`Mode    Batch query with Parquet filter pushdown`, undefined)
-        const allUrls: string[] = []
-        for (const { h3Res4, buckets: tileBuckets } of tileGroups) {
-          for (const b of tileBuckets) {
-            allUrls.push(tilePath(cc, h3Res4, b))
-          }
-        }
-        const src = `read_parquet([${allUrls.map(u => `'${u}'`).join(',')}])`
+        const src = batchTilesSourceExpr(cc, tileGroups)
+        const fileCount = tileGroups.reduce((n, t) => n + t.buckets.length, 0)
         const t0 = performance.now()
-        log(`        Batch across ${allUrls.length} file(s)...`, 'loading')
+        log(`        Batch across ${fileCount} file(s)...`, 'loading')
         try {
-          results = await queryObjectsWithRetry<AddressRow>(`
-            SELECT full_address, street, number, city, region, postcode,
-                   ST_Y(geometry) AS lat, ST_X(geometry) AS lon,
-                   h3_h3_to_string(h3_index) AS h3_index
-            FROM ${src}
-            WHERE ${where}
-            LIMIT ${limit}
-          `)
+          results = await queryObjectsWithRetry<AddressRow>(buildForwardTileQuerySQL(src, where, limit))
           if (gen !== searchGen) return
-          updateLast(`        Batch across ${allUrls.length} file(s), ${results.length} match(es) (${ms(t0)})`, 'done')
+          updateLast(`        Batch across ${fileCount} file(s), ${results.length} match(es) (${ms(t0)})`, 'done')
           searching = false
           updateMapMarkers(true)
         } catch (batchErr: any) {
@@ -640,26 +630,11 @@
 
           let tileResults: AddressRow[] = []
           try {
-            let src: string
-            let useRetry = false
-            if (tileBuckets.length === 1 && isTileCached(cc, h3Res4, tileBuckets[0])) {
-              src = await getTileSource(cc, h3Res4, tileBuckets[0])
-            } else if (hasSpecificFilters || tileBuckets.length > 1) {
-              src = tileSourceExpr(cc, h3Res4, tileBuckets)
-              useRetry = true
-            } else {
-              src = await getTileSource(cc, h3Res4, tileBuckets[0])
-            }
-
+            const multiBucket = tileBuckets.length > 1
+            const useRetry = multiBucket || hasSpecificFilters
+            const src = await resolveTileSource(cc, h3Res4, tileBuckets, { preferCache: !useRetry })
             const queryFn = useRetry ? queryObjectsWithRetry : queryObjects
-            tileResults = await queryFn<AddressRow>(`
-              SELECT full_address, street, number, city, region, postcode,
-                     ST_Y(geometry) AS lat, ST_X(geometry) AS lon,
-                     h3_h3_to_string(h3_index) AS h3_index
-              FROM ${src}
-              WHERE ${where}
-              LIMIT ${remaining}
-            `)
+            tileResults = await queryFn<AddressRow>(buildForwardTileQuerySQL(src, where, remaining))
           } catch (tileErr: any) {
             console.warn(`[geocode] Tile ${h3Res4} failed:`, tileErr.message)
             updateLast(`        ${label}, failed (${ms(t0)})`, 'error')
@@ -768,10 +743,7 @@
 
         let tileAddresses: AddressRow[] = []
         try {
-          const src = cached
-            ? await getTileSource(country, h3_res4, bucket)
-            : `read_parquet('${tilePath(country, h3_res4, bucket)}')`
-
+          const src = await resolveTileSource(country, h3_res4, [bucket], { preferCache: cached })
           tileAddresses = await queryObjects<AddressRow>(buildReverseQuerySQL(src, country, lat, lon, bbox, resultLimit))
         } catch (err: any) {
           console.warn(`[reverse] Bucket ${label} failed:`, err.message)
