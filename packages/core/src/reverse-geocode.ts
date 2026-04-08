@@ -1,6 +1,8 @@
 // Reverse geocode SQL builders and utilities.
 // Framework-agnostic, no UI dependencies.
 
+import { validateCC, validateFiniteNumber } from './utils'
+
 export interface Bbox {
   minLon: number
   maxLon: number
@@ -38,6 +40,9 @@ export interface TileBucketRow {
  * Uses H3 grid_disk for large radii to cover adjacent tiles.
  */
 export function buildTileLookupSQL(lat: number, lon: number, gridK: number): string {
+  validateFiniteNumber(lat, 'lat')
+  validateFiniteNumber(lon, 'lon')
+  if (!Number.isInteger(gridK) || gridK < 0 || gridK > 10) throw new Error(`Invalid gridK: ${gridK}`)
   if (gridK > 0) {
     return `
       WITH disk AS (
@@ -78,6 +83,14 @@ export function buildReverseQuerySQL(
   bbox: Bbox,
   limit: number,
 ): string {
+  validateCC(country)
+  validateFiniteNumber(lat, 'lat')
+  validateFiniteNumber(lon, 'lon')
+  validateFiniteNumber(bbox.minLat, 'bbox.minLat')
+  validateFiniteNumber(bbox.maxLat, 'bbox.maxLat')
+  validateFiniteNumber(bbox.minLon, 'bbox.minLon')
+  validateFiniteNumber(bbox.maxLon, 'bbox.maxLon')
+  if (!Number.isInteger(limit) || limit <= 0 || limit > 10000) throw new Error(`Invalid limit: ${limit}`)
   return `
     SELECT
       full_address, street, number, city, region, postcode,
