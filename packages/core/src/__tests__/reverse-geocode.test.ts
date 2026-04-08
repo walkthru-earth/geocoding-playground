@@ -4,26 +4,40 @@ import { buildReverseQuerySQL, buildTileLookupSQL, radiusToBbox } from '../rever
 const bbox = { minLat: 52, maxLat: 53, minLon: 4, maxLon: 5 }
 
 describe('buildReverseQuerySQL', () => {
-  it('builds SQL for valid inputs', () => {
-    const sql = buildReverseQuerySQL('tbl', 'NL', 52.3, 4.9, bbox, 50)
+  it('builds SQL for a cached tile identifier', () => {
+    const sql = buildReverseQuerySQL('"_tile_NL_841f8b_01"', 'NL', 52.3, 4.9, bbox, 50)
     expect(sql).toContain("'NL' AS country")
     expect(sql).toContain('LIMIT 50')
   })
+  it('builds SQL for a read_parquet source', () => {
+    const src = "read_parquet('https://example.com/tile.parquet')"
+    expect(() => buildReverseQuerySQL(src, 'NL', 52, 4, bbox, 50)).not.toThrow()
+  })
+  it('rejects raw table names not in the whitelist', () => {
+    expect(() => buildReverseQuerySQL('tbl', 'NL', 52, 4, bbox, 50)).toThrow('Invalid src')
+  })
+  it('rejects src with injected SQL', () => {
+    expect(() => buildReverseQuerySQL('tbl; DROP TABLE x', 'NL', 52, 4, bbox, 50)).toThrow('Invalid src')
+  })
   it('rejects invalid country', () => {
-    expect(() => buildReverseQuerySQL('tbl', "NL'; DROP--", 52, 4, bbox, 50)).toThrow('Invalid country code')
+    expect(() => buildReverseQuerySQL('"_tile_NL_841f8b_01"', "NL'; DROP--", 52, 4, bbox, 50)).toThrow(
+      'Invalid country code',
+    )
   })
   it('rejects non-finite lat/lon', () => {
-    expect(() => buildReverseQuerySQL('tbl', 'NL', Number.NaN, 4, bbox, 50)).toThrow('Invalid lat')
-    expect(() => buildReverseQuerySQL('tbl', 'NL', 52, Number.POSITIVE_INFINITY, bbox, 50)).toThrow('Invalid lon')
+    expect(() => buildReverseQuerySQL('"_tile_NL_841f8b_01"', 'NL', Number.NaN, 4, bbox, 50)).toThrow('Invalid lat')
+    expect(() => buildReverseQuerySQL('"_tile_NL_841f8b_01"', 'NL', 52, Number.POSITIVE_INFINITY, bbox, 50)).toThrow(
+      'Invalid lon',
+    )
   })
   it('rejects invalid bbox', () => {
     const bad = { ...bbox, minLat: Number.NaN }
-    expect(() => buildReverseQuerySQL('tbl', 'NL', 52, 4, bad, 50)).toThrow('Invalid bbox.minLat')
+    expect(() => buildReverseQuerySQL('"_tile_NL_841f8b_01"', 'NL', 52, 4, bad, 50)).toThrow('Invalid bbox.minLat')
   })
   it('rejects invalid limit', () => {
-    expect(() => buildReverseQuerySQL('tbl', 'NL', 52, 4, bbox, 0)).toThrow('Invalid limit')
-    expect(() => buildReverseQuerySQL('tbl', 'NL', 52, 4, bbox, 1.5)).toThrow('Invalid limit')
-    expect(() => buildReverseQuerySQL('tbl', 'NL', 52, 4, bbox, 99999)).toThrow('Invalid limit')
+    expect(() => buildReverseQuerySQL('"_tile_NL_841f8b_01"', 'NL', 52, 4, bbox, 0)).toThrow('Invalid limit')
+    expect(() => buildReverseQuerySQL('"_tile_NL_841f8b_01"', 'NL', 52, 4, bbox, 1.5)).toThrow('Invalid limit')
+    expect(() => buildReverseQuerySQL('"_tile_NL_841f8b_01"', 'NL', 52, 4, bbox, 99999)).toThrow('Invalid limit')
   })
 })
 
