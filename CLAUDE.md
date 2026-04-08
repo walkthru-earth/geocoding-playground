@@ -87,7 +87,8 @@ See `_study/` for detailed architecture docs, data profiles, and issue history.
 - Country codes MUST be validated with `validateCC(cc)` at every SQL builder entry point. Never interpolate `cc` into table names or URLs without it
 - Tile IDs MUST be validated with `validateH3(h)` (regex `H3_RE = /^[0-9a-f]+$/i`) before interpolation into parquet URLs or SQL
 - Tile bucket ids MUST be validated with `validateBucket(b)` (alphanumerics + underscore) before interpolation into parquet URLs, SQL, or cached table names
-- Numeric parameters (lat, lon, bbox, limit, gridK) MUST be validated with `validateFiniteNumber()` / `Number.isInteger()` at every SQL builder entry point. Never interpolate `number` typed values raw, runtime JSON can smuggle strings or `NaN`
+- Numeric parameters (lat, lon, bbox, limit, gridK) MUST be validated with `validateFiniteNumber()` / `Number.isInteger()` at every SQL builder entry point. Never interpolate `number`-typed values raw, runtime JSON can smuggle strings or `NaN`
+- `FROM ${src}` expressions MUST be validated with `validateSourceExpr()`. Tile source strings are built inside core (`resolveTileSource`, `batchTilesSourceExpr`, `tileSourceExpr`) and callers should never concatenate `read_parquet(...)` or identifiers in app code
 - Array values from query results (like `cityTiles`) MUST be escaped individually: `tiles.map(t => esc(t))`, not joined raw. Arrays of tile ids should go through `validateH3()` instead of `esc()`
 
 ### HTML in map popups
