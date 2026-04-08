@@ -1,5 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import { addStep, esc, fmt, fmtFull, formatSize, toArr, updateLastStep, validateCC } from '../utils'
+import {
+  addStep,
+  esc,
+  fmt,
+  fmtFull,
+  formatSize,
+  toArr,
+  updateLastStep,
+  validateBucket,
+  validateCC,
+  validateFiniteNumber,
+  validateH3,
+} from '../utils'
 
 describe('fmt', () => {
   it.each([
@@ -75,6 +87,43 @@ describe('validateCC', () => {
 
   it('rejects empty string', () => {
     expect(() => validateCC('')).toThrow('Invalid country code')
+  })
+})
+
+describe('validateH3', () => {
+  it('accepts hex digits', () => {
+    expect(() => validateH3('841f8bfffffffff')).not.toThrow()
+    expect(() => validateH3('ABCDEF0123')).not.toThrow()
+  })
+  it('rejects injection attempts', () => {
+    expect(() => validateH3("'; DROP TABLE x; --")).toThrow('Invalid h3 id')
+    expect(() => validateH3('abc xyz')).toThrow('Invalid h3 id')
+    expect(() => validateH3('')).toThrow('Invalid h3 id')
+  })
+})
+
+describe('validateBucket', () => {
+  it('accepts alphanumerics and underscore', () => {
+    expect(() => validateBucket('_')).not.toThrow()
+    expect(() => validateBucket('01')).not.toThrow()
+    expect(() => validateBucket('bucket_1')).not.toThrow()
+  })
+  it('rejects injection attempts', () => {
+    expect(() => validateBucket("'; DROP--")).toThrow('Invalid bucket')
+    expect(() => validateBucket('a/b')).toThrow('Invalid bucket')
+    expect(() => validateBucket('')).toThrow('Invalid bucket')
+  })
+})
+
+describe('validateFiniteNumber', () => {
+  it('accepts finite numbers', () => {
+    expect(() => validateFiniteNumber(0, 'x')).not.toThrow()
+    expect(() => validateFiniteNumber(-12.5, 'x')).not.toThrow()
+  })
+  it('rejects NaN/Infinity/non-numbers', () => {
+    expect(() => validateFiniteNumber(Number.NaN, 'lat')).toThrow('Invalid lat')
+    expect(() => validateFiniteNumber(Number.POSITIVE_INFINITY, 'lat')).toThrow('Invalid lat')
+    expect(() => validateFiniteNumber('1' as unknown as number, 'lat')).toThrow('Invalid lat')
   })
 })
 
