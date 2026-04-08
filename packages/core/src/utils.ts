@@ -66,6 +66,27 @@ export function validateFiniteNumber(n: number, label: string): void {
   if (typeof n !== 'number' || !Number.isFinite(n)) throw new Error(`Invalid ${label}: ${n}`)
 }
 
+// Whitelist of allowed `FROM` source expressions. Matches one of:
+// 1. A quoted tile cache identifier, `"_tile_XX_<hex>_<bucket>"`, produced by
+//    `tileCacheTableName` after country/h3/bucket are validated.
+// 2. `read_parquet('https://...parquet')` with a single HTTPS tile URL.
+// 3. `read_parquet(['https://...parquet',...])` with one or more HTTPS tile URLs.
+// Anything else is rejected so callers cannot smuggle arbitrary SQL into a
+// `FROM ${src}` interpolation point.
+const SAFE_TILE_IDENT_RE = /^"_tile_[A-Z]{2}_[a-f0-9]+_[a-z0-9_]+"$/
+const SAFE_PARQUET_URL = "'https://[A-Za-z0-9._~:/?#@!$&+=%-]+\\.parquet'"
+const SAFE_PARQUET_SINGLE_RE = new RegExp(`^read_parquet\\(${SAFE_PARQUET_URL}\\)$`)
+const SAFE_PARQUET_LIST_RE = new RegExp(`^read_parquet\\(\\[${SAFE_PARQUET_URL}(?:,${SAFE_PARQUET_URL})*\\]\\)$`)
+
+/** Validate a SQL `FROM` source expression against the tile source whitelist. */
+export function validateSourceExpr(src: string): void {
+  if (typeof src !== 'string') throw new Error(`Invalid src: ${src}`)
+  if (SAFE_TILE_IDENT_RE.test(src)) return
+  if (SAFE_PARQUET_SINGLE_RE.test(src)) return
+  if (SAFE_PARQUET_LIST_RE.test(src)) return
+  throw new Error(`Invalid src: ${src}`)
+}
+
 // ── Data conversion ─────────────────────────────────────────
 
 /** Normalize Arrow/DuckDB array values to plain JS string arrays */

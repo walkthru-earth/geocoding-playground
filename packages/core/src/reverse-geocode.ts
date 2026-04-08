@@ -1,7 +1,7 @@
 // Reverse geocode SQL builders and utilities.
 // Framework-agnostic, no UI dependencies.
 
-import { validateCC, validateFiniteNumber } from './utils'
+import { validateCC, validateFiniteNumber, validateSourceExpr } from './utils'
 
 export interface Bbox {
   minLon: number
@@ -83,6 +83,7 @@ export function buildReverseQuerySQL(
   bbox: Bbox,
   limit: number,
 ): string {
+  validateSourceExpr(src)
   validateCC(country)
   validateFiniteNumber(lat, 'lat')
   validateFiniteNumber(lon, 'lon')
