@@ -26,11 +26,11 @@
     "@duckdb/duckdb-wasm": ">=1.28.0"
   },
   "devDependencies": {
-    "@duckdb/duckdb-wasm": "1.33.1-dev44.0",
-    "@vitest/coverage-v8": "^4.1.3",
+    "@duckdb/duckdb-wasm": "1.33.1-dev53.0",
+    "@vitest/coverage-v8": "^4.1.4",
     "typescript": "~6.0.2",
-    "vite": "^8.0.7",
+    "vite": "^8.0.8",
     "vite-plugin-dts": "5.0.0-beta.6",
-    "vitest": "^4.1.3"
+    "vitest": "^4.1.4"
   }
 }
