@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { queryObjects, dataPath, tilePath, fmt, fmtFull } from '@walkthru-earth/geocoding-core'
+  import { queryObjects, dataPath, tilePath, fmt, fmtFull, onReleaseChange } from '@walkthru-earth/geocoding-core'
 
   function getMarkerColor(type: 'primary' | 'secondary'): string {
     const prop = type === 'primary' ? '--wt-marker-primary' : '--wt-marker-secondary'
@@ -193,7 +193,18 @@
     region: string | null
   }
 
-  $effect(() => { loadData() })
+  // Load on mount + re-load when the release changes. loadData() reads from
+  // in-memory DuckDB tables that switchRelease() has already repopulated, so
+  // no remote fetch is needed here.
+  $effect(() => {
+    loadData()
+    return onReleaseChange(() => {
+      // Force tile polygons to rebuild with the new release's tile_index.
+      tilesLoaded = false
+      loading = true
+      loadData()
+    })
+  })
 
   async function loadData() {
     try {
