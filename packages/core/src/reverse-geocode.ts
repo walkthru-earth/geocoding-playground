@@ -10,9 +10,9 @@ export interface Bbox {
   maxLat: number
 }
 
-/** Convert radius in meters to a lat/lon bounding box. Minimum 1km for adequate coverage. */
+/** Convert radius in meters to a lat/lon bounding box. Respects the caller's radius exactly. */
 export function radiusToBbox(lat: number, lon: number, radiusM: number): Bbox {
-  const radiusDeg = Math.max(radiusM, 1000) / 111000
+  const radiusDeg = radiusM / 111000
   const lonScale = Math.cos((lat * Math.PI) / 180)
   return {
     minLon: +(lon - radiusDeg / lonScale).toFixed(6),
@@ -82,6 +82,7 @@ export function buildReverseQuerySQL(
   lon: number,
   bbox: Bbox,
   limit: number,
+  maxDistM?: number,
 ): string {
   validateSourceExpr(src)
   validateCC(country)
@@ -92,21 +93,30 @@ export function buildReverseQuerySQL(
   validateFiniteNumber(bbox.minLon, 'bbox.minLon')
   validateFiniteNumber(bbox.maxLon, 'bbox.maxLon')
   if (!Number.isInteger(limit) || limit <= 0 || limit > 10000) throw new Error(`Invalid limit: ${limit}`)
+  if (maxDistM !== undefined) {
+    validateFiniteNumber(maxDistM, 'maxDistM')
+    if (maxDistM <= 0) throw new Error(`Invalid maxDistM: ${maxDistM}`)
+  }
+  const distCap = maxDistM !== undefined ? `WHERE distance_m <= ${maxDistM}` : ''
   return `
-    SELECT
-      full_address, street, number, city, region, postcode,
-      '${country}' AS country,
-      ST_Y(geometry) AS lat,
-      ST_X(geometry) AS lon,
-      h3_h3_to_string(h3_index) AS h3_index,
-      2 * 6371000 * ASIN(SQRT(
-        POWER(SIN(RADIANS(ST_Y(geometry) - ${lat}) / 2), 2) +
-        COS(RADIANS(${lat})) * COS(RADIANS(ST_Y(geometry))) *
-        POWER(SIN(RADIANS(ST_X(geometry) - ${lon}) / 2), 2)
-      )) AS distance_m
-    FROM ${src}
-    WHERE ST_Y(geometry) BETWEEN ${bbox.minLat} AND ${bbox.maxLat}
-      AND ST_X(geometry) BETWEEN ${bbox.minLon} AND ${bbox.maxLon}
+    WITH __rev AS (
+      SELECT
+        full_address, street, number, city, region, postcode,
+        '${country}' AS country,
+        ST_Y(geometry) AS lat,
+        ST_X(geometry) AS lon,
+        h3_h3_to_string(h3_index) AS h3_index,
+        2 * 6371000 * ASIN(SQRT(
+          POWER(SIN(RADIANS(ST_Y(geometry) - ${lat}) / 2), 2) +
+          COS(RADIANS(${lat})) * COS(RADIANS(ST_Y(geometry))) *
+          POWER(SIN(RADIANS(ST_X(geometry) - ${lon}) / 2), 2)
+        )) AS distance_m
+      FROM ${src}
+      WHERE ST_Y(geometry) BETWEEN ${bbox.minLat} AND ${bbox.maxLat}
+        AND ST_X(geometry) BETWEEN ${bbox.minLon} AND ${bbox.maxLon}
+    )
+    SELECT * FROM __rev
+    ${distCap}
     ORDER BY distance_m
     LIMIT ${limit}`
 }

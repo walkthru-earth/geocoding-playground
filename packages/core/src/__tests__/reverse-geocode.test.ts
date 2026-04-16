@@ -39,6 +39,21 @@ describe('buildReverseQuerySQL', () => {
     expect(() => buildReverseQuerySQL('"_tile_NL_841f8b_01"', 'NL', 52, 4, bbox, 1.5)).toThrow('Invalid limit')
     expect(() => buildReverseQuerySQL('"_tile_NL_841f8b_01"', 'NL', 52, 4, bbox, 99999)).toThrow('Invalid limit')
   })
+  it('adds a distance cap when maxDistM is provided', () => {
+    const sql = buildReverseQuerySQL('"_tile_NL_841f8b_01"', 'NL', 52, 4, bbox, 25, 250)
+    expect(sql).toContain('distance_m <= 250')
+  })
+  it('omits the distance cap when maxDistM is undefined', () => {
+    const sql = buildReverseQuerySQL('"_tile_NL_841f8b_01"', 'NL', 52, 4, bbox, 25)
+    expect(sql).not.toContain('distance_m <=')
+  })
+  it('rejects non-finite or non-positive maxDistM', () => {
+    expect(() => buildReverseQuerySQL('"_tile_NL_841f8b_01"', 'NL', 52, 4, bbox, 25, 0)).toThrow('Invalid maxDistM')
+    expect(() => buildReverseQuerySQL('"_tile_NL_841f8b_01"', 'NL', 52, 4, bbox, 25, Number.NaN)).toThrow(
+      'Invalid maxDistM',
+    )
+    expect(() => buildReverseQuerySQL('"_tile_NL_841f8b_01"', 'NL', 52, 4, bbox, 25, -10)).toThrow('Invalid maxDistM')
+  })
 })
 
 describe('buildTileLookupSQL', () => {
@@ -67,5 +82,10 @@ describe('radiusToBbox', () => {
     expect(b.maxLat).toBeGreaterThan(52.3)
     expect(b.minLon).toBeLessThan(4.9)
     expect(b.maxLon).toBeGreaterThan(4.9)
+  })
+  it('respects the caller radius and does not force a 1km floor', () => {
+    const b = radiusToBbox(52.3, 4.9, 250)
+    // 250m at 111 km/deg = ~0.00225 deg of lat. No 1km floor means the box is tight.
+    expect(b.maxLat - b.minLat).toBeLessThan(0.006)
   })
 })
