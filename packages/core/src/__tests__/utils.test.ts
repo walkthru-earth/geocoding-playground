@@ -11,6 +11,7 @@ import {
   validateCC,
   validateFiniteNumber,
   validateH3,
+  validateRelease,
   validateSourceExpr,
 } from '../utils'
 
@@ -113,6 +114,24 @@ describe('validateBucket', () => {
     expect(() => validateBucket("'; DROP--")).toThrow('Invalid bucket')
     expect(() => validateBucket('a/b')).toThrow('Invalid bucket')
     expect(() => validateBucket('')).toThrow('Invalid bucket')
+  })
+})
+
+describe('validateRelease', () => {
+  it('accepts well-formed release tags', () => {
+    expect(() => validateRelease('2026-03-18.0')).not.toThrow()
+    expect(() => validateRelease('2026-04-15.0')).not.toThrow()
+    expect(() => validateRelease('2030-12-31.12')).not.toThrow()
+  })
+  it('rejects malformed tags', () => {
+    expect(() => validateRelease('2026-3-18.0')).toThrow('Invalid release')
+    expect(() => validateRelease('2026-03-18')).toThrow('Invalid release')
+    expect(() => validateRelease('2026-03-18.')).toThrow('Invalid release')
+    expect(() => validateRelease('')).toThrow('Invalid release')
+  })
+  it('rejects injection attempts', () => {
+    expect(() => validateRelease("2026-03-18.0'; DROP TABLE x; --")).toThrow('Invalid release')
+    expect(() => validateRelease('../../etc/passwd')).toThrow('Invalid release')
   })
 })
 

@@ -1,10 +1,11 @@
 import * as duckdb from '@duckdb/duckdb-wasm'
-import { validateBucket, validateCC, validateH3 } from './utils'
+import { validateBucket, validateCC, validateH3, validateRelease } from './utils'
 
 // Public HTTPS URL for all data access. S3 protocol is slower in WASM
 // and glob support is experimental. Pipeline ensures one file per partition.
-const DATA_ROOT =
-  'https://s3.us-west-2.amazonaws.com/us-west-2.opendata.source.coop/walkthru-earth/indices/addresses-index/v4'
+const S3_HOST = 'https://s3.us-west-2.amazonaws.com/us-west-2.opendata.source.coop'
+const DATA_KEY_PREFIX = 'walkthru-earth/indices/addresses-index/v4'
+const DATA_ROOT = `${S3_HOST}/${DATA_KEY_PREFIX}`
 const DEFAULT_RELEASE = '2026-03-18.0'
 
 let currentRelease = DEFAULT_RELEASE
@@ -49,6 +50,7 @@ function countryTable(prefix: string, cc: string): string {
  * Drops all cached tables, re-loads global indexes from the new release.
  */
 export async function switchRelease(release: string): Promise<void> {
+  validateRelease(release)
   if (release === currentRelease) return
   const c = await getConnection()
 
@@ -133,6 +135,24 @@ export async function initDuckDB(): Promise<duckdb.AsyncDuckDBConnection> {
   await conn.query(`SET validate_external_file_cache = 'NO_VALIDATION'`)
   console.log('[duckdb] HTTP + Parquet metadata caching enabled')
 
+  // Discover available releases by listing `release=*` sub-folders on S3 and
+  // pick the newest as the active release. Each per-release manifest.parquet
+  // only carries its own release tag, so a cross-release manifest query would
+  // only ever return one row. The bucket listing is public (CORS open) and
+  // independent of DuckDB, so we do it straight from the browser before
+  // loading any parquet so global indexes are loaded from the latest release.
+  try {
+    const discovered = await discoverReleases()
+    if (discovered.length > 0) {
+      _availableReleases = discovered
+      currentRelease = discovered[0]
+      DATA_BASE = `${DATA_ROOT}/release=${currentRelease}`
+      console.log(`[duckdb] Active release: ${currentRelease}`)
+    }
+  } catch {
+    /* keep DEFAULT_RELEASE */
+  }
+
   // Cache tile_index + region_index + manifest at startup via HTTPS
   console.log('[duckdb] Caching tile_index + region_index + manifest...')
   await queryRemoteWithRetry(
@@ -144,19 +164,30 @@ export async function initDuckDB(): Promise<duckdb.AsyncDuckDBConnection> {
   await queryRemoteWithRetry(`CREATE TABLE _manifest AS SELECT * FROM read_parquet('${DATA_BASE}/manifest.parquet')`)
   console.log('[duckdb] Global indexes cached, ready!')
 
-  // Discover available releases from manifest
-  try {
-    const rows = await queryObjects<{ overture_release: string }>(
-      `SELECT DISTINCT overture_release FROM _manifest ORDER BY overture_release DESC`,
-    )
-    if (rows.length > 0) {
-      _availableReleases = rows.map((r) => r.overture_release)
-    }
-  } catch {
-    /* keep default */
-  }
-
   return conn
+}
+
+async function discoverReleases(): Promise<string[]> {
+  const url = `${S3_HOST}/?list-type=2&prefix=${DATA_KEY_PREFIX}/&delimiter=/`
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`S3 list failed: ${res.status}`)
+  const xml = await res.text()
+  const releases: string[] = []
+  // CommonPrefixes come back as `<Prefix>...release=<tag>/</Prefix>`. Pull the
+  // tag out and reject anything that isn't a well-formed release string so a
+  // spoofed listing can't smuggle values into SQL interpolation sites.
+  const matches = xml.matchAll(/<Prefix>[^<]*release=([^/<]+)\/<\/Prefix>/g)
+  for (const match of matches) {
+    const tag = match[1]
+    try {
+      validateRelease(tag)
+      releases.push(tag)
+    } catch {
+      /* skip invalid tag */
+    }
+  }
+  // Lexicographic sort works because format is `YYYY-MM-DD.N`.
+  return releases.sort().reverse()
 }
 
 export async function getConnection(): Promise<duckdb.AsyncDuckDBConnection> {

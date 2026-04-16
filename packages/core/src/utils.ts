@@ -45,6 +45,7 @@ export function htmlEsc(s: string): string {
 const CC_RE = /^[A-Z]{2}$/
 export const H3_RE = /^[0-9a-f]+$/i
 const BUCKET_RE = /^[0-9a-z_]+$/i
+const RELEASE_RE = /^\d{4}-\d{2}-\d{2}\.\d+$/
 
 /** Validate a 2-letter uppercase country code. Throws on invalid input. */
 export function validateCC(cc: string): void {
@@ -59,6 +60,11 @@ export function validateH3(h: string): void {
 /** Validate a tile bucket id (alphanumerics + underscore). Throws on invalid input. */
 export function validateBucket(b: string): void {
   if (typeof b !== 'string' || !BUCKET_RE.test(b)) throw new Error(`Invalid bucket: ${b}`)
+}
+
+/** Validate an Overture release tag (e.g. `2026-03-18.0`). Throws on invalid input. */
+export function validateRelease(r: string): void {
+  if (typeof r !== 'string' || !RELEASE_RE.test(r)) throw new Error(`Invalid release: ${r}`)
 }
 
 /** Validate a finite number (not NaN/Infinity). Throws on invalid input. */
