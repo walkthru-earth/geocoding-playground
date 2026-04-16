@@ -178,6 +178,19 @@
   /** Add a GeoJSON source + layer (simple, no popup) */
   export function setGeoJSON(id: string, geojson: GeoJSON.GeoJSON, paint: Record<string, any> = {}) {
     if (!map) return
+    // Track first so `restoreCustomLayers` picks up the latest geojson even if
+    // the style is currently loading (basemap swap or WebGL context recovery).
+    customLayers.set(id, {
+      id,
+      geojson,
+      fillColor: paint['fill-color'] ?? getMarkerColor('primary'),
+      fillOpacity: paint['fill-opacity'] ?? 0.15,
+      lineColor: getMarkerColor('primary'),
+      lineWidth: 1.5,
+      visible: true,
+    })
+    if (!map.isStyleLoaded()) return
+
     if (map.getSource(id)) {
       (map.getSource(id) as maplibregl.GeoJSONSource).setData(geojson as any)
     } else {
@@ -195,16 +208,6 @@
         paint: { 'line-color': getMarkerColor('primary'), 'line-width': 1.5, 'line-opacity': 0.6 },
       })
     }
-    // Track for restoration
-    customLayers.set(id, {
-      id,
-      geojson,
-      fillColor: paint['fill-color'] ?? getMarkerColor('primary'),
-      fillOpacity: paint['fill-opacity'] ?? 0.15,
-      lineColor: getMarkerColor('primary'),
-      lineWidth: 1.5,
-      visible: true,
-    })
   }
 
   /** Remove marker */
@@ -318,6 +321,16 @@
     const { fillColor = getMarkerColor('primary'), fillOpacity = 0.2, lineColor = getMarkerColor('primary'), lineWidth = 1, popupFn, visible = true } = options
     const vis = visible ? 'visible' : 'none'
 
+    // Track first so the `style.load` restore handler can pick up the newest
+    // geojson if the style is currently mid-reload (basemap swap or after a
+    // WebGL context loss).
+    customLayers.set(id, { id, geojson, fillColor, fillOpacity, lineColor, lineWidth, visible, popupFn })
+
+    // `map.addSource` throws "Style is not done loading" if the style is
+    // swapping. Defer to the `style.load` handler which will re-add via
+    // `restoreCustomLayers` using the entry we just stored.
+    if (!map.isStyleLoaded()) return
+
     if (map.getSource(id)) {
       (map.getSource(id) as maplibregl.GeoJSONSource).setData(geojson as any)
     } else {
@@ -337,9 +350,6 @@
         layout: { visibility: vis },
       })
     }
-
-    // Track for restoration after style swap
-    customLayers.set(id, { id, geojson, fillColor, fillOpacity, lineColor, lineWidth, visible, popupFn })
 
     if (popupFn) {
       registerClickHandler(id, popupFn)
