@@ -221,14 +221,22 @@
     lat: number
     popupHtml?: string
     label?: string
+    /** Optional "+N" style badge to render on the marker for grouped/stacked rows */
+    badge?: string
+    /** Optional original sidebar row indexes this marker represents. Used by
+     * openResultPopup to find the right marker when rows share a lat/lon. */
+    resultIndexes?: number[]
   }
 
   /** Add native MapLibre markers with rich HTML popups */
   let resultMarkers: maplibregl.Marker[] = []
+  /** Maps a sidebar result index to the marker index it belongs to */
+  const markerByResultIdx = new Map<number, number>()
 
   export function setResultMarkers(points: MapResultPoint[], autoFit = true) {
     resultMarkers.forEach(m => m.remove())
     resultMarkers = []
+    markerByResultIdx.clear()
     if (!map || points.length === 0) return
 
     points.forEach((p, i) => {
@@ -256,6 +264,16 @@
 
       // Block click from reaching map canvas (prevents reverse geocode re-trigger)
       m.getElement().classList.add('result-marker')
+
+      if (p.badge) {
+        const badgeEl = document.createElement('span')
+        badgeEl.className = 'marker-badge'
+        badgeEl.textContent = p.badge
+        m.getElement().appendChild(badgeEl)
+      }
+
+      const idxs = p.resultIndexes && p.resultIndexes.length > 0 ? p.resultIndexes : [i]
+      idxs.forEach((ri) => markerByResultIdx.set(ri, i))
 
       resultMarkers.push(m)
     })
@@ -285,23 +303,25 @@
     }
   }
 
-  /** Open a specific result marker's popup by index (0-based) */
-  export function openResultPopup(index: number) {
+  /** Open the marker popup for a given sidebar result row index. When multiple
+   * rows share the same lat/lon they resolve to the same grouped marker. */
+  export function openResultPopup(resultIndex: number) {
     if (!map) return
+    const markerIdx = markerByResultIdx.get(resultIndex)
+    if (markerIdx === undefined || markerIdx < 0 || markerIdx >= resultMarkers.length) return
     // Close all open popups
     resultMarkers.forEach(m => {
       if (m.getPopup()?.isOpen()) m.togglePopup()
     })
-    if (index >= 0 && index < resultMarkers.length) {
-      const m = resultMarkers[index]
-      m.togglePopup()
-      map.flyTo({ center: m.getLngLat(), zoom: Math.max(map.getZoom(), 18), duration: 800 })
-    }
+    const m = resultMarkers[markerIdx]
+    m.togglePopup()
+    map.flyTo({ center: m.getLngLat(), zoom: Math.max(map.getZoom(), 18), duration: 800 })
   }
 
   export function clearResultMarkers() {
     resultMarkers.forEach(m => m.remove())
     resultMarkers = []
+    markerByResultIdx.clear()
   }
 
   /** Add a styled GeoJSON layer with popup on click */

@@ -175,14 +175,52 @@
     </div>`
   }
 
+  /** Key used to group rows that render at the exact same pixel. */
+  function pointKey(r: AddressRow): string {
+    return `${r.lat!.toFixed(6)},${r.lon!.toFixed(6)}`
+  }
+
+  /** Build popup HTML for a group of rows that share the same lat/lon. */
+  function groupPopupHtml(items: { row: AddressRow; idx: number }[]): string {
+    const head = resultPopupHtml(items[0].row, items[0].idx)
+    if (items.length === 1) return head
+    const rest = items.slice(1).map(({ row, idx }) =>
+      `<div style="font-size:0.78rem;line-height:1.35;margin:2px 0 0 2rem">
+         <span style="display:inline-block;min-width:1.5em;opacity:0.5">${idx + 1}.</span>
+         ${htmlEsc(row.full_address)}
+       </div>`,
+    ).join('')
+    return `${head}
+      <div style="margin-top:6px;border-top:1px solid var(--wt-border-subtle, rgba(0,0,0,0.1));padding-top:6px">
+        <div style="font-size:0.7rem;opacity:0.6;margin:0 0 4px 2rem">+${items.length - 1} more at this exact point</div>
+        ${rest}
+      </div>`
+  }
+
   function updateMapMarkers(autoFit: boolean) {
     if (!mapView || results.length === 0) return
     if (lastMode === 'reverse') removeClickMarker()
-    const points = results.filter(r => r.lat && r.lon).map((r, i) => ({
-      lng: r.lon,
-      lat: r.lat,
-      popupHtml: resultPopupHtml(r, i),
+
+    // Group rows that share the same lat/lon so we render one pin per unique point
+    // with a "+N" badge when multiple addresses stack there (common in Overture for
+    // buildings with many units or Japan banchi subdivisions).
+    const groups = new Map<string, { lng: number; lat: number; items: { row: AddressRow; idx: number }[] }>()
+    results.forEach((r, idx) => {
+      if (!r.lat || !r.lon) return
+      const key = pointKey(r)
+      const g = groups.get(key)
+      if (g) g.items.push({ row: r, idx })
+      else groups.set(key, { lng: r.lon, lat: r.lat, items: [{ row: r, idx }] })
+    })
+
+    const points = [...groups.values()].map((g) => ({
+      lng: g.lng,
+      lat: g.lat,
+      popupHtml: groupPopupHtml(g.items),
+      badge: g.items.length > 1 ? `+${g.items.length - 1}` : undefined,
+      resultIndexes: g.items.map((x) => x.idx),
     }))
+
     const shouldFit = autoFit && (lastMode === 'reverse' || !userNavigated)
     mapView.setResultMarkers(points, shouldFit)
   }
@@ -733,43 +771,65 @@
       showTilesOnMap(tiles, queriedTiles, skippedTiles)
 
       const bbox = radiusToBbox(lat, lon, radius)
+      const country = tiles[0].country
+      const anyUncached = tiles.some(t => !isTileCached(t.country, t.h3_res4, t.bucket))
 
-      for (let i = 0; i < tiles.length; i++) {
-        const { country, h3_res4, bucket } = tiles[i]
-        const label = bucket === '_' ? h3_res4 : `${h3_res4}/${bucket}`
-        const t0 = performance.now()
-        const cached = isTileCached(country, h3_res4, bucket)
-        log(`Step 2  Bucket ${i + 1}/${tiles.length}: ${label}, ${cached ? 'cached' : 'fetching'}...`, 'loading')
+      let tileRows: AddressRow[] = []
 
-        let tileAddresses: AddressRow[] = []
-        try {
-          const src = await resolveTileSource(country, h3_res4, [bucket], { preferCache: cached })
-          tileAddresses = await queryObjects<AddressRow>(buildReverseQuerySQL(src, country, lat, lon, bbox, resultLimit))
-        } catch (err: any) {
-          console.warn(`[reverse] Bucket ${label} failed:`, err.message)
-          updateLast(`Step 2  Bucket ${i + 1}/${tiles.length}: ${label}, failed (${ms(t0)})`, 'error')
-          continue
+      if (anyUncached) {
+        // Cold / mixed cache: one batched read_parquet so DuckDB's httpfs issues
+        // the per-file range requests in parallel. Avoids sequential per-bucket
+        // HTTP round-trips that otherwise dominate first-click latency.
+        const byRes4 = new Map<string, string[]>()
+        for (const t of tiles) {
+          const arr = byRes4.get(t.h3_res4) ?? []
+          arr.push(t.bucket)
+          byRes4.set(t.h3_res4, arr)
         }
+        const tilesList = [...byRes4.entries()].map(([h3Res4, buckets]) => ({ h3Res4, buckets }))
+        const src = batchTilesSourceExpr(country, tilesList)
 
+        const t0 = performance.now()
+        log(`Step 2  Scanning ${tiles.length} bucket(s) in one pass...`, 'loading')
+        try {
+          tileRows = await queryObjectsWithRetry<AddressRow>(
+            buildReverseQuerySQL(src, country, lat, lon, bbox, resultLimit, radius),
+          )
+        } catch (err: any) {
+          console.warn('[reverse] Batch query failed:', err.message)
+          updateLast(`Step 2  batch query failed (${ms(t0)})`, 'error')
+          throw err
+        }
         if (gen !== reverseGen) return
-        queriedTiles.add(h3_res4)
-
-        results = [...results, ...tileAddresses].sort((a, b) => (a.distance_m ?? 0) - (b.distance_m ?? 0)).slice(0, resultLimit)
-        updateLast(`Step 2  Bucket ${i + 1}/${tiles.length}: ${label}, ${tileAddresses.length} nearby (${ms(t0)})`, 'done')
-
-        updateMapMarkers(true)
-        showTilesOnMap(tiles, queriedTiles, skippedTiles)
-
-        if (results.length >= resultLimit) {
-          const skipped = tiles.length - i - 1
-          if (skipped > 0) {
-            for (let j = i + 1; j < tiles.length; j++) skippedTiles.add(tiles[j].h3_res4)
-            showTilesOnMap(tiles, queriedTiles, skippedTiles)
-            log(`        Limit reached, skipping ${skipped} bucket(s)`, 'done')
+        for (const t of tiles) queriedTiles.add(t.h3_res4)
+        updateLast(`Step 2  ${tiles.length} bucket(s), ${tileRows.length} nearby (${ms(t0)})`, 'done')
+      } else {
+        // Warm: all buckets already live in the in-memory LRU cache, so a
+        // per-bucket scan over the cached tables is the fast path.
+        for (const t of tiles) {
+          const { h3_res4, bucket } = t
+          const label = bucket === '_' ? h3_res4 : `${h3_res4}/${bucket}`
+          const t0 = performance.now()
+          log(`Step 2  Bucket ${label} (cached)...`, 'loading')
+          try {
+            const src = await resolveTileSource(country, h3_res4, [bucket], { preferCache: true })
+            const r = await queryObjects<AddressRow>(
+              buildReverseQuerySQL(src, country, lat, lon, bbox, resultLimit, radius),
+            )
+            if (gen !== reverseGen) return
+            tileRows = tileRows.concat(r)
+            queriedTiles.add(h3_res4)
+            updateLast(`Step 2  Bucket ${label}, ${r.length} nearby (${ms(t0)})`, 'done')
+          } catch (err: any) {
+            console.warn(`[reverse] Bucket ${label} failed:`, err.message)
+            updateLast(`Step 2  Bucket ${label} failed (${ms(t0)})`, 'error')
           }
-          break
         }
       }
+
+      results = tileRows.sort((a, b) => (a.distance_m ?? 0) - (b.distance_m ?? 0)).slice(0, resultLimit)
+      updateMapMarkers(true)
+      showTilesOnMap(tiles, queriedTiles, skippedTiles)
 
       searchTime = performance.now() - totalT0
       log(`Done    ${results.length} results in ${ms(totalT0)}`, 'done')

@@ -320,6 +320,26 @@
   margin-bottom: 4px;
 }
 
+/* ── Marker badge for grouped result pins (+N at same lat/lon) ────── */
+.marker-badge {
+  position: absolute;
+  top: -4px;
+  right: -10px;
+  background: var(--wt-marker-primary);
+  color: var(--wt-marker-primary-fg);
+  font-family: "Quicksand", sans-serif;
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: 999px;
+  border: 1.5px solid var(--wt-popup-bg);
+  min-width: 1rem;
+  text-align: center;
+  pointer-events: none;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
+}
+
 /* ── Driver.js tour theming ──────────────────────────────── */
 .driver-popover.wt-tour-popover {
   background: var(--wt-popup-bg);
