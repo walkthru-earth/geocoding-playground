@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { getParser, NUMBER_FIRST } from '../../address-parser'
-import { canonicalizeChome, stripJPCoordZone } from '../../parsers/ja'
+import { canonicalizeChome, stripJPCoordZone } from '../../parsers/jp'
 
 // ── Test fixture type ───────────────────────────────────────
 

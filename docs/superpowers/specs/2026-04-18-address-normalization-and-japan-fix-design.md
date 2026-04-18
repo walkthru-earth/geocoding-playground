@@ -106,8 +106,8 @@ scripts/
 
 ### C1. File rename
 
-- `packages/core/src/parsers/jp.ts` becomes `packages/core/src/parsers/ja.ts`.
-- `PARSER_REGISTRY` key stays `JP` (ISO 3166), the filename tracks ISO 639 which the libpostal dictionaries use. Import path updated in `parsers/index.ts`.
+- `packages/core/src/parsers/jp.ts` stays named by its ISO 3166 country code, matching the rest of the parser folder (`us.ts`, `ca.ts`, `it.ts`, etc.). Overture's partition key is also `JP`.
+- The libpostal dictionary lives at `packages/core/src/dictionaries/ja/` (ISO 639 language code). Country-to-language resolution is done through `COUNTRY_LANGUAGES` (`JP → ja`), never by filename coincidence.
 
 ### C2. Tokenization
 
