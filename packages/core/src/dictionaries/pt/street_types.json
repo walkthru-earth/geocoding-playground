@@ -1,0 +1,224 @@
+{
+  "_meta": {
+    "libpostal_repo": "openvenues/libpostal",
+    "libpostal_sha": "25099c506612b34b23b1bfe286ca6321fcf06f35",
+    "source_file": "street_types.txt",
+    "fetched_at": "2026-04-18T12:43:43.266Z",
+    "license": "MIT",
+    "attribution": "libpostal by Al Barrentine, MIT License. https://github.com/openvenues/libpostal. Dictionaries imported at the pinned commit."
+  },
+  "entries": [
+    {
+      "canonical": "acesso",
+      "variants": []
+    },
+    {
+      "canonical": "alameda",
+      "variants": ["al"]
+    },
+    {
+      "canonical": "autoestrada",
+      "variants": ["auto estrada", "auto estr", "autoestr"]
+    },
+    {
+      "canonical": "avenida",
+      "variants": ["av", "ava", "ave"]
+    },
+    {
+      "canonical": "avenida marginal",
+      "variants": ["ave marg", "av marg", "ava marg"]
+    },
+    {
+      "canonical": "azinhaga",
+      "variants": ["az"]
+    },
+    {
+      "canonical": "bairro",
+      "variants": ["b", "bo", "b°", "bro", "br°"]
+    },
+    {
+      "canonical": "beco",
+      "variants": ["bc", "bco"]
+    },
+    {
+      "canonical": "calcada",
+      "variants": ["cc"]
+    },
+    {
+      "canonical": "calcadinha",
+      "variants": ["caclcadinha", "ccnh"]
+    },
+    {
+      "canonical": "camara municipal",
+      "variants": ["cm", "c.m.", "c. m."]
+    },
+    {
+      "canonical": "caminho",
+      "variants": ["cam", "camno"]
+    },
+    {
+      "canonical": "direito",
+      "variants": ["dto", "dt"]
+    },
+    {
+      "canonical": "esquerdo",
+      "variants": ["esq"]
+    },
+    {
+      "canonical": "estrada",
+      "variants": ["estr"]
+    },
+    {
+      "canonical": "estrada marginal",
+      "variants": ["estr marg"]
+    },
+    {
+      "canonical": "estrada municipal",
+      "variants": ["em", "e m", "estr m"]
+    },
+    {
+      "canonical": "estrada nacional",
+      "variants": ["en", "e n", "estr n"]
+    },
+    {
+      "canonical": "estrada regional",
+      "variants": ["er", "e r", "estr r"]
+    },
+    {
+      "canonical": "frei",
+      "variants": ["fr"]
+    },
+    {
+      "canonical": "frente",
+      "variants": ["ft"]
+    },
+    {
+      "canonical": "itinerario complementar",
+      "variants": ["ic", "i c"]
+    },
+    {
+      "canonical": "itinerario principal",
+      "variants": ["ip", "i p"]
+    },
+    {
+      "canonical": "largo",
+      "variants": ["lg", "l"]
+    },
+    {
+      "canonical": "lugar",
+      "variants": ["lg", "lug"]
+    },
+    {
+      "canonical": "parada",
+      "variants": ["pda"]
+    },
+    {
+      "canonical": "particular",
+      "variants": ["part"]
+    },
+    {
+      "canonical": "ponto",
+      "variants": ["pto", "pnto"]
+    },
+    {
+      "canonical": "praca",
+      "variants": ["pc", "pr", "pca"]
+    },
+    {
+      "canonical": "praceta",
+      "variants": ["pct", "pcta"]
+    },
+    {
+      "canonical": "projectada",
+      "variants": ["proj"]
+    },
+    {
+      "canonical": "prolongamento",
+      "variants": ["prolng"]
+    },
+    {
+      "canonical": "quinta",
+      "variants": ["qu", "qta"]
+    },
+    {
+      "canonical": "rampa",
+      "variants": []
+    },
+    {
+      "canonical": "retorno",
+      "variants": ["ret"]
+    },
+    {
+      "canonical": "rodovia",
+      "variants": ["rod", "rvia", "rdvia"]
+    },
+    {
+      "canonical": "rodoanel",
+      "variants": []
+    },
+    {
+      "canonical": "rotunda",
+      "variants": ["rot"]
+    },
+    {
+      "canonical": "rua",
+      "variants": ["r"]
+    },
+    {
+      "canonical": "rua particular",
+      "variants": ["r part", "rpart"]
+    },
+    {
+      "canonical": "ruas",
+      "variants": ["rs"]
+    },
+    {
+      "canonical": "ruela",
+      "variants": []
+    },
+    {
+      "canonical": "sitio",
+      "variants": []
+    },
+    {
+      "canonical": "transversal",
+      "variants": ["transv"]
+    },
+    {
+      "canonical": "travessa",
+      "variants": ["tv", "trav", "trv"]
+    },
+    {
+      "canonical": "tunel",
+      "variants": []
+    },
+    {
+      "canonical": "urbanizacao",
+      "variants": ["urb"]
+    },
+    {
+      "canonical": "via",
+      "variants": ["v"]
+    },
+    {
+      "canonical": "viaduto",
+      "variants": ["vd", "vdto"]
+    },
+    {
+      "canonical": "viela",
+      "variants": ["ve"]
+    },
+    {
+      "canonical": "vila",
+      "variants": ["vl"]
+    },
+    {
+      "canonical": "volta",
+      "variants": []
+    },
+    {
+      "canonical": "zona",
+      "variants": ["zn"]
+    }
+  ]
+}

@@ -1,0 +1,628 @@
+{
+  "_meta": {
+    "libpostal_repo": "openvenues/libpostal",
+    "libpostal_sha": "25099c506612b34b23b1bfe286ca6321fcf06f35",
+    "source_file": "street_types.txt",
+    "fetched_at": "2026-04-18T12:43:38.869Z",
+    "license": "MIT",
+    "attribution": "libpostal by Al Barrentine, MIT License. https://github.com/openvenues/libpostal. Dictionaries imported at the pinned commit."
+  },
+  "entries": [
+    {
+      "canonical": "accesso",
+      "variants": ["acc.so", "accso"]
+    },
+    {
+      "canonical": "alto",
+      "variants": ["alt"]
+    },
+    {
+      "canonical": "alzaia",
+      "variants": ["alz"]
+    },
+    {
+      "canonical": "androna",
+      "variants": ["and"]
+    },
+    {
+      "canonical": "angolo",
+      "variants": ["ang.", "ang"]
+    },
+    {
+      "canonical": "arco",
+      "variants": ["arc"]
+    },
+    {
+      "canonical": "autostrada",
+      "variants": ["aut.da", "autda", "aut"]
+    },
+    {
+      "canonical": "audostradale",
+      "variants": ["aut.sle", "autsle", "aut sle", "aut.ale", "autale"]
+    },
+    {
+      "canonical": "autostrade",
+      "variants": ["aut.de", "autde"]
+    },
+    {
+      "canonical": "baluardo",
+      "variants": ["bdo"]
+    },
+    {
+      "canonical": "banchina",
+      "variants": ["bna"]
+    },
+    {
+      "canonical": "bivio",
+      "variants": ["biv"]
+    },
+    {
+      "canonical": "borgata",
+      "variants": ["bga"]
+    },
+    {
+      "canonical": "borgo",
+      "variants": ["b.go", "bgo"]
+    },
+    {
+      "canonical": "bretella",
+      "variants": ["br.lla", "brlla"]
+    },
+    {
+      "canonical": "bretelle",
+      "variants": ["br.lle", "brlle"]
+    },
+    {
+      "canonical": "brigata",
+      "variants": ["bgt"]
+    },
+    {
+      "canonical": "calata",
+      "variants": ["clt"]
+    },
+    {
+      "canonical": "calle",
+      "variants": ["cal"]
+    },
+    {
+      "canonical": "campiello",
+      "variants": ["cpl"]
+    },
+    {
+      "canonical": "campo",
+      "variants": ["c.po", "cpo"]
+    },
+    {
+      "canonical": "canale",
+      "variants": ["cnl"]
+    },
+    {
+      "canonical": "cantone",
+      "variants": ["cat"]
+    },
+    {
+      "canonical": "casale",
+      "variants": ["cas"]
+    },
+    {
+      "canonical": "cascina",
+      "variants": ["c.na", "cna"]
+    },
+    {
+      "canonical": "cavalcavia",
+      "variants": ["cavalc.a", "cavalca"]
+    },
+    {
+      "canonical": "chiusa",
+      "variants": ["c.usa", "cusa"]
+    },
+    {
+      "canonical": "circonvallazione",
+      "variants": ["circonv.e", "circonve", "crv"]
+    },
+    {
+      "canonical": "contra",
+      "variants": ["con", "contra'"]
+    },
+    {
+      "canonical": "contrada",
+      "variants": ["contr.a", "contra", "c.da", "cda", "cnt"]
+    },
+    {
+      "canonical": "corso",
+      "variants": ["c.so", "cso"]
+    },
+    {
+      "canonical": "corte",
+      "variants": ["c.te", "cte"]
+    },
+    {
+      "canonical": "cortile",
+      "variants": ["c.ile", "ctile", "c.le", "cle"]
+    },
+    {
+      "canonical": "cortina",
+      "variants": ["ctn"]
+    },
+    {
+      "canonical": "costa",
+      "variants": ["cta"]
+    },
+    {
+      "canonical": "crocevia",
+      "variants": ["cra"]
+    },
+    {
+      "canonical": "cupa",
+      "variants": ["cup"]
+    },
+    {
+      "canonical": "discesa",
+      "variants": ["dis"]
+    },
+    {
+      "canonical": "ferrata",
+      "variants": ["f.rata", "frata"]
+    },
+    {
+      "canonical": "fondamenta",
+      "variants": ["f.ta", "fta", "fon"]
+    },
+    {
+      "canonical": "fondo",
+      "variants": ["fdo"]
+    },
+    {
+      "canonical": "forca",
+      "variants": ["f.ca", "fca"]
+    },
+    {
+      "canonical": "forcella",
+      "variants": ["forc.la", "forcla"]
+    },
+    {
+      "canonical": "foro",
+      "variants": ["for"]
+    },
+    {
+      "canonical": "frazione",
+      "variants": ["fraz.e", "fraze", "frz", "fraz"]
+    },
+    {
+      "canonical": "frazioni",
+      "variants": ["fraz.i", "frazi"]
+    },
+    {
+      "canonical": "galleria",
+      "variants": ["gall.a", "galla", "gal"]
+    },
+    {
+      "canonical": "gallerie",
+      "variants": ["gall.e", "galle"]
+    },
+    {
+      "canonical": "genna",
+      "variants": ["g.na", "gna"]
+    },
+    {
+      "canonical": "genne",
+      "variants": ["g.ne", "gne"]
+    },
+    {
+      "canonical": "gradini",
+      "variants": ["grd"]
+    },
+    {
+      "canonical": "interrato",
+      "variants": ["int"]
+    },
+    {
+      "canonical": "larghetto",
+      "variants": ["lgt"]
+    },
+    {
+      "canonical": "largo",
+      "variants": ["l.go", "lgo"]
+    },
+    {
+      "canonical": "logge",
+      "variants": ["lge"]
+    },
+    {
+      "canonical": "lungadige",
+      "variants": ["lgd"]
+    },
+    {
+      "canonical": "lungargine",
+      "variants": ["lug"]
+    },
+    {
+      "canonical": "lungarno",
+      "variants": ["lno"]
+    },
+    {
+      "canonical": "lungo",
+      "variants": ["lun"]
+    },
+    {
+      "canonical": "lungolago",
+      "variants": ["llg"]
+    },
+    {
+      "canonical": "lungomare",
+      "variants": ["lre"]
+    },
+    {
+      "canonical": "lungotevere",
+      "variants": ["lgv"]
+    },
+    {
+      "canonical": "localita",
+      "variants": ["loc", "loc.ta", "locta"]
+    },
+    {
+      "canonical": "molo",
+      "variants": ["mlo"]
+    },
+    {
+      "canonical": "monte",
+      "variants": ["mte"]
+    },
+    {
+      "canonical": "passaggio",
+      "variants": ["pas"]
+    },
+    {
+      "canonical": "passeggiata",
+      "variants": ["pss"]
+    },
+    {
+      "canonical": "piazza",
+      "variants": ["p.za", "p.zza", "pza", "pzza"]
+    },
+    {
+      "canonical": "piazzale",
+      "variants": ["p.le", "ple"]
+    },
+    {
+      "canonical": "piazzetta",
+      "variants": ["p.ta", "pta", "pzt"]
+    },
+    {
+      "canonical": "ponte",
+      "variants": ["p.te", "pte"]
+    },
+    {
+      "canonical": "pontile",
+      "variants": ["ptl"]
+    },
+    {
+      "canonical": "porta",
+      "variants": ["p.ta", "pta"]
+    },
+    {
+      "canonical": "portici",
+      "variants": ["prt"]
+    },
+    {
+      "canonical": "portico",
+      "variants": ["pro"]
+    },
+    {
+      "canonical": "presso",
+      "variants": ["pre"]
+    },
+    {
+      "canonical": "prolungamento",
+      "variants": ["plg"]
+    },
+    {
+      "canonical": "provinciale",
+      "variants": []
+    },
+    {
+      "canonical": "quartiere",
+      "variants": ["qua"]
+    },
+    {
+      "canonical": "rampa",
+      "variants": ["rpa"]
+    },
+    {
+      "canonical": "rampe",
+      "variants": ["rpe"]
+    },
+    {
+      "canonical": "regione",
+      "variants": ["reg"]
+    },
+    {
+      "canonical": "rio",
+      "variants": ["rii"]
+    },
+    {
+      "canonical": "rio tera",
+      "variants": ["rit", "rio tera'"]
+    },
+    {
+      "canonical": "ripa",
+      "variants": ["ri"]
+    },
+    {
+      "canonical": "riva",
+      "variants": ["rva"]
+    },
+    {
+      "canonical": "riviera",
+      "variants": ["riv"]
+    },
+    {
+      "canonical": "rotabile",
+      "variants": ["rtb"]
+    },
+    {
+      "canonical": "rotonda",
+      "variants": ["rtd"]
+    },
+    {
+      "canonical": "sacca",
+      "variants": ["scc"]
+    },
+    {
+      "canonical": "salita",
+      "variants": ["sal"]
+    },
+    {
+      "canonical": "salizada",
+      "variants": ["s.da", "sda"]
+    },
+    {
+      "canonical": "scala",
+      "variants": ["scl"]
+    },
+    {
+      "canonical": "scale",
+      "variants": ["sce"]
+    },
+    {
+      "canonical": "scali",
+      "variants": ["sci"]
+    },
+    {
+      "canonical": "scalinata",
+      "variants": ["sca"]
+    },
+    {
+      "canonical": "sdrucciolo",
+      "variants": ["sdr"]
+    },
+    {
+      "canonical": "sestiere",
+      "variants": ["ses"]
+    },
+    {
+      "canonical": "sottopassaggio",
+      "variants": ["sps"]
+    },
+    {
+      "canonical": "spadaria",
+      "variants": ["spd"]
+    },
+    {
+      "canonical": "spalto",
+      "variants": ["spa"]
+    },
+    {
+      "canonical": "stazione",
+      "variants": ["staz", "sta"]
+    },
+    {
+      "canonical": "strada",
+      "variants": ["s", "str.a", "stra", "str"]
+    },
+    {
+      "canonical": "strada comunale",
+      "variants": ["sc", "s.c.", "s.c", "s c", "stc"]
+    },
+    {
+      "canonical": "strada nuova",
+      "variants": ["snu"]
+    },
+    {
+      "canonical": "strada provinciale",
+      "variants": [
+        "sp",
+        "s.p.",
+        "s.p",
+        "s p",
+        "str provinciale",
+        "s provinciale",
+        "str.prov",
+        "str prov",
+        "s.prov",
+        "s prov",
+        "stp"
+      ]
+    },
+    {
+      "canonical": "strada privata",
+      "variants": ["spr"]
+    },
+    {
+      "canonical": "strada regionale",
+      "variants": ["sr", "s.r.", "s.r", "s r", "str.reg", "str reg", "str r", "str.r", "str reginale", "s reginale"]
+    },
+    {
+      "canonical": "strada statale",
+      "variants": ["ss", "s.s.", "s.s", "s s", "str.s", "str s", "str.st", "str st", "str statale", "s statale", "sts"]
+    },
+    {
+      "canonical": "strada vecchia",
+      "variants": ["sve"]
+    },
+    {
+      "canonical": "strada vicinale",
+      "variants": ["sv", "s.v.", "s.v", "s v", "str.vic", "str vic", "str vicinale", "s vicinale", "svc"]
+    },
+    {
+      "canonical": "stradale",
+      "variants": ["sdl"]
+    },
+    {
+      "canonical": "stradello",
+      "variants": ["stl"]
+    },
+    {
+      "canonical": "stradetta",
+      "variants": ["stt"]
+    },
+    {
+      "canonical": "stradone",
+      "variants": ["std"]
+    },
+    {
+      "canonical": "stretta",
+      "variants": ["str.ta", "strta"]
+    },
+    {
+      "canonical": "strette",
+      "variants": ["str.te", "strte"]
+    },
+    {
+      "canonical": "stretti",
+      "variants": ["str.ti", "strti"]
+    },
+    {
+      "canonical": "stretto",
+      "variants": ["str.to", "strto", "sto"]
+    },
+    {
+      "canonical": "superstrada",
+      "variants": []
+    },
+    {
+      "canonical": "supportico",
+      "variants": ["sup"]
+    },
+    {
+      "canonical": "tangenziale",
+      "variants": []
+    },
+    {
+      "canonical": "traversa",
+      "variants": ["tra"]
+    },
+    {
+      "canonical": "traversa nuova",
+      "variants": ["tnu"]
+    },
+    {
+      "canonical": "traversa privata",
+      "variants": ["tpr"]
+    },
+    {
+      "canonical": "traversa strada statale",
+      "variants": ["tra s.s."]
+    },
+    {
+      "canonical": "traversa vicinale",
+      "variants": ["tvc"]
+    },
+    {
+      "canonical": "varco",
+      "variants": ["var"]
+    },
+    {
+      "canonical": "via",
+      "variants": ["v"]
+    },
+    {
+      "canonical": "via comunale",
+      "variants": ["vc", "v.c.", "v.c", "v c", "vcm"]
+    },
+    {
+      "canonical": "via nuova",
+      "variants": ["vnu"]
+    },
+    {
+      "canonical": "via privata",
+      "variants": ["vpr"]
+    },
+    {
+      "canonical": "via provincale",
+      "variants": ["vp", "v.p.", "v.p", "v p", "v provinciale", "vpv"]
+    },
+    {
+      "canonical": "via statale",
+      "variants": ["vs", "v.s.", "v.s", "v s"]
+    },
+    {
+      "canonical": "via vecchia",
+      "variants": ["vve"]
+    },
+    {
+      "canonical": "via vicinale",
+      "variants": ["vvc"]
+    },
+    {
+      "canonical": "viale",
+      "variants": ["v.le", "vle", "vl"]
+    },
+    {
+      "canonical": "viale privato",
+      "variants": ["vlp"]
+    },
+    {
+      "canonical": "vicoletto",
+      "variants": ["vct"]
+    },
+    {
+      "canonical": "vicolo",
+      "variants": ["v.lo", "vlo"]
+    },
+    {
+      "canonical": "vicolo largo",
+      "variants": ["vcl"]
+    },
+    {
+      "canonical": "vicolo privato",
+      "variants": ["vcp"]
+    },
+    {
+      "canonical": "vicolo nuovo",
+      "variants": ["vcn"]
+    },
+    {
+      "canonical": "vicolo vecchio",
+      "variants": ["vcv"]
+    },
+    {
+      "canonical": "vico",
+      "variants": ["vic"]
+    },
+    {
+      "canonical": "villa",
+      "variants": ["vla"]
+    },
+    {
+      "canonical": "villaggio",
+      "variants": ["vil"]
+    },
+    {
+      "canonical": "viuzzo",
+      "variants": ["vzo"]
+    },
+    {
+      "canonical": "vocabolo",
+      "variants": ["voc"]
+    },
+    {
+      "canonical": "volta",
+      "variants": ["vta"]
+    },
+    {
+      "canonical": "zona industriale",
+      "variants": ["zin", "z.i."]
+    }
+  ]
+}

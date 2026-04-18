@@ -1,0 +1,84 @@
+{
+  "_meta": {
+    "libpostal_repo": "openvenues/libpostal",
+    "libpostal_sha": "25099c506612b34b23b1bfe286ca6321fcf06f35",
+    "source_file": "street_types.txt",
+    "fetched_at": "2026-04-18T12:44:25.865Z",
+    "license": "MIT",
+    "attribution": "libpostal by Al Barrentine, MIT License. https://github.com/openvenues/libpostal. Dictionaries imported at the pinned commit."
+  },
+  "entries": [
+    {
+      "canonical": "autobidea",
+      "variants": []
+    },
+    {
+      "canonical": "autopista",
+      "variants": []
+    },
+    {
+      "canonical": "bide",
+      "variants": []
+    },
+    {
+      "canonical": "bidea",
+      "variants": []
+    },
+    {
+      "canonical": "bidexka",
+      "variants": []
+    },
+    {
+      "canonical": "enparantza",
+      "variants": []
+    },
+    {
+      "canonical": "errepidea",
+      "variants": ["err"]
+    },
+    {
+      "canonical": "etorbidea",
+      "variants": ["etorb"]
+    },
+    {
+      "canonical": "hiribidea",
+      "variants": []
+    },
+    {
+      "canonical": "ibilbidea",
+      "variants": []
+    },
+    {
+      "canonical": "kalea",
+      "variants": ["k"]
+    },
+    {
+      "canonical": "kale",
+      "variants": []
+    },
+    {
+      "canonical": "karrika",
+      "variants": []
+    },
+    {
+      "canonical": "korridorea",
+      "variants": []
+    },
+    {
+      "canonical": "pasealekua",
+      "variants": ["pas"]
+    },
+    {
+      "canonical": "plaza",
+      "variants": ["pl"]
+    },
+    {
+      "canonical": "zeharbidea",
+      "variants": ["zehb"]
+    },
+    {
+      "canonical": "zumardia",
+      "variants": ["zum"]
+    }
+  ]
+}

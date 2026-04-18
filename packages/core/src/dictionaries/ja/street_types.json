@@ -1,0 +1,280 @@
+{
+  "_meta": {
+    "libpostal_repo": "openvenues/libpostal",
+    "libpostal_sha": "25099c506612b34b23b1bfe286ca6321fcf06f35",
+    "source_file": "street_types.txt",
+    "fetched_at": "2026-04-18T12:43:45.460Z",
+    "license": "MIT",
+    "attribution": "libpostal by Al Barrentine, MIT License. https://github.com/openvenues/libpostal. Dictionaries imported at the pinned commit."
+  },
+  "entries": [
+    {
+      "canonical": "バイパス道路",
+      "variants": []
+    },
+    {
+      "canonical": "baipasu doro",
+      "variants": ["baipasudoro"]
+    },
+    {
+      "canonical": "バイパス",
+      "variants": []
+    },
+    {
+      "canonical": "baipasu",
+      "variants": []
+    },
+    {
+      "canonical": "ブールバール",
+      "variants": []
+    },
+    {
+      "canonical": "burubaru",
+      "variants": []
+    },
+    {
+      "canonical": "道路",
+      "variants": []
+    },
+    {
+      "canonical": "doro",
+      "variants": []
+    },
+    {
+      "canonical": "街路",
+      "variants": []
+    },
+    {
+      "canonical": "gairo",
+      "variants": []
+    },
+    {
+      "canonical": "ハイ・ストリート",
+      "variants": []
+    },
+    {
+      "canonical": "hai·sutorito",
+      "variants": ["hai sutorito", "haisutorito"]
+    },
+    {
+      "canonical": "一般道道",
+      "variants": ["(一)"]
+    },
+    {
+      "canonical": "一般府道",
+      "variants": ["(一)"]
+    },
+    {
+      "canonical": "一般県道",
+      "variants": ["(一)"]
+    },
+    {
+      "canonical": "一般社団法人",
+      "variants": ["(一社)"]
+    },
+    {
+      "canonical": "一般都道",
+      "variants": ["(一)"]
+    },
+    {
+      "canonical": "一般財団法人",
+      "variants": ["(一財)"]
+    },
+    {
+      "canonical": "自動車道",
+      "variants": []
+    },
+    {
+      "canonical": "jidoshado",
+      "variants": []
+    },
+    {
+      "canonical": "街道",
+      "variants": []
+    },
+    {
+      "canonical": "kaido",
+      "variants": []
+    },
+    {
+      "canonical": "環状道路",
+      "variants": []
+    },
+    {
+      "canonical": "kanjo doro",
+      "variants": ["kanjodoro"]
+    },
+    {
+      "canonical": "経路",
+      "variants": []
+    },
+    {
+      "canonical": "keiro",
+      "variants": []
+    },
+    {
+      "canonical": "公道",
+      "variants": []
+    },
+    {
+      "canonical": "kodo",
+      "variants": []
+    },
+    {
+      "canonical": "公園道路",
+      "variants": []
+    },
+    {
+      "canonical": "koen doro",
+      "variants": ["koendoro"]
+    },
+    {
+      "canonical": "国道",
+      "variants": []
+    },
+    {
+      "canonical": "kokudo",
+      "variants": []
+    },
+    {
+      "canonical": "高速道路",
+      "variants": []
+    },
+    {
+      "canonical": "kozokudoro",
+      "variants": ["kozoku doro", "kosukudoro", "kosoku doro"]
+    },
+    {
+      "canonical": "クルドサック",
+      "variants": []
+    },
+    {
+      "canonical": "kurudosakku",
+      "variants": []
+    },
+    {
+      "canonical": "道",
+      "variants": []
+    },
+    {
+      "canonical": "michi",
+      "variants": []
+    },
+    {
+      "canonical": "表通り",
+      "variants": []
+    },
+    {
+      "canonical": "omotedori",
+      "variants": []
+    },
+    {
+      "canonical": "大通り",
+      "variants": []
+    },
+    {
+      "canonical": "odori",
+      "variants": []
+    },
+    {
+      "canonical": "メーンストリート",
+      "variants": []
+    },
+    {
+      "canonical": "mensutorito",
+      "variants": []
+    },
+    {
+      "canonical": "メロディーロード",
+      "variants": []
+    },
+    {
+      "canonical": "merodirodo",
+      "variants": []
+    },
+    {
+      "canonical": "路地",
+      "variants": []
+    },
+    {
+      "canonical": "roji",
+      "variants": []
+    },
+    {
+      "canonical": "ローマ街道",
+      "variants": []
+    },
+    {
+      "canonical": "roma kaido",
+      "variants": ["romakaido"]
+    },
+    {
+      "canonical": "私道",
+      "variants": []
+    },
+    {
+      "canonical": "shido",
+      "variants": []
+    },
+    {
+      "canonical": "州間高速道路",
+      "variants": []
+    },
+    {
+      "canonical": "shukankosokudoro",
+      "variants": []
+    },
+    {
+      "canonical": "主要地方道",
+      "variants": ["(主)"]
+    },
+    {
+      "canonical": "ストリート",
+      "variants": []
+    },
+    {
+      "canonical": "sutorito",
+      "variants": []
+    },
+    {
+      "canonical": "通り",
+      "variants": []
+    },
+    {
+      "canonical": "tori",
+      "variants": []
+    },
+    {
+      "canonical": "通り道",
+      "variants": []
+    },
+    {
+      "canonical": "torimichi",
+      "variants": []
+    },
+    {
+      "canonical": "都市高速道路",
+      "variants": []
+    },
+    {
+      "canonical": "toshi kozokudoro",
+      "variants": ["toshikozokudoro"]
+    },
+    {
+      "canonical": "通路",
+      "variants": []
+    },
+    {
+      "canonical": "tsuro",
+      "variants": []
+    },
+    {
+      "canonical": "有料道路",
+      "variants": []
+    },
+    {
+      "canonical": "yuryo doro",
+      "variants": ["yuryodoro"]
+    }
+  ]
+}

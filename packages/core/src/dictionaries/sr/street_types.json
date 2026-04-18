@@ -1,0 +1,72 @@
+{
+  "_meta": {
+    "libpostal_repo": "openvenues/libpostal",
+    "libpostal_sha": "25099c506612b34b23b1bfe286ca6321fcf06f35",
+    "source_file": "street_types.txt",
+    "fetched_at": "2026-04-18T12:44:07.729Z",
+    "license": "MIT",
+    "attribution": "libpostal by Al Barrentine, MIT License. https://github.com/openvenues/libpostal. Dictionaries imported at the pinned commit."
+  },
+  "entries": [
+    {
+      "canonical": "булевар",
+      "variants": ["бул"]
+    },
+    {
+      "canonical": "bulevar",
+      "variants": ["bul"]
+    },
+    {
+      "canonical": "bulevardi",
+      "variants": []
+    },
+    {
+      "canonical": "магистрала",
+      "variants": []
+    },
+    {
+      "canonical": "magistrala",
+      "variants": []
+    },
+    {
+      "canonical": "обилазница",
+      "variants": []
+    },
+    {
+      "canonical": "obilaznica",
+      "variants": []
+    },
+    {
+      "canonical": "прилаз",
+      "variants": []
+    },
+    {
+      "canonical": "prilaz",
+      "variants": []
+    },
+    {
+      "canonical": "пут",
+      "variants": []
+    },
+    {
+      "canonical": "put",
+      "variants": []
+    },
+    {
+      "canonical": "трг",
+      "variants": []
+    },
+    {
+      "canonical": "trg",
+      "variants": []
+    },
+    {
+      "canonical": "улица",
+      "variants": ["ул"]
+    },
+    {
+      "canonical": "ulica",
+      "variants": ["ul"]
+    }
+  ]
+}

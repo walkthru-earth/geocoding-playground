@@ -1,0 +1,44 @@
+{
+  "_meta": {
+    "libpostal_repo": "openvenues/libpostal",
+    "libpostal_sha": "25099c506612b34b23b1bfe286ca6321fcf06f35",
+    "source_file": "directionals.txt",
+    "fetched_at": "2026-04-18T12:43:48.073Z",
+    "license": "MIT",
+    "attribution": "libpostal by Al Barrentine, MIT License. https://github.com/openvenues/libpostal. Dictionaries imported at the pinned commit."
+  },
+  "entries": [
+    {
+      "canonical": "polnoc",
+      "variants": ["pln"]
+    },
+    {
+      "canonical": "polnocny wschod",
+      "variants": ["pn.-wsch.", "pn-wsch", "pn wsch", "pln.-wsch.", "pln-wsch", "pln wsch"]
+    },
+    {
+      "canonical": "polnocny zachod",
+      "variants": ["pn.-zach.", "pn-zach", "pn zach", "pln.-zach.", "pln-zach", "pln zach"]
+    },
+    {
+      "canonical": "wschod",
+      "variants": ["w", "wsch"]
+    },
+    {
+      "canonical": "poludnie",
+      "variants": ["pd", "pld"]
+    },
+    {
+      "canonical": "poludniowy wschod",
+      "variants": ["pd.-wsch.", "pd-wsch", "pd wsch", "pld.-wsch.", "pld-wsch", "pld wsch"]
+    },
+    {
+      "canonical": "poludniowy zachod",
+      "variants": ["pd.-zach.", "pd-zach", "pd zach", "pld.-zach.", "pld-zach", "pld zach"]
+    },
+    {
+      "canonical": "zachod",
+      "variants": ["z", "zach"]
+    }
+  ]
+}

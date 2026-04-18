@@ -1,0 +1,444 @@
+{
+  "_meta": {
+    "libpostal_repo": "openvenues/libpostal",
+    "libpostal_sha": "25099c506612b34b23b1bfe286ca6321fcf06f35",
+    "source_file": "street_types.txt",
+    "fetched_at": "2026-04-18T12:43:36.468Z",
+    "license": "MIT",
+    "attribution": "libpostal by Al Barrentine, MIT License. https://github.com/openvenues/libpostal. Dictionaries imported at the pinned commit."
+  },
+  "entries": [
+    {
+      "canonical": "acceso",
+      "variants": ["acces"]
+    },
+    {
+      "canonical": "alameda",
+      "variants": ["alam"]
+    },
+    {
+      "canonical": "alqueria",
+      "variants": ["alque"]
+    },
+    {
+      "canonical": "andador",
+      "variants": ["andad"]
+    },
+    {
+      "canonical": "angosta",
+      "variants": ["angta"]
+    },
+    {
+      "canonical": "apeadero",
+      "variants": ["apdro"]
+    },
+    {
+      "canonical": "autopista",
+      "variants": ["auto", "autop", "aut", "ap"]
+    },
+    {
+      "canonical": "autovia",
+      "variants": ["autov"]
+    },
+    {
+      "canonical": "avenida",
+      "variants": ["av", "avd", "avda", "av /"]
+    },
+    {
+      "canonical": "avenida calle",
+      "variants": ["ac", "av cl", "av", "cll", "av calle"]
+    },
+    {
+      "canonical": "avenida carrera",
+      "variants": ["ak", "av cr", "av cra", "avda cra", "avda cr"]
+    },
+    {
+      "canonical": "bajada",
+      "variants": ["bjada"]
+    },
+    {
+      "canonical": "banda",
+      "variants": ["bda"]
+    },
+    {
+      "canonical": "barranco",
+      "variants": ["branc"]
+    },
+    {
+      "canonical": "barranquillo",
+      "variants": ["bqllo"]
+    },
+    {
+      "canonical": "barriada",
+      "variants": ["barda"]
+    },
+    {
+      "canonical": "brazal",
+      "variants": ["brzal"]
+    },
+    {
+      "canonical": "bulevar",
+      "variants": ["bulev", "blev", "blv", "bv", "bl", "br", "boulevard", "blvd", "bvd"]
+    },
+    {
+      "canonical": "calle",
+      "variants": ["c", "cl", "cll", "c /", "ca", "call"]
+    },
+    {
+      "canonical": "calleja",
+      "variants": ["cllja"]
+    },
+    {
+      "canonical": "callejon",
+      "variants": ["callej", "cjon", "cllon", "cj"]
+    },
+    {
+      "canonical": "calle privada",
+      "variants": ["calle priv", "c priv", "cl priv", "cll priv", "c / priv"]
+    },
+    {
+      "canonical": "callejuela",
+      "variants": ["cjla"]
+    },
+    {
+      "canonical": "callizo",
+      "variants": ["cllzo"]
+    },
+    {
+      "canonical": "calzada",
+      "variants": ["czada", "calz"]
+    },
+    {
+      "canonical": "camino",
+      "variants": ["cno", "cmo", "cmno", "cm"]
+    },
+    {
+      "canonical": "camino hondo",
+      "variants": ["ch", "c.h.", "c.h", "c h"]
+    },
+    {
+      "canonical": "camino nuevo",
+      "variants": ["cn", "c.n.", "c.n", "c n"]
+    },
+    {
+      "canonical": "camino viejo",
+      "variants": ["cv", "c.v.", "c.v", "c v"]
+    },
+    {
+      "canonical": "caminito",
+      "variants": ["cmt"]
+    },
+    {
+      "canonical": "camping",
+      "variants": ["campg"]
+    },
+    {
+      "canonical": "cantera",
+      "variants": ["cantr"]
+    },
+    {
+      "canonical": "canton",
+      "variants": ["cant"]
+    },
+    {
+      "canonical": "carrera",
+      "variants": ["cra", "carra", "carr", "cr", "kra", "kr"]
+    },
+    {
+      "canonical": "carretera",
+      "variants": ["ctra", "cr", "ct"]
+    },
+    {
+      "canonical": "carreterin",
+      "variants": ["ctrin"]
+    },
+    {
+      "canonical": "carretil",
+      "variants": ["crtil"]
+    },
+    {
+      "canonical": "carril",
+      "variants": ["crril"]
+    },
+    {
+      "canonical": "cerrada",
+      "variants": ["cda", "cer"]
+    },
+    {
+      "canonical": "cinturon",
+      "variants": ["cint"]
+    },
+    {
+      "canonical": "circular",
+      "variants": ["cq"]
+    },
+    {
+      "canonical": "circuito",
+      "variants": ["cto"]
+    },
+    {
+      "canonical": "circunvalar",
+      "variants": ["cv", "crv", "cirv"]
+    },
+    {
+      "canonical": "circunvalacion",
+      "variants": ["ccvcn"]
+    },
+    {
+      "canonical": "corredor",
+      "variants": ["crrdo"]
+    },
+    {
+      "canonical": "costanilla",
+      "variants": ["cstan"]
+    },
+    {
+      "canonical": "costera",
+      "variants": []
+    },
+    {
+      "canonical": "cuesta",
+      "variants": ["custa"]
+    },
+    {
+      "canonical": "diagonal",
+      "variants": ["diag", "dg"]
+    },
+    {
+      "canonical": "diseminado",
+      "variants": ["disem"]
+    },
+    {
+      "canonical": "espalda",
+      "variants": ["eslda"]
+    },
+    {
+      "canonical": "estrada",
+      "variants": ["estda"]
+    },
+    {
+      "canonical": "explanada",
+      "variants": ["expla"]
+    },
+    {
+      "canonical": "extension",
+      "variants": ["ext"]
+    },
+    {
+      "canonical": "extramuros",
+      "variants": ["extrm"]
+    },
+    {
+      "canonical": "galeria",
+      "variants": ["gale"]
+    },
+    {
+      "canonical": "glorieta",
+      "variants": ["gta", "g"]
+    },
+    {
+      "canonical": "gran via",
+      "variants": ["gv", "g v"]
+    },
+    {
+      "canonical": "hacienda",
+      "variants": ["hda"]
+    },
+    {
+      "canonical": "ladera",
+      "variants": ["ldera"]
+    },
+    {
+      "canonical": "laderas",
+      "variants": ["lderas"]
+    },
+    {
+      "canonical": "llanura",
+      "variants": ["llnra"]
+    },
+    {
+      "canonical": "malecon",
+      "variants": ["malec"]
+    },
+    {
+      "canonical": "mirador",
+      "variants": ["mrdor"]
+    },
+    {
+      "canonical": "muelle",
+      "variants": ["meull"]
+    },
+    {
+      "canonical": "pantano",
+      "variants": ["pant"]
+    },
+    {
+      "canonical": "paraje",
+      "variants": ["praje"]
+    },
+    {
+      "canonical": "parque",
+      "variants": ["pque", "parq", "pq", "pqe"]
+    },
+    {
+      "canonical": "particular",
+      "variants": ["parti"]
+    },
+    {
+      "canonical": "partida",
+      "variants": ["ptda"]
+    },
+    {
+      "canonical": "pasadizo",
+      "variants": ["pzo"]
+    },
+    {
+      "canonical": "pasaje",
+      "variants": ["psaje", "psj"]
+    },
+    {
+      "canonical": "paseo",
+      "variants": ["po", "p°", "pso", "pseo", "pas", "ps", "p", "p.o", "p.°"]
+    },
+    {
+      "canonical": "paseo maritimo",
+      "variants": ["psmar", "ps mar"]
+    },
+    {
+      "canonical": "paso",
+      "variants": []
+    },
+    {
+      "canonical": "pasillo",
+      "variants": ["psllo"]
+    },
+    {
+      "canonical": "peatonal",
+      "variants": ["peat"]
+    },
+    {
+      "canonical": "periferico",
+      "variants": ["perif"]
+    },
+    {
+      "canonical": "plaza",
+      "variants": ["pl", "plza", "pza", "p.za", "pz"]
+    },
+    {
+      "canonical": "plazoleta",
+      "variants": ["pzta", "plzta", "plta"]
+    },
+    {
+      "canonical": "plazuela",
+      "variants": ["plzla"]
+    },
+    {
+      "canonical": "poblado",
+      "variants": ["pbdo"]
+    },
+    {
+      "canonical": "poligono residencial",
+      "variants": ["polig res", "pol.res", "pol res", "pgres", "pg res", "pr", "p.r.", "p.r", "p r"]
+    },
+    {
+      "canonical": "poligono industrial",
+      "variants": ["polig ind", "pol.ind", "pol ind", "pgind", "pg ind", "pi", "p.i.", "p.i", "p i"]
+    },
+    {
+      "canonical": "prolongacion",
+      "variants": ["prol"]
+    },
+    {
+      "canonical": "puebla",
+      "variants": ["pbla"]
+    },
+    {
+      "canonical": "pueblo",
+      "variants": ["pblo"]
+    },
+    {
+      "canonical": "puente",
+      "variants": ["pnte"]
+    },
+    {
+      "canonical": "rambla",
+      "variants": ["rbla"]
+    },
+    {
+      "canonical": "rampla",
+      "variants": ["rampa", "rpla"]
+    },
+    {
+      "canonical": "retorno",
+      "variants": ["ret", "rt"]
+    },
+    {
+      "canonical": "rincon",
+      "variants": ["rcon", "rin", "rncn", "rncon"]
+    },
+    {
+      "canonical": "rinconada",
+      "variants": ["rcda", "rcnda"]
+    },
+    {
+      "canonical": "ronda",
+      "variants": ["rda"]
+    },
+    {
+      "canonical": "rotonda",
+      "variants": ["rtda"]
+    },
+    {
+      "canonical": "ruta",
+      "variants": ["rta"]
+    },
+    {
+      "canonical": "sector",
+      "variants": ["sect"]
+    },
+    {
+      "canonical": "sendera",
+      "variants": ["sedra"]
+    },
+    {
+      "canonical": "sendero",
+      "variants": ["send", "sedro"]
+    },
+    {
+      "canonical": "subida",
+      "variants": ["sbida"]
+    },
+    {
+      "canonical": "transito",
+      "variants": ["trans"]
+    },
+    {
+      "canonical": "transversal",
+      "variants": ["trval", "trvsal", "tv", "tr"]
+    },
+    {
+      "canonical": "trasera",
+      "variants": ["tras"]
+    },
+    {
+      "canonical": "travesia",
+      "variants": ["trva", "trvsia"]
+    },
+    {
+      "canonical": "vereda",
+      "variants": ["vreda", "ver"]
+    },
+    {
+      "canonical": "viaducto",
+      "variants": ["vcto", "vd"]
+    },
+    {
+      "canonical": "via",
+      "variants": ["v"]
+    },
+    {
+      "canonical": "vista",
+      "variants": ["vst", "vsta", "vist"]
+    }
+  ]
+}

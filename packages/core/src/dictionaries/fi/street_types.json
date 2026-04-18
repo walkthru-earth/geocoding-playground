@@ -1,0 +1,92 @@
+{
+  "_meta": {
+    "libpostal_repo": "openvenues/libpostal",
+    "libpostal_sha": "25099c506612b34b23b1bfe286ca6321fcf06f35",
+    "source_file": "street_types.txt",
+    "fetched_at": "2026-04-18T12:43:56.417Z",
+    "license": "MIT",
+    "attribution": "libpostal by Al Barrentine, MIT License. https://github.com/openvenues/libpostal. Dictionaries imported at the pinned commit."
+  },
+  "entries": [
+    {
+      "canonical": "alue",
+      "variants": ["al"]
+    },
+    {
+      "canonical": "aukio",
+      "variants": ["auk"]
+    },
+    {
+      "canonical": "bulevard",
+      "variants": []
+    },
+    {
+      "canonical": "bulevardi",
+      "variants": []
+    },
+    {
+      "canonical": "esplanadi",
+      "variants": []
+    },
+    {
+      "canonical": "kaari",
+      "variants": ["kri"]
+    },
+    {
+      "canonical": "katu",
+      "variants": ["k"]
+    },
+    {
+      "canonical": "kuja",
+      "variants": ["kj"]
+    },
+    {
+      "canonical": "penger",
+      "variants": ["pgr"]
+    },
+    {
+      "canonical": "polku",
+      "variants": ["p"]
+    },
+    {
+      "canonical": "puistikko",
+      "variants": ["pko"]
+    },
+    {
+      "canonical": "puisto",
+      "variants": ["ps"]
+    },
+    {
+      "canonical": "puistotie",
+      "variants": []
+    },
+    {
+      "canonical": "raitti",
+      "variants": ["r"]
+    },
+    {
+      "canonical": "ranta",
+      "variants": ["rt"]
+    },
+    {
+      "canonical": "rinne",
+      "variants": ["rn"]
+    },
+    {
+      "canonical": "taival",
+      "variants": ["tvl"]
+    },
+    {
+      "canonical": "tie",
+      "variants": ["t"]
+    },
+    {
+      "canonical": "tori",
+      "variants": ["tr"]
+    },
+    {
+      "canonical": "vayla",
+      "variants": ["vaeylae", "vla", "vlae"]
+    }
+  ]
+}

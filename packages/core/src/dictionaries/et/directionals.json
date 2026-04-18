@@ -1,0 +1,48 @@
+{
+  "_meta": {
+    "libpostal_repo": "openvenues/libpostal",
+    "libpostal_sha": "25099c506612b34b23b1bfe286ca6321fcf06f35",
+    "source_file": "directionals.txt",
+    "fetched_at": "2026-04-18T12:44:14.903Z",
+    "license": "MIT",
+    "attribution": "libpostal by Al Barrentine, MIT License. https://github.com/openvenues/libpostal. Dictionaries imported at the pinned commit."
+  },
+  "entries": [
+    {
+      "canonical": "edelasse",
+      "variants": []
+    },
+    {
+      "canonical": "ida",
+      "variants": []
+    },
+    {
+      "canonical": "kagu",
+      "variants": []
+    },
+    {
+      "canonical": "kirde",
+      "variants": []
+    },
+    {
+      "canonical": "laas",
+      "variants": []
+    },
+    {
+      "canonical": "loe",
+      "variants": []
+    },
+    {
+      "canonical": "louna",
+      "variants": ["l"]
+    },
+    {
+      "canonical": "pohi",
+      "variants": ["p"]
+    },
+    {
+      "canonical": "pohja",
+      "variants": []
+    }
+  ]
+}

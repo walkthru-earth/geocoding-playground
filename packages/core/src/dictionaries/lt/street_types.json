@@ -1,0 +1,40 @@
+{
+  "_meta": {
+    "libpostal_repo": "openvenues/libpostal",
+    "libpostal_sha": "25099c506612b34b23b1bfe286ca6321fcf06f35",
+    "source_file": "street_types.txt",
+    "fetched_at": "2026-04-18T12:44:09.930Z",
+    "license": "MIT",
+    "attribution": "libpostal by Al Barrentine, MIT License. https://github.com/openvenues/libpostal. Dictionaries imported at the pinned commit."
+  },
+  "entries": [
+    {
+      "canonical": "aikste",
+      "variants": ["a"]
+    },
+    {
+      "canonical": "aleja",
+      "variants": ["al"]
+    },
+    {
+      "canonical": "akligatvis",
+      "variants": []
+    },
+    {
+      "canonical": "gatve",
+      "variants": ["g"]
+    },
+    {
+      "canonical": "plentas",
+      "variants": ["pl"]
+    },
+    {
+      "canonical": "prospektas",
+      "variants": ["pr"]
+    },
+    {
+      "canonical": "skersgatvis",
+      "variants": ["skg"]
+    }
+  ]
+}

@@ -1,0 +1,76 @@
+{
+  "_meta": {
+    "libpostal_repo": "openvenues/libpostal",
+    "libpostal_sha": "25099c506612b34b23b1bfe286ca6321fcf06f35",
+    "source_file": "directionals.txt",
+    "fetched_at": "2026-04-18T12:43:45.926Z",
+    "license": "MIT",
+    "attribution": "libpostal by Al Barrentine, MIT License. https://github.com/openvenues/libpostal. Dictionaries imported at the pinned commit."
+  },
+  "entries": [
+    {
+      "canonical": "北",
+      "variants": []
+    },
+    {
+      "canonical": "kita",
+      "variants": []
+    },
+    {
+      "canonical": "南",
+      "variants": []
+    },
+    {
+      "canonical": "minami",
+      "variants": []
+    },
+    {
+      "canonical": "東",
+      "variants": []
+    },
+    {
+      "canonical": "higashi",
+      "variants": []
+    },
+    {
+      "canonical": "西",
+      "variants": []
+    },
+    {
+      "canonical": "nishi",
+      "variants": []
+    },
+    {
+      "canonical": "北東",
+      "variants": []
+    },
+    {
+      "canonical": "hokuto",
+      "variants": ["hokutou"]
+    },
+    {
+      "canonical": "北西",
+      "variants": []
+    },
+    {
+      "canonical": "hokusei",
+      "variants": []
+    },
+    {
+      "canonical": "南東",
+      "variants": []
+    },
+    {
+      "canonical": "nanto",
+      "variants": ["nantou"]
+    },
+    {
+      "canonical": "南西",
+      "variants": []
+    },
+    {
+      "canonical": "nansei",
+      "variants": []
+    }
+  ]
+}

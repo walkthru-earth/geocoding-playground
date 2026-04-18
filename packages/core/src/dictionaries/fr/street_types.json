@@ -1,0 +1,741 @@
+{
+  "_meta": {
+    "libpostal_repo": "openvenues/libpostal",
+    "libpostal_sha": "25099c506612b34b23b1bfe286ca6321fcf06f35",
+    "source_file": "street_types.txt",
+    "fetched_at": "2026-04-18T12:43:34.248Z",
+    "license": "MIT",
+    "attribution": "libpostal by Al Barrentine, MIT License. https://github.com/openvenues/libpostal. Dictionaries imported at the pinned commit."
+  },
+  "entries": [
+    {
+      "canonical": "allee",
+      "variants": ["all"]
+    },
+    {
+      "canonical": "allees",
+      "variants": ["alls"]
+    },
+    {
+      "canonical": "ancien chemin",
+      "variants": ["ach", "a ch"]
+    },
+    {
+      "canonical": "ancienne route",
+      "variants": ["art"]
+    },
+    {
+      "canonical": "anciennes routes",
+      "variants": ["arts"]
+    },
+    {
+      "canonical": "anse",
+      "variants": []
+    },
+    {
+      "canonical": "arcade",
+      "variants": ["arc"]
+    },
+    {
+      "canonical": "autoroute",
+      "variants": ["aut"]
+    },
+    {
+      "canonical": "avenue",
+      "variants": ["av", "ave", "aven", "avenu", "avn", "avnu", "avnue"]
+    },
+    {
+      "canonical": "avenues",
+      "variants": ["avs", "aves", "avens", "avenus", "avns", "avnus", "avnues"]
+    },
+    {
+      "canonical": "barriere",
+      "variants": ["bre"]
+    },
+    {
+      "canonical": "barrieres",
+      "variants": ["bres"]
+    },
+    {
+      "canonical": "bas chemin",
+      "variants": ["bch", "b ch"]
+    },
+    {
+      "canonical": "berge",
+      "variants": ["ber"]
+    },
+    {
+      "canonical": "berges",
+      "variants": ["bers"]
+    },
+    {
+      "canonical": "bois",
+      "variants": []
+    },
+    {
+      "canonical": "boucle",
+      "variants": ["bcle"]
+    },
+    {
+      "canonical": "boulevard",
+      "variants": [
+        "bd",
+        "bde",
+        "blv",
+        "blvd",
+        "blvde",
+        "blvrd",
+        "boulavard",
+        "boul",
+        "boulv",
+        "bvd",
+        "boulevarde",
+        "bld"
+      ]
+    },
+    {
+      "canonical": "butte",
+      "variants": ["but"]
+    },
+    {
+      "canonical": "cote",
+      "variants": []
+    },
+    {
+      "canonical": "coteau",
+      "variants": []
+    },
+    {
+      "canonical": "cale",
+      "variants": []
+    },
+    {
+      "canonical": "camp",
+      "variants": []
+    },
+    {
+      "canonical": "campagne",
+      "variants": ["cgne"]
+    },
+    {
+      "canonical": "carreau",
+      "variants": ["cau", "carru"]
+    },
+    {
+      "canonical": "carrefour",
+      "variants": ["carf", "carref"]
+    },
+    {
+      "canonical": "carriere",
+      "variants": ["care"]
+    },
+    {
+      "canonical": "carrieres",
+      "variants": ["cares"]
+    },
+    {
+      "canonical": "carre",
+      "variants": ["carr", "car"]
+    },
+    {
+      "canonical": "cavee",
+      "variants": ["cav"]
+    },
+    {
+      "canonical": "cercle",
+      "variants": ["cercl"]
+    },
+    {
+      "canonical": "chalet",
+      "variants": ["chl"]
+    },
+    {
+      "canonical": "champ",
+      "variants": []
+    },
+    {
+      "canonical": "chaussee",
+      "variants": ["chs", "chee"]
+    },
+    {
+      "canonical": "chaussees",
+      "variants": ["chss", "chees"]
+    },
+    {
+      "canonical": "chemin",
+      "variants": ["ch", "che"]
+    },
+    {
+      "canonical": "chemin vicinal",
+      "variants": ["chv", "chev", "ch v", "che v"]
+    },
+    {
+      "canonical": "cheminement",
+      "variants": ["chem"]
+    },
+    {
+      "canonical": "chemins",
+      "variants": ["ches"]
+    },
+    {
+      "canonical": "chemins vicinaux",
+      "variants": ["chsv", "chs v"]
+    },
+    {
+      "canonical": "chateau",
+      "variants": ["cht"]
+    },
+    {
+      "canonical": "cloitre",
+      "variants": ["cloi"]
+    },
+    {
+      "canonical": "clos",
+      "variants": []
+    },
+    {
+      "canonical": "col",
+      "variants": []
+    },
+    {
+      "canonical": "contour",
+      "variants": ["ctr"]
+    },
+    {
+      "canonical": "corniche",
+      "variants": ["cor"]
+    },
+    {
+      "canonical": "corniches",
+      "variants": ["cors"]
+    },
+    {
+      "canonical": "cour",
+      "variants": []
+    },
+    {
+      "canonical": "cours",
+      "variants": ["crs"]
+    },
+    {
+      "canonical": "degre",
+      "variants": ["deg"]
+    },
+    {
+      "canonical": "degres",
+      "variants": ["degs"]
+    },
+    {
+      "canonical": "descente",
+      "variants": ["dsg"]
+    },
+    {
+      "canonical": "descentes",
+      "variants": ["dsgs"]
+    },
+    {
+      "canonical": "digue",
+      "variants": ["dig"]
+    },
+    {
+      "canonical": "digues",
+      "variants": ["digs"]
+    },
+    {
+      "canonical": "echangeur",
+      "variants": ["ech"]
+    },
+    {
+      "canonical": "ecluse",
+      "variants": ["ecl"]
+    },
+    {
+      "canonical": "ecluses",
+      "variants": ["ecls"]
+    },
+    {
+      "canonical": "enclave",
+      "variants": ["env"]
+    },
+    {
+      "canonical": "enclos",
+      "variants": ["enc"]
+    },
+    {
+      "canonical": "espace",
+      "variants": ["espa"]
+    },
+    {
+      "canonical": "esplanade",
+      "variants": ["esp"]
+    },
+    {
+      "canonical": "esplanades",
+      "variants": ["esps"]
+    },
+    {
+      "canonical": "fosse",
+      "variants": ["fos"]
+    },
+    {
+      "canonical": "fosses",
+      "variants": ["fos", "foss"]
+    },
+    {
+      "canonical": "foyer",
+      "variants": ["foyr"]
+    },
+    {
+      "canonical": "galerie",
+      "variants": ["gal"]
+    },
+    {
+      "canonical": "galeries",
+      "variants": ["gals"]
+    },
+    {
+      "canonical": "garenne",
+      "variants": ["garn"]
+    },
+    {
+      "canonical": "grand boulevard",
+      "variants": [
+        "gbd",
+        "grbd",
+        "grdbd",
+        "gdbd",
+        "g bd",
+        "gr bd",
+        "grd bd",
+        "gd bd",
+        "g blvd",
+        "gr blvd",
+        "grd blvd",
+        "gd blvd",
+        "g bde",
+        "gr bde",
+        "grd bde",
+        "gd bde",
+        "g blvrd",
+        "gr blvrd",
+        "grd blvrd",
+        "gd blvrd",
+        "g boul",
+        "gr boul",
+        "grd boul",
+        "gd boul",
+        "g bvd",
+        "gr bvd",
+        "grd bvd",
+        "gd bvd",
+        "g bld",
+        "gr bld",
+        "grd bld",
+        "gd bld"
+      ]
+    },
+    {
+      "canonical": "grand chemin",
+      "variants": [
+        "gch",
+        "grch",
+        "gdch",
+        "grdch",
+        "g ch",
+        "gr ch",
+        "grd ch",
+        "gd ch",
+        "g chemin",
+        "gr chemin",
+        "grd chemin",
+        "gd chemin"
+      ]
+    },
+    {
+      "canonical": "grand ensemble",
+      "variants": ["gden", "gd en", "g en", "gr en", "gdens", "gd ens", "g ens", "gr ens"]
+    },
+    {
+      "canonical": "grand rue",
+      "variants": [
+        "grand'rue",
+        "grandrue",
+        "gr",
+        "grdr",
+        "gdr",
+        "g r",
+        "gr r",
+        "grd r",
+        "gd r",
+        "g rue",
+        "gr rue",
+        "grd rue",
+        "gd rue"
+      ]
+    },
+    {
+      "canonical": "grand rues",
+      "variants": ["grs", "g rs", "gr rs", "grd rs", "gd rs", "g rues", "gr rues", "grd rues", "gd rues"]
+    },
+    {
+      "canonical": "grands ensembles",
+      "variants": ["gdsen", "gds ens", "gs ens", "grs ens", "grds ens", "gdsens"]
+    },
+    {
+      "canonical": "grille",
+      "variants": ["gri"]
+    },
+    {
+      "canonical": "grimpette",
+      "variants": ["grim"]
+    },
+    {
+      "canonical": "hameau",
+      "variants": ["ham"]
+    },
+    {
+      "canonical": "haut chemin",
+      "variants": ["hch", "h ch"]
+    },
+    {
+      "canonical": "hauts chemins",
+      "variants": ["hchs", "h chs", "hschs", "hs chs"]
+    },
+    {
+      "canonical": "impasse",
+      "variants": ["imp"]
+    },
+    {
+      "canonical": "impasses",
+      "variants": ["imps"]
+    },
+    {
+      "canonical": "jetee",
+      "variants": ["jte"]
+    },
+    {
+      "canonical": "jetees",
+      "variants": ["jtes"]
+    },
+    {
+      "canonical": "levee",
+      "variants": ["leve", "lve"]
+    },
+    {
+      "canonical": "montee",
+      "variants": ["mte"]
+    },
+    {
+      "canonical": "montees",
+      "variants": ["mtes"]
+    },
+    {
+      "canonical": "metro",
+      "variants": ["met"]
+    },
+    {
+      "canonical": "nouvelle route",
+      "variants": ["nte"]
+    },
+    {
+      "canonical": "parc",
+      "variants": ["prc"]
+    },
+    {
+      "canonical": "parcs",
+      "variants": ["prcs"]
+    },
+    {
+      "canonical": "parvis",
+      "variants": ["prv"]
+    },
+    {
+      "canonical": "passage",
+      "variants": ["pas", "psg"]
+    },
+    {
+      "canonical": "passage a niveau",
+      "variants": ["pn", "p.n.", "p.n", "p n"]
+    },
+    {
+      "canonical": "passe",
+      "variants": ["pass"]
+    },
+    {
+      "canonical": "passerelle",
+      "variants": ["ple"]
+    },
+    {
+      "canonical": "passerelles",
+      "variants": ["ples"]
+    },
+    {
+      "canonical": "passes",
+      "variants": []
+    },
+    {
+      "canonical": "patio",
+      "variants": ["pat"]
+    },
+    {
+      "canonical": "peripherique",
+      "variants": ["peri"]
+    },
+    {
+      "canonical": "petit chemin",
+      "variants": ["p ch", "p chemin", "pt ch", "pt chemin"]
+    },
+    {
+      "canonical": "petite allee",
+      "variants": ["pta", "pt a", "pt allee", "p a", "p allee"]
+    },
+    {
+      "canonical": "petite avenue",
+      "variants": ["pae", "pt ae", "pt ave", "p ave", "pt avn", "p avn"]
+    },
+    {
+      "canonical": "petite impasse",
+      "variants": ["pim", "p im", "pt im", "p impasse", "pt impasse"]
+    },
+    {
+      "canonical": "petite route",
+      "variants": ["prt", "p rt", "pt rt", "p route", "pt route", "p rte", "pt rte"]
+    },
+    {
+      "canonical": "petite rue",
+      "variants": ["ptr", "pt r", "p rue", "pt rue"]
+    },
+    {
+      "canonical": "petite allees",
+      "variants": ["petites allees", "ptas", "pt as", "pt allees", "p a", "p allees"]
+    },
+    {
+      "canonical": "place",
+      "variants": ["pl"]
+    },
+    {
+      "canonical": "placis",
+      "variants": ["plci"]
+    },
+    {
+      "canonical": "plage",
+      "variants": ["plag"]
+    },
+    {
+      "canonical": "plages",
+      "variants": ["plags"]
+    },
+    {
+      "canonical": "plaine",
+      "variants": ["pln"]
+    },
+    {
+      "canonical": "plan",
+      "variants": []
+    },
+    {
+      "canonical": "plateau",
+      "variants": ["plt", "plat"]
+    },
+    {
+      "canonical": "plateaux",
+      "variants": ["pltx", "platx"]
+    },
+    {
+      "canonical": "pointe",
+      "variants": ["pte", "pnte"]
+    },
+    {
+      "canonical": "pont",
+      "variants": []
+    },
+    {
+      "canonical": "ponts",
+      "variants": []
+    },
+    {
+      "canonical": "portique",
+      "variants": ["porq", "portq"]
+    },
+    {
+      "canonical": "portiques",
+      "variants": ["porqs", "portqs"]
+    },
+    {
+      "canonical": "pourtour",
+      "variants": ["pour"]
+    },
+    {
+      "canonical": "presqu’ile",
+      "variants": ["presquile", "presqu'ile", "prq", "prql"]
+    },
+    {
+      "canonical": "promenade",
+      "variants": ["prom"]
+    },
+    {
+      "canonical": "quai",
+      "variants": ["au"]
+    },
+    {
+      "canonical": "raccourci",
+      "variants": ["rac", "racc"]
+    },
+    {
+      "canonical": "raidillon",
+      "variants": ["raid"]
+    },
+    {
+      "canonical": "rampe",
+      "variants": ["rpe", "rmpe", "rmp"]
+    },
+    {
+      "canonical": "rang",
+      "variants": []
+    },
+    {
+      "canonical": "rempart",
+      "variants": ["rem", "remp"]
+    },
+    {
+      "canonical": "rocade",
+      "variants": ["rocd"]
+    },
+    {
+      "canonical": "ronde",
+      "variants": ["rnde"]
+    },
+    {
+      "canonical": "rond point",
+      "variants": ["rondpoint", "rdpt", "rd pt", "rpt"]
+    },
+    {
+      "canonical": "roquet",
+      "variants": ["roqt"]
+    },
+    {
+      "canonical": "rotonde",
+      "variants": ["rtd", "rtnd", "rtde", "rtnde"]
+    },
+    {
+      "canonical": "route",
+      "variants": ["rt", "rte"]
+    },
+    {
+      "canonical": "routes",
+      "variants": ["rts", "rtes"]
+    },
+    {
+      "canonical": "route nationale",
+      "variants": ["rn", "r.n.", "r.n", "r n"]
+    },
+    {
+      "canonical": "rue",
+      "variants": ["r"]
+    },
+    {
+      "canonical": "ruelle",
+      "variants": ["rle"]
+    },
+    {
+      "canonical": "ruelles",
+      "variants": ["rles"]
+    },
+    {
+      "canonical": "rues",
+      "variants": ["rs"]
+    },
+    {
+      "canonical": "residence",
+      "variants": ["res"]
+    },
+    {
+      "canonical": "residences",
+      "variants": ["ress"]
+    },
+    {
+      "canonical": "sente",
+      "variants": ["sen"]
+    },
+    {
+      "canonical": "sentes",
+      "variants": ["sens"]
+    },
+    {
+      "canonical": "sentier",
+      "variants": ["sent"]
+    },
+    {
+      "canonical": "sentiers",
+      "variants": ["sents"]
+    },
+    {
+      "canonical": "square",
+      "variants": ["sq"]
+    },
+    {
+      "canonical": "terrain",
+      "variants": ["terr", "trn"]
+    },
+    {
+      "canonical": "terrasse",
+      "variants": ["tsse"]
+    },
+    {
+      "canonical": "terrasses",
+      "variants": ["tsses"]
+    },
+    {
+      "canonical": "terre plein",
+      "variants": ["tpl", "t pl", "trpl", "tr pl"]
+    },
+    {
+      "canonical": "terte",
+      "variants": ["trt"]
+    },
+    {
+      "canonical": "tertes",
+      "variants": ["trts"]
+    },
+    {
+      "canonical": "traverse",
+      "variants": ["tra", "trvs", "trvrs"]
+    },
+    {
+      "canonical": "vallon",
+      "variants": ["val"]
+    },
+    {
+      "canonical": "valee",
+      "variants": ["vallee", "val"]
+    },
+    {
+      "canonical": "venelle",
+      "variants": ["ven"]
+    },
+    {
+      "canonical": "venelles",
+      "variants": ["vens"]
+    },
+    {
+      "canonical": "via",
+      "variants": []
+    },
+    {
+      "canonical": "vieille route",
+      "variants": ["vte", "v rt", "vrt", "v rte", "vrte", "v route", "vroute"]
+    },
+    {
+      "canonical": "vieux chemin",
+      "variants": ["vche", "v che", "vch", "v ch", "v chemin"]
+    },
+    {
+      "canonical": "voie",
+      "variants": ["voi"]
+    },
+    {
+      "canonical": "voies",
+      "variants": ["vois"]
+    }
+  ]
+}

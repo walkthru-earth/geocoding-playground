@@ -1,0 +1,44 @@
+{
+  "_meta": {
+    "libpostal_repo": "openvenues/libpostal",
+    "libpostal_sha": "25099c506612b34b23b1bfe286ca6321fcf06f35",
+    "source_file": "directionals.txt",
+    "fetched_at": "2026-04-18T12:43:54.634Z",
+    "license": "MIT",
+    "attribution": "libpostal by Al Barrentine, MIT License. https://github.com/openvenues/libpostal. Dictionaries imported at the pinned commit."
+  },
+  "entries": [
+    {
+      "canonical": "norr",
+      "variants": ["n"]
+    },
+    {
+      "canonical": "norra",
+      "variants": ["n:a"]
+    },
+    {
+      "canonical": "ost",
+      "variants": ["oest", "o"]
+    },
+    {
+      "canonical": "ostra",
+      "variants": ["oestra", "o:a"]
+    },
+    {
+      "canonical": "sod",
+      "variants": ["s", "soed"]
+    },
+    {
+      "canonical": "sodra",
+      "variants": ["soedra", "s:a"]
+    },
+    {
+      "canonical": "vast",
+      "variants": ["vaest", "v"]
+    },
+    {
+      "canonical": "vastra",
+      "variants": ["vaestra", "v:a"]
+    }
+  ]
+}

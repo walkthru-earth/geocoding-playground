@@ -1,0 +1,64 @@
+{
+  "_meta": {
+    "libpostal_repo": "openvenues/libpostal",
+    "libpostal_sha": "25099c506612b34b23b1bfe286ca6321fcf06f35",
+    "source_file": "street_types.txt",
+    "fetched_at": "2026-04-18T12:44:19.032Z",
+    "license": "MIT",
+    "attribution": "libpostal by Al Barrentine, MIT License. https://github.com/openvenues/libpostal. Dictionaries imported at the pinned commit."
+  },
+  "entries": [
+    {
+      "canonical": "aleea",
+      "variants": ["ale", "alea", "al"]
+    },
+    {
+      "canonical": "bulevardul",
+      "variants": ["bd", "bul", "bdul", "blv", "blvd", "b-dul", "b.dul", "bulev", "bulevardu", "bulevard"]
+    },
+    {
+      "canonical": "calea",
+      "variants": ["cale", "cal"]
+    },
+    {
+      "canonical": "drumul",
+      "variants": ["drum"]
+    },
+    {
+      "canonical": "fundatura",
+      "variants": ["fnd"]
+    },
+    {
+      "canonical": "fundacul",
+      "variants": ["fdc"]
+    },
+    {
+      "canonical": "intrarea",
+      "variants": ["int", "intr"]
+    },
+    {
+      "canonical": "piata",
+      "variants": ["pta", "p-ta"]
+    },
+    {
+      "canonical": "strada",
+      "variants": ["str", "st"]
+    },
+    {
+      "canonical": "stradela",
+      "variants": ["str-la", "sdla"]
+    },
+    {
+      "canonical": "soseaua",
+      "variants": ["sos"]
+    },
+    {
+      "canonical": "splaiul",
+      "variants": ["sp", "spl"]
+    },
+    {
+      "canonical": "varful",
+      "variants": ["virful", "varf", "vf"]
+    }
+  ]
+}
