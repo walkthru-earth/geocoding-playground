@@ -276,6 +276,62 @@ describe('searchStreets: multi-country', () => {
     const result = searchStreets(nlStreets, 'kerks')
     expect(result[0].street_lower).toBe('kerkstraat')
   })
+
+  // ── Accent + ligature regression (issues #4, #5, #6) ──
+  // These cases all work at the searchStreets level because of normalizeForSearch.
+  // The playground autocomplete currently routes through buildStreetSQL (byte-
+  // exact LIKE), so it does not yet pick up this behaviour. See
+  // docs/upstream-issues/street_index-needs-normalized-column.md for the plan
+  // to close the gap by materialising street_norm in the pipeline.
+
+  it('DE umlaut: typing "munchen" finds "münchener str"', () => {
+    const deStreets: StreetRecord[] = [
+      { street_lower: 'münchener straße', tiles: ['t1'], addr_count: 9210 },
+      { street_lower: 'münchnerstraße', tiles: ['t2'], addr_count: 1024 },
+    ]
+    const result = searchStreets(deStreets, 'munchen')
+    expect(result.length).toBeGreaterThanOrEqual(1)
+    expect(result.map((s) => s.street_lower)).toContain('münchener straße')
+  })
+
+  it('FR cedilla: typing "francois" finds "rue françois"', () => {
+    const frStreets: StreetRecord[] = [
+      { street_lower: 'rue françois premier', tiles: ['t1'], addr_count: 412 },
+      { street_lower: 'rue françoise dolto', tiles: ['t2'], addr_count: 120 },
+    ]
+    const result = searchStreets(frStreets, 'rue francois')
+    expect(result.length).toBeGreaterThanOrEqual(1)
+    expect(result.map((s) => s.street_lower)).toContain('rue françois premier')
+  })
+
+  it('PL: typing "lodz" finds "łódzka"', () => {
+    const plStreets: StreetRecord[] = [
+      { street_lower: 'ulica łódzka', tiles: ['t1'], addr_count: 890 },
+      { street_lower: 'ulica gdańska', tiles: ['t2'], addr_count: 450 },
+    ]
+    const result = searchStreets(plStreets, 'lodzka')
+    expect(result.length).toBeGreaterThanOrEqual(1)
+    expect(result.map((s) => s.street_lower)).toContain('ulica łódzka')
+  })
+
+  it('DK: typing "kobenhavn" finds "københavnsvej"', () => {
+    const dkStreets: StreetRecord[] = [
+      { street_lower: 'københavnsvej', tiles: ['t1'], addr_count: 1523 },
+      { street_lower: 'vesterbrogade', tiles: ['t2'], addr_count: 4000 },
+    ]
+    const result = searchStreets(dkStreets, 'kobenhavnsvej')
+    expect(result.length).toBeGreaterThanOrEqual(1)
+    expect(result.map((s) => s.street_lower)).toContain('københavnsvej')
+  })
+
+  it('BR: typing "sao" finds "são paulo"', () => {
+    const brStreets: StreetRecord[] = [
+      { street_lower: 'avenida são paulo', tiles: ['t1'], addr_count: 2300 },
+      { street_lower: 'rua dos três irmãos', tiles: ['t2'], addr_count: 180 },
+    ]
+    const result = searchStreets(brStreets, 'avenida sao paulo')
+    expect(result.map((s) => s.street_lower)).toContain('avenida são paulo')
+  })
 })
 
 describe('searchPostcodes: multi-country formats', () => {
