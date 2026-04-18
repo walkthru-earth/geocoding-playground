@@ -1,5 +1,5 @@
 import type { ParsedAddress } from '../address-parser'
-import { esc } from '../address-parser'
+import { buildDefaultWhere } from '../address-parser'
 import { GenericParser } from './generic'
 
 /**
@@ -39,22 +39,9 @@ export class ITParser extends GenericParser {
   }
 
   buildWhereClause(parsed: ParsedAddress): string {
-    // IT has no postcode data in Overture, skip postcode in WHERE
-    const conditions: string[] = []
-    if (parsed.street) {
-      // street_lower is a physical column (v4.1+) enabling Parquet row-group pushdown.
-      conditions.push(`street_lower LIKE '${esc(parsed.street.toLowerCase())}%'`)
-    }
-    if (parsed.number) {
-      conditions.push(`number = '${esc(parsed.number)}'`)
-    }
-    if (conditions.length > 0) return conditions.join(' AND ')
-
-    return (
-      parsed.tokens
-        .filter((t) => t.length > 1)
-        .map((t) => `full_address ILIKE '%${esc(t)}%'`)
-        .join(' AND ') || '1=1'
-    )
+    // IT has no postcode data in Overture, skip postcode in WHERE.
+    // Delegate the rest to buildDefaultWhere so libpostal street-type
+    // expansion still fires (e.g. `via` ↔ `v.`).
+    return buildDefaultWhere({ ...parsed, cc: parsed.cc ?? this.cc, postcode: undefined })
   }
 }

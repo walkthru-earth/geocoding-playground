@@ -84,6 +84,9 @@ export class GenericParser implements CountryParser {
   }
 
   buildWhereClause(parsed: ParsedAddress): string {
-    return buildDefaultWhere(parsed)
+    // Inject the parser's cc so libpostal expansion can fire on real playground
+    // calls. Without this, `parsed.cc` is undefined and every expansion branch
+    // in `buildStreetPrefixClause` short-circuits.
+    return buildDefaultWhere(parsed.cc ? parsed : { ...parsed, cc: this.cc })
   }
 }

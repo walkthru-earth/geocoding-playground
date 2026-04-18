@@ -64,6 +64,13 @@ describe('buildStreetNarrowSQL', () => {
     const sql = buildStreetNarrowSQL('NL', 'keizers', false)
     expect(sql).toContain("LIKE 'keizers%'")
   })
+
+  it('CA prefix LIKE expands avenue to both ave and avenue so the narrow step finds stored "clearview ave"', () => {
+    const sql = buildStreetNarrowSQL('CA', 'clearview avenue', false)
+    expect(sql).toContain("'clearview avenue%'")
+    expect(sql).toContain("'clearview ave%'")
+    expect(sql).toContain(' OR ')
+  })
 })
 
 describe('buildAddressSQL', () => {

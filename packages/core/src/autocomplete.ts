@@ -11,7 +11,7 @@
  */
 
 import type { ParsedAddress } from './address-parser'
-import { getParser, NUMBER_FIRST } from './address-parser'
+import { buildStreetPrefixClause, getParser, NUMBER_FIRST } from './address-parser'
 import { getCountryTable, indexPath, tilePath } from './duckdb'
 import { jaccardSimilarity, type SearchCache } from './search'
 import type { CityRow, SuggestRow } from './types'
@@ -438,15 +438,23 @@ export function buildPostcodeNarrowSQL(cc: string, postcode: string): string {
 
 /**
  * Build SQL for narrowing tiles by street (exact then prefix fallback).
+ *
+ * The prefix path (`exact=false`) expands the street's trailing street-type
+ * token and leading directional via libpostal dictionaries, so a user typing
+ * "clearview avenue" still finds the stored "clearview ave" tile.
  */
 export function buildStreetNarrowSQL(cc: string, street: string, exact: boolean): string {
   validateCC(cc)
   const table = getCountryTable('_streets', cc)
-  const op = exact ? '=' : 'LIKE'
-  const val = exact ? `'${esc(street.toLowerCase())}'` : `'${esc(street.toLowerCase())}%'`
+  if (exact) {
+    return `SELECT street_lower, tiles, addr_count FROM ${table}
+    WHERE street_lower = '${esc(street.toLowerCase())}'
+     LIMIT 1`
+  }
+  const where = buildStreetPrefixClause(street, cc)
   return `SELECT street_lower, tiles, addr_count FROM ${table}
-    WHERE street_lower ${op} ${val}
-    ${exact ? '' : 'ORDER BY addr_count DESC'} LIMIT 1`
+    WHERE ${where}
+    ORDER BY addr_count DESC LIMIT 1`
 }
 
 /**

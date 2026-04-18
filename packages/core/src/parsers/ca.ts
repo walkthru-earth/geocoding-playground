@@ -45,10 +45,15 @@ export class CAParser extends GenericParser {
     // Strip province codes
     remaining = remaining.filter((t) => !CA_PROVINCE_CODES.has(t.toUpperCase()))
 
-    // Number-first
+    // Number-first is the CA convention. Accept trailing numeric as a
+    // fallback so "clearview ave 195" (seen in the wild) still extracts
+    // number=195, street="clearview ave" instead of collapsing the whole
+    // phrase into a street that will never match.
     let number: string | undefined
     if (remaining.length > 1 && /^\d+[a-z]?$/i.test(remaining[0])) {
       number = remaining.shift()!
+    } else if (remaining.length > 1 && /^\d+[a-z]?$/i.test(remaining[remaining.length - 1])) {
+      number = remaining.pop()!
     }
 
     const street = remaining.length > 0 ? remaining.join(' ') : undefined

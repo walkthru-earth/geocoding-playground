@@ -150,6 +150,46 @@ describe('buildDefaultWhere: libpostal expansion', () => {
     expect(sql).toContain('clearview ave%')
   })
 
+  // End-to-end guard: the playground calls getParser(cc).buildWhereClause,
+  // not buildDefaultWhere directly. Without this test the expansion can
+  // silently regress because every parser's buildWhereClause must pass its
+  // own cc through. See issue #11 debug session.
+  it('E2E via getParser: CA "195 clearview avenue" produces expanded WHERE', () => {
+    const parser = getParser('CA')
+    const parsed = parser.parseAddress('195 clearview avenue')
+    expect(parsed.number).toBe('195')
+    expect(parsed.street).toBe('clearview avenue')
+    const sql = parser.buildWhereClause(parsed)
+    expect(sql).toContain("'clearview avenue%'")
+    expect(sql).toContain("'clearview ave%'")
+    expect(sql).toContain("number = '195'")
+  })
+
+  it('E2E via getParser: CA tolerates number-last "clearview ave 195"', () => {
+    const parser = getParser('CA')
+    const parsed = parser.parseAddress('clearview ave 195')
+    expect(parsed.number).toBe('195')
+    expect(parsed.street).toBe('clearview ave')
+    const sql = parser.buildWhereClause(parsed)
+    expect(sql).toContain("'clearview ave%'")
+    expect(sql).toContain("'clearview avenue%'")
+    expect(sql).toContain("number = '195'")
+  })
+
+  it('E2E via getParser: IT "via roma 12" emits expanded WHERE without postcode', () => {
+    const parser = getParser('IT')
+    const parsed = parser.parseAddress('via roma 12')
+    expect(parsed.street).toBe('via roma')
+    expect(parsed.number).toBe('12')
+    const sql = parser.buildWhereClause(parsed)
+    // `via` has libpostal variants (`v`, `v.`, `viale` is separate), at minimum
+    // the original form is preserved.
+    expect(sql).toContain("'via roma%'")
+    // Postcode condition must be absent even when parsed extracted one, IT
+    // has 0 postcodes in Overture.
+    expect(sql).not.toMatch(/postcode/)
+  })
+
   it('without cc: behavior is unchanged (no expansion)', () => {
     const sql = buildDefaultWhere({
       street: 'clearview avenue',

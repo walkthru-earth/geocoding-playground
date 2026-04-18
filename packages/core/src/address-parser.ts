@@ -100,7 +100,7 @@ export const NUMBER_FIRST = new Set([
  *
  * Every prefix is individually escaped with `esc()`.
  */
-function buildStreetPrefixClause(street: string, cc?: string): string {
+export function buildStreetPrefixClause(street: string, cc?: string): string {
   const base = street.toLowerCase()
   const single = `street_lower LIKE '${esc(base)}%'`
   if (!cc) return single
