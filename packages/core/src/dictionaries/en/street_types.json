@@ -1,0 +1,1931 @@
+{
+  "_meta": {
+    "libpostal_repo": "openvenues/libpostal",
+    "libpostal_sha": "25099c506612b34b23b1bfe286ca6321fcf06f35",
+    "source_file": "street_types.txt",
+    "fetched_at": "2026-04-18T12:43:29.936Z",
+    "license": "MIT",
+    "attribution": "libpostal by Al Barrentine, MIT License. https://github.com/openvenues/libpostal. Dictionaries imported at the pinned commit."
+  },
+  "entries": [
+    {
+      "canonical": "abbey",
+      "variants": ["abby"]
+    },
+    {
+      "canonical": "access",
+      "variants": ["accs", "acc"]
+    },
+    {
+      "canonical": "acres",
+      "variants": ["acrs"]
+    },
+    {
+      "canonical": "alley",
+      "variants": ["aly", "ally", "alee", "al"]
+    },
+    {
+      "canonical": "alleyway",
+      "variants": ["alwy", "allyway", "allwy"]
+    },
+    {
+      "canonical": "amble",
+      "variants": ["ambl"]
+    },
+    {
+      "canonical": "anchorage",
+      "variants": ["ancg"]
+    },
+    {
+      "canonical": "annex",
+      "variants": ["anx"]
+    },
+    {
+      "canonical": "apartments",
+      "variants": ["apts", "appartments"]
+    },
+    {
+      "canonical": "approach",
+      "variants": ["app", "apch", "appr"]
+    },
+    {
+      "canonical": "arcade",
+      "variants": ["arc"]
+    },
+    {
+      "canonical": "arterial",
+      "variants": ["artl"]
+    },
+    {
+      "canonical": "artery",
+      "variants": ["art", "arty"]
+    },
+    {
+      "canonical": "avenue",
+      "variants": ["av", "ave", "aven", "avenu", "avn", "avnu", "avnue"]
+    },
+    {
+      "canonical": "avenues",
+      "variants": ["avs", "aves", "avens", "avenus", "avns", "avnus", "avnues"]
+    },
+    {
+      "canonical": "autoroute",
+      "variants": ["aut"]
+    },
+    {
+      "canonical": "back",
+      "variants": ["bk"]
+    },
+    {
+      "canonical": "bank",
+      "variants": ["bnk"]
+    },
+    {
+      "canonical": "basin",
+      "variants": ["basn", "bsn"]
+    },
+    {
+      "canonical": "bay",
+      "variants": ["by"]
+    },
+    {
+      "canonical": "bayou",
+      "variants": ["byu", "bayoo"]
+    },
+    {
+      "canonical": "beach",
+      "variants": ["baech", "bch", "beech"]
+    },
+    {
+      "canonical": "belt",
+      "variants": ["blt"]
+    },
+    {
+      "canonical": "bend",
+      "variants": ["bnd"]
+    },
+    {
+      "canonical": "block",
+      "variants": ["blk", "blck"]
+    },
+    {
+      "canonical": "bluff",
+      "variants": ["blf", "bluf", "bluffs", "blfs"]
+    },
+    {
+      "canonical": "boardwalk",
+      "variants": ["bwk", "bwlk", "board walk"]
+    },
+    {
+      "canonical": "boulevard",
+      "variants": [
+        "blvd",
+        "bd",
+        "bde",
+        "blv",
+        "bl",
+        "blvde",
+        "blvrd",
+        "boulavard",
+        "boul",
+        "boulv",
+        "bvd",
+        "boulevarde"
+      ]
+    },
+    {
+      "canonical": "bottom",
+      "variants": ["bot", "bottm", "btm", "bttm"]
+    },
+    {
+      "canonical": "bottoms",
+      "variants": ["bttms", "btms", "bottms"]
+    },
+    {
+      "canonical": "boundary",
+      "variants": ["bdy"]
+    },
+    {
+      "canonical": "bowl",
+      "variants": ["bl"]
+    },
+    {
+      "canonical": "brace",
+      "variants": ["br", "brce"]
+    },
+    {
+      "canonical": "branch",
+      "variants": ["br", "brnch", "brch"]
+    },
+    {
+      "canonical": "brae",
+      "variants": ["br"]
+    },
+    {
+      "canonical": "break",
+      "variants": ["brk"]
+    },
+    {
+      "canonical": "bridge",
+      "variants": ["bdge", "br", "brdg", "bri", "brg"]
+    },
+    {
+      "canonical": "broadway",
+      "variants": ["bdwy", "bway", "bwy", "brdway"]
+    },
+    {
+      "canonical": "brook",
+      "variants": ["brk"]
+    },
+    {
+      "canonical": "brooks",
+      "variants": ["brks"]
+    },
+    {
+      "canonical": "brow",
+      "variants": ["brw"]
+    },
+    {
+      "canonical": "burg",
+      "variants": ["bg"]
+    },
+    {
+      "canonical": "burgs",
+      "variants": ["brgs"]
+    },
+    {
+      "canonical": "burrow",
+      "variants": ["burw"]
+    },
+    {
+      "canonical": "butte",
+      "variants": ["btte", "bte"]
+    },
+    {
+      "canonical": "bypass",
+      "variants": ["bypa", "byps", "bps", "byp"]
+    },
+    {
+      "canonical": "byway",
+      "variants": ["bywy"]
+    },
+    {
+      "canonical": "camp",
+      "variants": ["cp"]
+    },
+    {
+      "canonical": "cape",
+      "variants": ["cpe", "cp"]
+    },
+    {
+      "canonical": "canyon",
+      "variants": ["cyn", "cnyn"]
+    },
+    {
+      "canonical": "caravan",
+      "variants": ["cvan", "cvn", "c van"]
+    },
+    {
+      "canonical": "causeway",
+      "variants": ["csway", "cswy", "causewy", "caus", "cause", "cway"]
+    },
+    {
+      "canonical": "center",
+      "variants": ["centre", "cetr", "cntr", "ctr", "c", "cen"]
+    },
+    {
+      "canonical": "centers",
+      "variants": ["ctrs"]
+    },
+    {
+      "canonical": "centreway",
+      "variants": ["cnwy"]
+    },
+    {
+      "canonical": "chase",
+      "variants": ["ch", "chas"]
+    },
+    {
+      "canonical": "circle",
+      "variants": ["cir", "circel", "cirlce"]
+    },
+    {
+      "canonical": "circles",
+      "variants": ["cirs"]
+    },
+    {
+      "canonical": "circlet",
+      "variants": ["clt"]
+    },
+    {
+      "canonical": "circuit",
+      "variants": ["crct", "circ", "cct", "cirt", "ci", "circt"]
+    },
+    {
+      "canonical": "circus",
+      "variants": ["crcs", "crc"]
+    },
+    {
+      "canonical": "claim",
+      "variants": ["clm"]
+    },
+    {
+      "canonical": "cliff",
+      "variants": ["clf"]
+    },
+    {
+      "canonical": "cliffs",
+      "variants": ["clfs"]
+    },
+    {
+      "canonical": "close",
+      "variants": ["cl", "cls", "clse"]
+    },
+    {
+      "canonical": "cluster",
+      "variants": ["clr", "clstr"]
+    },
+    {
+      "canonical": "colonnade",
+      "variants": ["clde", "clnde"]
+    },
+    {
+      "canonical": "common",
+      "variants": ["cmmn", "comm", "cmn", "com", "cm"]
+    },
+    {
+      "canonical": "commons",
+      "variants": ["cmmns", "cmns", "comms"]
+    },
+    {
+      "canonical": "concord",
+      "variants": ["cncd", "cncrd"]
+    },
+    {
+      "canonical": "concession",
+      "variants": ["conc"]
+    },
+    {
+      "canonical": "concourse",
+      "variants": ["con", "concs", "concse", "cnc"]
+    },
+    {
+      "canonical": "connection",
+      "variants": ["cntn", "cxn"]
+    },
+    {
+      "canonical": "connector",
+      "variants": ["conr", "cnctr", "cntr"]
+    },
+    {
+      "canonical": "copse",
+      "variants": ["cps"]
+    },
+    {
+      "canonical": "corner",
+      "variants": ["cnr", "crn", "cor"]
+    },
+    {
+      "canonical": "corners",
+      "variants": ["cnrs", "crns", "cors"]
+    },
+    {
+      "canonical": "corseo",
+      "variants": ["cseo"]
+    },
+    {
+      "canonical": "corso",
+      "variants": ["cso"]
+    },
+    {
+      "canonical": "county highway",
+      "variants": [
+        "ch",
+        "c.h.",
+        "c.h",
+        "c h",
+        "c.hw",
+        "c hw",
+        "co.hw",
+        "co hw",
+        "cty.hw",
+        "cty hw",
+        "c.hgwy",
+        "c hgwy",
+        "co.hgwy",
+        "co hgwy",
+        "cty.hgwy",
+        "cty hgwy",
+        "c.hway",
+        "c hway",
+        "co.hway",
+        "co hway",
+        "cty.hway",
+        "cty hway",
+        "c.hwy",
+        "c hwy",
+        "co.hwy",
+        "co hwy",
+        "cty.hwy",
+        "cty hwy",
+        "c.hi",
+        "c hi",
+        "co.hi",
+        "co hi",
+        "cty.hi",
+        "cty hi"
+      ]
+    },
+    {
+      "canonical": "county road",
+      "variants": [
+        "cr",
+        "c.r.",
+        "c.r",
+        "c r",
+        "co.r",
+        "co r",
+        "c.rd",
+        "c rd",
+        "co.rd",
+        "co rd",
+        "cty.r",
+        "cty r",
+        "cty.rd",
+        "cty rd"
+      ]
+    },
+    {
+      "canonical": "county route",
+      "variants": [
+        "cr",
+        "c.r.",
+        "c.r",
+        "c r",
+        "co.r",
+        "co r",
+        "c.rt",
+        "c rt",
+        "co.rt",
+        "co rt",
+        "cty.r",
+        "cty r",
+        "cty.rt",
+        "cty rt",
+        "c.rte",
+        "c rte",
+        "co.rte",
+        "co rte",
+        "cty.rte",
+        "cty rte",
+        "county touring route"
+      ]
+    },
+    {
+      "canonical": "course",
+      "variants": ["crse"]
+    },
+    {
+      "canonical": "court",
+      "variants": ["ct", "crt"]
+    },
+    {
+      "canonical": "courts",
+      "variants": ["crts", "cts"]
+    },
+    {
+      "canonical": "courtyard",
+      "variants": ["cyd", "ctyd"]
+    },
+    {
+      "canonical": "cove",
+      "variants": ["cov", "ce", "cv"]
+    },
+    {
+      "canonical": "creek",
+      "variants": ["cr", "crk"]
+    },
+    {
+      "canonical": "crescent",
+      "variants": ["cr", "cres", "crs", "crecent"]
+    },
+    {
+      "canonical": "crest",
+      "variants": ["crst", "cst"]
+    },
+    {
+      "canonical": "crief",
+      "variants": ["crf"]
+    },
+    {
+      "canonical": "croft",
+      "variants": ["cft"]
+    },
+    {
+      "canonical": "cross",
+      "variants": ["cs", "crss"]
+    },
+    {
+      "canonical": "crossing",
+      "variants": ["crsg", "xing", "csg", "x ing", "x-ing"]
+    },
+    {
+      "canonical": "crossroad",
+      "variants": ["crd", "cross road", "xroad", "x-road", "x road", "xrd", "x-rd", "x rd"]
+    },
+    {
+      "canonical": "crossroads",
+      "variants": ["cross roads", "xrds"]
+    },
+    {
+      "canonical": "crossway",
+      "variants": ["cowy", "crwy", "xway", "xwy", "x-way", "x way", "x-wy"]
+    },
+    {
+      "canonical": "cruiseway",
+      "variants": ["cuwy", "crwy"]
+    },
+    {
+      "canonical": "cul",
+      "variants": []
+    },
+    {
+      "canonical": "cul de sac",
+      "variants": ["cul-de-sac", "culdesac", "cds", "cusac", "csac"]
+    },
+    {
+      "canonical": "curve",
+      "variants": ["cve", "crv", "crve", "curv"]
+    },
+    {
+      "canonical": "cutting",
+      "variants": ["cttg", "ctg", "cutt"]
+    },
+    {
+      "canonical": "dale",
+      "variants": ["dle"]
+    },
+    {
+      "canonical": "dell",
+      "variants": []
+    },
+    {
+      "canonical": "dene",
+      "variants": []
+    },
+    {
+      "canonical": "deviation",
+      "variants": ["devn"]
+    },
+    {
+      "canonical": "dip",
+      "variants": []
+    },
+    {
+      "canonical": "distributor",
+      "variants": ["dstr"]
+    },
+    {
+      "canonical": "divide",
+      "variants": ["div"]
+    },
+    {
+      "canonical": "diversion",
+      "variants": ["divers"]
+    },
+    {
+      "canonical": "down",
+      "variants": ["dn"]
+    },
+    {
+      "canonical": "downs",
+      "variants": ["dns", "dwns"]
+    },
+    {
+      "canonical": "drive",
+      "variants": ["dr", "drv", "dv", "dve", "d"]
+    },
+    {
+      "canonical": "driveway",
+      "variants": ["drwy", "dvwy", "dwy", "dway", "drvwy"]
+    },
+    {
+      "canonical": "drove",
+      "variants": ["drov"]
+    },
+    {
+      "canonical": "easement",
+      "variants": ["esmt"]
+    },
+    {
+      "canonical": "edge",
+      "variants": ["edg"]
+    },
+    {
+      "canonical": "elbow",
+      "variants": ["elb"]
+    },
+    {
+      "canonical": "elm",
+      "variants": []
+    },
+    {
+      "canonical": "end",
+      "variants": []
+    },
+    {
+      "canonical": "entrance",
+      "variants": ["ent", "entr"]
+    },
+    {
+      "canonical": "esplanade",
+      "variants": ["esp", "espl"]
+    },
+    {
+      "canonical": "estate",
+      "variants": ["est"]
+    },
+    {
+      "canonical": "estates",
+      "variants": ["ests"]
+    },
+    {
+      "canonical": "exit",
+      "variants": []
+    },
+    {
+      "canonical": "expressway",
+      "variants": ["exp", "expwy", "expway", "expy", "exwy"]
+    },
+    {
+      "canonical": "extension",
+      "variants": ["ex", "ext", "extn", "exten"]
+    },
+    {
+      "canonical": "extensions",
+      "variants": ["exts"]
+    },
+    {
+      "canonical": "fairway",
+      "variants": ["fawy", "fy"]
+    },
+    {
+      "canonical": "fall",
+      "variants": ["fl"]
+    },
+    {
+      "canonical": "falls",
+      "variants": ["fls"]
+    },
+    {
+      "canonical": "fare",
+      "variants": []
+    },
+    {
+      "canonical": "farm",
+      "variants": ["frm"]
+    },
+    {
+      "canonical": "farms",
+      "variants": ["frms"]
+    },
+    {
+      "canonical": "farm to market",
+      "variants": ["fm", "farm-to-market"]
+    },
+    {
+      "canonical": "fern",
+      "variants": []
+    },
+    {
+      "canonical": "ferry",
+      "variants": ["fry", "fy"]
+    },
+    {
+      "canonical": "field",
+      "variants": ["fld", "fd"]
+    },
+    {
+      "canonical": "fields",
+      "variants": ["flds", "fds"]
+    },
+    {
+      "canonical": "fireline",
+      "variants": ["fline", "fire line", "flne"]
+    },
+    {
+      "canonical": "firetrack",
+      "variants": ["ftrk", "fire track"]
+    },
+    {
+      "canonical": "firetrail",
+      "variants": ["fit", "fitr", "fire trail"]
+    },
+    {
+      "canonical": "flat",
+      "variants": ["fl", "flt"]
+    },
+    {
+      "canonical": "flats",
+      "variants": ["flts"]
+    },
+    {
+      "canonical": "follow",
+      "variants": ["folw"]
+    },
+    {
+      "canonical": "footway",
+      "variants": ["ftwy", "foot way"]
+    },
+    {
+      "canonical": "ford",
+      "variants": ["frd"]
+    },
+    {
+      "canonical": "foreshore",
+      "variants": ["fshr", "fore shore"]
+    },
+    {
+      "canonical": "formation",
+      "variants": ["form", "fmtn"]
+    },
+    {
+      "canonical": "freeway",
+      "variants": ["frwy", "fw", "fwy", "fway"]
+    },
+    {
+      "canonical": "front",
+      "variants": ["frnt"]
+    },
+    {
+      "canonical": "frontage",
+      "variants": ["frtg", "fr"]
+    },
+    {
+      "canonical": "gap",
+      "variants": ["gp"]
+    },
+    {
+      "canonical": "garden",
+      "variants": ["gdn", "grd", "grdn"]
+    },
+    {
+      "canonical": "gardens",
+      "variants": ["gdns", "grds", "grdns"]
+    },
+    {
+      "canonical": "gate",
+      "variants": ["ga", "gte"]
+    },
+    {
+      "canonical": "gates",
+      "variants": ["gtes"]
+    },
+    {
+      "canonical": "gateway",
+      "variants": ["gwy", "gway", "gtwy", "gtway"]
+    },
+    {
+      "canonical": "glade",
+      "variants": ["gl", "gld", "glde"]
+    },
+    {
+      "canonical": "glen",
+      "variants": ["gln"]
+    },
+    {
+      "canonical": "grand boulevard",
+      "variants": [
+        "gbd",
+        "grbd",
+        "grdbd",
+        "gdbd",
+        "g bd",
+        "gr bd",
+        "grd bd",
+        "gd bd",
+        "g blvd",
+        "gr blvd",
+        "grd blvd",
+        "gd blvd",
+        "g bde",
+        "gr bde",
+        "grd bde",
+        "gd bde",
+        "g blvrd",
+        "gr blvrd",
+        "grd blvrd",
+        "gd blvrd",
+        "g boul",
+        "gr boul",
+        "grd boul",
+        "gd boul",
+        "g bvd",
+        "gr bvd",
+        "grd bvd",
+        "gd bvd",
+        "g bld",
+        "gr bld",
+        "grd bld",
+        "gd bld"
+      ]
+    },
+    {
+      "canonical": "grange",
+      "variants": ["gra"]
+    },
+    {
+      "canonical": "green",
+      "variants": ["grn", "gn", "gren"]
+    },
+    {
+      "canonical": "greenway",
+      "variants": ["grwy"]
+    },
+    {
+      "canonical": "ground",
+      "variants": ["grnd"]
+    },
+    {
+      "canonical": "grounds",
+      "variants": ["grnds"]
+    },
+    {
+      "canonical": "grove",
+      "variants": ["gr", "grv", "grve", "gro"]
+    },
+    {
+      "canonical": "gulch",
+      "variants": ["glch"]
+    },
+    {
+      "canonical": "gully",
+      "variants": ["gly"]
+    },
+    {
+      "canonical": "hanger",
+      "variants": ["hngr"]
+    },
+    {
+      "canonical": "harbor",
+      "variants": ["harbour", "hbr", "hrbr"]
+    },
+    {
+      "canonical": "harbors",
+      "variants": ["hbrs"]
+    },
+    {
+      "canonical": "haven",
+      "variants": ["hvn", "havn"]
+    },
+    {
+      "canonical": "head",
+      "variants": ["hd"]
+    },
+    {
+      "canonical": "heads",
+      "variants": ["hds"]
+    },
+    {
+      "canonical": "heath",
+      "variants": ["hth", "heth"]
+    },
+    {
+      "canonical": "heights",
+      "variants": ["hghts", "hgts", "hieghts", "ht", "hts", "hgths"]
+    },
+    {
+      "canonical": "highlands",
+      "variants": ["hghlds", "hlds", "hglds"]
+    },
+    {
+      "canonical": "highroad",
+      "variants": ["hrd", "high road", "hird", "hi.rd", "hi rd"]
+    },
+    {
+      "canonical": "highway",
+      "variants": ["hgwy", "hw", "hway", "hwy", "hi", "hwye", "hywy"]
+    },
+    {
+      "canonical": "hill",
+      "variants": ["hl"]
+    },
+    {
+      "canonical": "hills",
+      "variants": ["hls", "hils"]
+    },
+    {
+      "canonical": "hollow",
+      "variants": ["hllw", "holw"]
+    },
+    {
+      "canonical": "hub",
+      "variants": []
+    },
+    {
+      "canonical": "impasse",
+      "variants": ["imp"]
+    },
+    {
+      "canonical": "inlet",
+      "variants": ["inlt"]
+    },
+    {
+      "canonical": "interchange",
+      "variants": ["intg", "intchg", "inter change"]
+    },
+    {
+      "canonical": "intersection",
+      "variants": ["intn", "inter section", "intsctn"]
+    },
+    {
+      "canonical": "interstate",
+      "variants": ["inter state", "i", "ih", "i h"]
+    },
+    {
+      "canonical": "island",
+      "variants": ["is", "id", "i", "isl", "isld"]
+    },
+    {
+      "canonical": "islands",
+      "variants": ["iss", "ids", "islds"]
+    },
+    {
+      "canonical": "isle",
+      "variants": []
+    },
+    {
+      "canonical": "junction",
+      "variants": ["jct", "jnc", "jnct", "jctn", "jtn", "junct", "j"]
+    },
+    {
+      "canonical": "junctions",
+      "variants": ["jcts"]
+    },
+    {
+      "canonical": "key",
+      "variants": ["ky"]
+    },
+    {
+      "canonical": "keys",
+      "variants": ["kys"]
+    },
+    {
+      "canonical": "knob",
+      "variants": []
+    },
+    {
+      "canonical": "knoll",
+      "variants": ["knol", "knl"]
+    },
+    {
+      "canonical": "knolls",
+      "variants": ["knls"]
+    },
+    {
+      "canonical": "ladder",
+      "variants": ["ladr"]
+    },
+    {
+      "canonical": "lagoon",
+      "variants": ["lagn", "lgn", "lagon"]
+    },
+    {
+      "canonical": "land",
+      "variants": []
+    },
+    {
+      "canonical": "landing",
+      "variants": ["ldg", "lndg", "landng"]
+    },
+    {
+      "canonical": "lane",
+      "variants": ["l", "ln", "la"]
+    },
+    {
+      "canonical": "laneway",
+      "variants": ["lnwy"]
+    },
+    {
+      "canonical": "lees",
+      "variants": []
+    },
+    {
+      "canonical": "light",
+      "variants": ["lgt", "lt"]
+    },
+    {
+      "canonical": "limits",
+      "variants": ["lmts"]
+    },
+    {
+      "canonical": "line",
+      "variants": ["ln"]
+    },
+    {
+      "canonical": "link",
+      "variants": ["lnk", "lk"]
+    },
+    {
+      "canonical": "little",
+      "variants": ["ltl", "lttl", "littl", "litl", "lit", "lt"]
+    },
+    {
+      "canonical": "loaf",
+      "variants": ["lf"]
+    },
+    {
+      "canonical": "lookout",
+      "variants": ["lkt", "look out"]
+    },
+    {
+      "canonical": "loop",
+      "variants": ["lp"]
+    },
+    {
+      "canonical": "loops",
+      "variants": ["lps"]
+    },
+    {
+      "canonical": "lot",
+      "variants": ["lt"]
+    },
+    {
+      "canonical": "lynne",
+      "variants": ["lynn"]
+    },
+    {
+      "canonical": "mall",
+      "variants": ["ml"]
+    },
+    {
+      "canonical": "manor",
+      "variants": ["mnr"]
+    },
+    {
+      "canonical": "maze",
+      "variants": []
+    },
+    {
+      "canonical": "meadow",
+      "variants": ["mdw"]
+    },
+    {
+      "canonical": "meadows",
+      "variants": ["mdws", "mead"]
+    },
+    {
+      "canonical": "mead",
+      "variants": ["md"]
+    },
+    {
+      "canonical": "meander",
+      "variants": ["mndr", "mdr", "mr"]
+    },
+    {
+      "canonical": "mew",
+      "variants": ["mw"]
+    },
+    {
+      "canonical": "mews",
+      "variants": ["mws"]
+    },
+    {
+      "canonical": "mile",
+      "variants": ["mi"]
+    },
+    {
+      "canonical": "mill",
+      "variants": ["ml"]
+    },
+    {
+      "canonical": "mills",
+      "variants": ["mls"]
+    },
+    {
+      "canonical": "moor",
+      "variants": []
+    },
+    {
+      "canonical": "motorway",
+      "variants": ["mway", "mwy", "mtwy"]
+    },
+    {
+      "canonical": "mount",
+      "variants": ["mt"]
+    },
+    {
+      "canonical": "neaves",
+      "variants": ["nvs"]
+    },
+    {
+      "canonical": "nook",
+      "variants": ["nk"]
+    },
+    {
+      "canonical": "number",
+      "variants": []
+    },
+    {
+      "canonical": "oaks",
+      "variants": []
+    },
+    {
+      "canonical": "outlet",
+      "variants": ["otlt"]
+    },
+    {
+      "canonical": "outlook",
+      "variants": ["out", "otlk"]
+    },
+    {
+      "canonical": "oval",
+      "variants": []
+    },
+    {
+      "canonical": "overbridge",
+      "variants": ["ovrb", "over bridge"]
+    },
+    {
+      "canonical": "overlook",
+      "variants": ["over look", "ovlk"]
+    },
+    {
+      "canonical": "overpass",
+      "variants": ["over pass", "opas"]
+    },
+    {
+      "canonical": "paddock",
+      "variants": ["padk"]
+    },
+    {
+      "canonical": "palms",
+      "variants": ["plms"]
+    },
+    {
+      "canonical": "parade",
+      "variants": ["pde", "prd", "prde", "pard"]
+    },
+    {
+      "canonical": "park",
+      "variants": ["pk", "prk"]
+    },
+    {
+      "canonical": "parklands",
+      "variants": ["pkld", "pklds", "parkland", "park lands", "park land"]
+    },
+    {
+      "canonical": "parkway",
+      "variants": ["pkwy", "parkwy", "pky", "pkway", "prkwy", "prkway", "pkw", "pwy", "prkw"]
+    },
+    {
+      "canonical": "parkways",
+      "variants": ["pkwys"]
+    },
+    {
+      "canonical": "part",
+      "variants": ["prt"]
+    },
+    {
+      "canonical": "pass",
+      "variants": ["ps"]
+    },
+    {
+      "canonical": "passage",
+      "variants": ["psge", "pass", "pasg"]
+    },
+    {
+      "canonical": "path",
+      "variants": ["pth"]
+    },
+    {
+      "canonical": "pathway",
+      "variants": ["phwy", "pway", "pthway", "pthwy", "ptway", "ptwy"]
+    },
+    {
+      "canonical": "peninsula",
+      "variants": ["psla"]
+    },
+    {
+      "canonical": "piazza",
+      "variants": ["piaz", "pzza"]
+    },
+    {
+      "canonical": "pier",
+      "variants": []
+    },
+    {
+      "canonical": "pike",
+      "variants": ["pk", "pke"]
+    },
+    {
+      "canonical": "pine",
+      "variants": ["pne", "pn"]
+    },
+    {
+      "canonical": "pines",
+      "variants": ["pns", "pnes"]
+    },
+    {
+      "canonical": "pond",
+      "variants": []
+    },
+    {
+      "canonical": "place",
+      "variants": ["pl", "pla", "plc", "plac"]
+    },
+    {
+      "canonical": "plain",
+      "variants": ["pln", "pl"]
+    },
+    {
+      "canonical": "plains",
+      "variants": ["plns", "pls"]
+    },
+    {
+      "canonical": "plateau",
+      "variants": ["plat", "plt"]
+    },
+    {
+      "canonical": "plaza",
+      "variants": ["plz", "plza", "pz"]
+    },
+    {
+      "canonical": "prarie",
+      "variants": ["pr"]
+    },
+    {
+      "canonical": "pocket",
+      "variants": ["pkt", "pokt", "pckt"]
+    },
+    {
+      "canonical": "point",
+      "variants": ["piont", "pnt", "pt"]
+    },
+    {
+      "canonical": "pointe",
+      "variants": ["pte", "pnte"]
+    },
+    {
+      "canonical": "port",
+      "variants": ["prt"]
+    },
+    {
+      "canonical": "ports",
+      "variants": ["prts"]
+    },
+    {
+      "canonical": "prairie",
+      "variants": ["pr"]
+    },
+    {
+      "canonical": "priors",
+      "variants": ["prrs"]
+    },
+    {
+      "canonical": "private",
+      "variants": ["pvt"]
+    },
+    {
+      "canonical": "promenade",
+      "variants": ["prom", "prm"]
+    },
+    {
+      "canonical": "pursuit",
+      "variants": ["pur"]
+    },
+    {
+      "canonical": "quad",
+      "variants": ["qd"]
+    },
+    {
+      "canonical": "quadrangle",
+      "variants": ["qdgl"]
+    },
+    {
+      "canonical": "quadrant",
+      "variants": ["qdrt", "qd"]
+    },
+    {
+      "canonical": "quay",
+      "variants": ["quy", "qy"]
+    },
+    {
+      "canonical": "quays",
+      "variants": ["quys", "qys"]
+    },
+    {
+      "canonical": "radial",
+      "variants": ["radl"]
+    },
+    {
+      "canonical": "ramble",
+      "variants": ["ra", "rmbl"]
+    },
+    {
+      "canonical": "ramp",
+      "variants": ["rmp"]
+    },
+    {
+      "canonical": "ranae",
+      "variants": ["ran"]
+    },
+    {
+      "canonical": "ranch",
+      "variants": ["rnch"]
+    },
+    {
+      "canonical": "rapid",
+      "variants": ["rpd"]
+    },
+    {
+      "canonical": "rapids",
+      "variants": ["rpds"]
+    },
+    {
+      "canonical": "range",
+      "variants": ["rng", "rnge", "rang"]
+    },
+    {
+      "canonical": "range road",
+      "variants": ["rge rd", "range rd", "rr"]
+    },
+    {
+      "canonical": "reach",
+      "variants": ["rch"]
+    },
+    {
+      "canonical": "reef",
+      "variants": []
+    },
+    {
+      "canonical": "reserve",
+      "variants": ["res", "resrv", "resv", "rsrv", "rserv", "rserve", "rsrve"]
+    },
+    {
+      "canonical": "rest",
+      "variants": ["rst"]
+    },
+    {
+      "canonical": "retreat",
+      "variants": ["rt", "rtt"]
+    },
+    {
+      "canonical": "return",
+      "variants": ["rtn"]
+    },
+    {
+      "canonical": "ride",
+      "variants": []
+    },
+    {
+      "canonical": "ridge",
+      "variants": ["rdge", "rdg"]
+    },
+    {
+      "canonical": "ridges",
+      "variants": ["rdgs"]
+    },
+    {
+      "canonical": "ridgeway",
+      "variants": ["rgwy", "rdgwy", "ridge way"]
+    },
+    {
+      "canonical": "right of way",
+      "variants": ["rowy", "rightofway", "rofw", "row", "r o w", "r of w"]
+    },
+    {
+      "canonical": "ring",
+      "variants": []
+    },
+    {
+      "canonical": "rise",
+      "variants": ["ri"]
+    },
+    {
+      "canonical": "riverway",
+      "variants": ["rvwy"]
+    },
+    {
+      "canonical": "riviera",
+      "variants": ["rvra"]
+    },
+    {
+      "canonical": "road",
+      "variants": ["rd", "ro", "r", "roa", "raod"]
+    },
+    {
+      "canonical": "roads",
+      "variants": ["raods", "rds"]
+    },
+    {
+      "canonical": "roadside",
+      "variants": ["rdsd", "road side"]
+    },
+    {
+      "canonical": "roadway",
+      "variants": ["rdwy", "rdw", "rdy"]
+    },
+    {
+      "canonical": "rocks",
+      "variants": ["rks"]
+    },
+    {
+      "canonical": "ronde",
+      "variants": ["rnde"]
+    },
+    {
+      "canonical": "rosebowl",
+      "variants": ["rsbl", "rose bowl"]
+    },
+    {
+      "canonical": "rotary",
+      "variants": ["rty"]
+    },
+    {
+      "canonical": "round",
+      "variants": ["rnd"]
+    },
+    {
+      "canonical": "roundabout",
+      "variants": []
+    },
+    {
+      "canonical": "route",
+      "variants": ["rt", "rte"]
+    },
+    {
+      "canonical": "row",
+      "variants": ["rw"]
+    },
+    {
+      "canonical": "run",
+      "variants": ["rn"]
+    },
+    {
+      "canonical": "rural route",
+      "variants": ["rr", "r.r", "r r"]
+    },
+    {
+      "canonical": "service road",
+      "variants": ["svc rd", "svc road", "service rd", "sv rd", "svrd"]
+    },
+    {
+      "canonical": "serviceway",
+      "variants": ["swy", "svwy", "svcwy"]
+    },
+    {
+      "canonical": "shoal",
+      "variants": ["shl"]
+    },
+    {
+      "canonical": "shoals",
+      "variants": ["shls"]
+    },
+    {
+      "canonical": "shore",
+      "variants": ["shor", "shr"]
+    },
+    {
+      "canonical": "shores",
+      "variants": ["shors", "shrs"]
+    },
+    {
+      "canonical": "shunt",
+      "variants": ["shun", "shnt"]
+    },
+    {
+      "canonical": "siding",
+      "variants": ["sdng", "sdg"]
+    },
+    {
+      "canonical": "skyway",
+      "variants": ["skwy"]
+    },
+    {
+      "canonical": "slip",
+      "variants": []
+    },
+    {
+      "canonical": "slope",
+      "variants": ["slpe", "slp"]
+    },
+    {
+      "canonical": "sound",
+      "variants": ["snd"]
+    },
+    {
+      "canonical": "space",
+      "variants": ["spc"]
+    },
+    {
+      "canonical": "spring",
+      "variants": ["spg", "sprng", "sprn"]
+    },
+    {
+      "canonical": "springs",
+      "variants": ["spgs", "sprngs", "spns"]
+    },
+    {
+      "canonical": "spur",
+      "variants": ["spr"]
+    },
+    {
+      "canonical": "square",
+      "variants": ["sq", "sqr"]
+    },
+    {
+      "canonical": "squares",
+      "variants": ["sqs"]
+    },
+    {
+      "canonical": "stairs",
+      "variants": ["strs"]
+    },
+    {
+      "canonical": "stairway",
+      "variants": ["stwy", "strwy", "stair way", "st.wy", "st wy", "str.way", "str way"]
+    },
+    {
+      "canonical": "state highway",
+      "variants": [
+        "s.highway",
+        "s highway",
+        "st.highway",
+        "st highway",
+        "sh",
+        "s.h.",
+        "s.h",
+        "s h",
+        "st.h",
+        "st h",
+        "s.hw",
+        "s hw",
+        "st.hw",
+        "st hw",
+        "s.hwy",
+        "s hwy",
+        "shwy",
+        "s.hgwy",
+        "s hgwy",
+        "st.hgwy",
+        "st hgwy",
+        "s.hway",
+        "s hway",
+        "st.hway",
+        "st hway",
+        "st.hwy",
+        "st hwy",
+        "s.hi",
+        "s hi",
+        "st.hi",
+        "st hi",
+        "statehighway"
+      ]
+    },
+    {
+      "canonical": "state road",
+      "variants": [
+        "sr",
+        "stateroad",
+        "s.r.",
+        "s.r",
+        "s r",
+        "s.road",
+        "s road",
+        "st.road",
+        "st road",
+        "staterd",
+        "srd",
+        "s.rd",
+        "s rd",
+        "state rd",
+        "strd",
+        "st.rd",
+        "st rd"
+      ]
+    },
+    {
+      "canonical": "state route",
+      "variants": [
+        "sr",
+        "stateroute",
+        "s.r.",
+        "s.r",
+        "s r",
+        "s.route",
+        "s route",
+        "st.route",
+        "st route",
+        "statert",
+        "srt",
+        "s.rt",
+        "s rt",
+        "srte",
+        "s.rte",
+        "s rte",
+        "state rt",
+        "state rte",
+        "strt",
+        "strte",
+        "st.rt",
+        "st rt",
+        "st.rte",
+        "st rte"
+      ]
+    },
+    {
+      "canonical": "steps",
+      "variants": ["stps"]
+    },
+    {
+      "canonical": "strand",
+      "variants": ["stra", "strnd", "strd"]
+    },
+    {
+      "canonical": "strands",
+      "variants": ["strnds", "strds"]
+    },
+    {
+      "canonical": "stravenue",
+      "variants": ["stra", "strav"]
+    },
+    {
+      "canonical": "street",
+      "variants": ["st", "str", "stre", "stree", "strt"]
+    },
+    {
+      "canonical": "streets",
+      "variants": ["sts"]
+    },
+    {
+      "canonical": "strip",
+      "variants": ["strp"]
+    },
+    {
+      "canonical": "subdivision",
+      "variants": ["subdiv"]
+    },
+    {
+      "canonical": "subway",
+      "variants": ["sbwy"]
+    },
+    {
+      "canonical": "summit",
+      "variants": ["smt", "sumt"]
+    },
+    {
+      "canonical": "tarn",
+      "variants": ["tn"]
+    },
+    {
+      "canonical": "terrace",
+      "variants": ["tce", "ter", "tr", "terr", "terace", "terrac", "terrasse", "tsse"]
+    },
+    {
+      "canonical": "thicket",
+      "variants": ["thick"]
+    },
+    {
+      "canonical": "thoroughfare",
+      "variants": ["thor", "throughfare", "thorough fare", "thfr"]
+    },
+    {
+      "canonical": "thoroughway",
+      "variants": ["thwy"]
+    },
+    {
+      "canonical": "throughway",
+      "variants": ["thru", "thro", "thruway", "trwy", "thwy"]
+    },
+    {
+      "canonical": "tollway",
+      "variants": ["tlwy", "twy"]
+    },
+    {
+      "canonical": "top",
+      "variants": []
+    },
+    {
+      "canonical": "tor",
+      "variants": []
+    },
+    {
+      "canonical": "township highway",
+      "variants": [
+        "th",
+        "t.h.",
+        "t.h",
+        "t h",
+        "twp.h",
+        "twp h",
+        "tshp.h",
+        "tshp h",
+        "t.hw",
+        "t hw",
+        "twp.hw",
+        "twp hw",
+        "tshp.hw",
+        "tshp hw",
+        "t.hgwy",
+        "t hgwy",
+        "twp.hgwy",
+        "twp hgwy",
+        "tshp.hgwy",
+        "tshp hgwy",
+        "t.hway",
+        "t hway",
+        "twp.hway",
+        "twp hway",
+        "tshp.hway",
+        "tshp hway",
+        "t.hwy",
+        "t hwy",
+        "twp.hwy",
+        "twp hwy",
+        "tshp.hwy",
+        "tshp hwy",
+        "t.hi",
+        "t hi",
+        "twp.hi",
+        "twp hi",
+        "tshp.hi",
+        "tshp hi"
+      ]
+    },
+    {
+      "canonical": "township road",
+      "variants": [
+        "tr",
+        "t.r.",
+        "t.r",
+        "t r",
+        "t rd",
+        "t.rd",
+        "trd",
+        "twpr",
+        "twp.r",
+        "twp r",
+        "twp.rd",
+        "twp rd",
+        "tshp.r",
+        "tshp r",
+        "tshp.rd",
+        "tshp rd",
+        "township rd",
+        "tp rd"
+      ]
+    },
+    {
+      "canonical": "township route",
+      "variants": [
+        "tr",
+        "t.r.",
+        "t.r",
+        "t r",
+        "t rt",
+        "t.rt",
+        "trt",
+        "t.rte",
+        "t rte",
+        "twpr",
+        "twp.r",
+        "twp r",
+        "twp.rt",
+        "twp rt",
+        "twp.rte",
+        "twp rte",
+        "tshp.r",
+        "tshp r",
+        "tshp.rt",
+        "tshp rt",
+        "tshp.rte",
+        "tshp rte"
+      ]
+    },
+    {
+      "canonical": "tower",
+      "variants": ["twr"]
+    },
+    {
+      "canonical": "towers",
+      "variants": ["twrs"]
+    },
+    {
+      "canonical": "townline",
+      "variants": ["tline"]
+    },
+    {
+      "canonical": "trace",
+      "variants": ["trce", "trc"]
+    },
+    {
+      "canonical": "track",
+      "variants": ["tr", "trk", "trak"]
+    },
+    {
+      "canonical": "trafficway",
+      "variants": ["trfy"]
+    },
+    {
+      "canonical": "trail",
+      "variants": ["tr", "trl"]
+    },
+    {
+      "canonical": "trailer",
+      "variants": ["trlr"]
+    },
+    {
+      "canonical": "tram",
+      "variants": []
+    },
+    {
+      "canonical": "tramway",
+      "variants": ["tmwy"]
+    },
+    {
+      "canonical": "trees",
+      "variants": ["trs"]
+    },
+    {
+      "canonical": "triangle",
+      "variants": ["tri"]
+    },
+    {
+      "canonical": "truck trail",
+      "variants": ["trktrl"]
+    },
+    {
+      "canonical": "trunkway",
+      "variants": ["tkwy"]
+    },
+    {
+      "canonical": "tunnel",
+      "variants": ["tun", "tunl"]
+    },
+    {
+      "canonical": "turnabout",
+      "variants": ["trnabt"]
+    },
+    {
+      "canonical": "turn",
+      "variants": ["tn", "trn"]
+    },
+    {
+      "canonical": "turnpike",
+      "variants": ["tpk", "tpke"]
+    },
+    {
+      "canonical": "underpass",
+      "variants": ["upas", "upass", "ups", "under pass"]
+    },
+    {
+      "canonical": "union",
+      "variants": ["un"]
+    },
+    {
+      "canonical": "unions",
+      "variants": ["uns"]
+    },
+    {
+      "canonical": "us highway",
+      "variants": ["us hwy", "u s hwy"]
+    },
+    {
+      "canonical": "us route",
+      "variants": ["us rte", "u s rte"]
+    },
+    {
+      "canonical": "vale",
+      "variants": ["va", "vl"]
+    },
+    {
+      "canonical": "valley",
+      "variants": ["vlly", "vly", "vy"]
+    },
+    {
+      "canonical": "valleys",
+      "variants": ["vlys", "vllys"]
+    },
+    {
+      "canonical": "vennel",
+      "variants": []
+    },
+    {
+      "canonical": "viaduct",
+      "variants": ["via", "viad", "vdct", "viadct"]
+    },
+    {
+      "canonical": "view",
+      "variants": ["vw"]
+    },
+    {
+      "canonical": "views",
+      "variants": ["vws"]
+    },
+    {
+      "canonical": "villa",
+      "variants": ["vla"]
+    },
+    {
+      "canonical": "village",
+      "variants": ["vlge"]
+    },
+    {
+      "canonical": "villas",
+      "variants": ["vlas"]
+    },
+    {
+      "canonical": "vista",
+      "variants": ["vst", "vsta", "vis"]
+    },
+    {
+      "canonical": "vue",
+      "variants": []
+    },
+    {
+      "canonical": "wade",
+      "variants": []
+    },
+    {
+      "canonical": "walk",
+      "variants": ["wlk", "wk"]
+    },
+    {
+      "canonical": "walkway",
+      "variants": ["wkwy", "wky", "wlkwy"]
+    },
+    {
+      "canonical": "waters",
+      "variants": ["wtrs"]
+    },
+    {
+      "canonical": "way",
+      "variants": ["wy"]
+    },
+    {
+      "canonical": "ways",
+      "variants": ["wys"]
+    },
+    {
+      "canonical": "well",
+      "variants": ["wl"]
+    },
+    {
+      "canonical": "wells",
+      "variants": ["wls"]
+    },
+    {
+      "canonical": "wharf",
+      "variants": ["whrf", "whf"]
+    },
+    {
+      "canonical": "wynd",
+      "variants": ["wyn"]
+    },
+    {
+      "canonical": "yard",
+      "variants": ["yd", "yrd"]
+    }
+  ]
+}

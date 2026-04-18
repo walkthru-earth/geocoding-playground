@@ -1,0 +1,56 @@
+{
+  "_meta": {
+    "libpostal_repo": "openvenues/libpostal",
+    "libpostal_sha": "25099c506612b34b23b1bfe286ca6321fcf06f35",
+    "source_file": "directionals.txt",
+    "fetched_at": "2026-04-18T12:43:39.305Z",
+    "license": "MIT",
+    "attribution": "libpostal by Al Barrentine, MIT License. https://github.com/openvenues/libpostal. Dictionaries imported at the pinned commit."
+  },
+  "entries": [
+    {
+      "canonical": "levante",
+      "variants": []
+    },
+    {
+      "canonical": "nord",
+      "variants": ["n"]
+    },
+    {
+      "canonical": "nord est",
+      "variants": ["nordest", "ne", "n e"]
+    },
+    {
+      "canonical": "nord ovest",
+      "variants": ["nordovest", "no", "n o"]
+    },
+    {
+      "canonical": "est",
+      "variants": ["e"]
+    },
+    {
+      "canonical": "occidentale",
+      "variants": ["occid.le"]
+    },
+    {
+      "canonical": "orientale",
+      "variants": ["orrient.le"]
+    },
+    {
+      "canonical": "ovest",
+      "variants": ["o"]
+    },
+    {
+      "canonical": "sud",
+      "variants": ["s"]
+    },
+    {
+      "canonical": "sud est",
+      "variants": ["sudest", "se", "s e"]
+    },
+    {
+      "canonical": "sud ovest",
+      "variants": ["sudovest", "so", "s o"]
+    }
+  ]
+}

@@ -1,0 +1,116 @@
+{
+  "_meta": {
+    "libpostal_repo": "openvenues/libpostal",
+    "libpostal_sha": "25099c506612b34b23b1bfe286ca6321fcf06f35",
+    "source_file": "street_types.txt",
+    "fetched_at": "2026-04-18T12:44:28.185Z",
+    "license": "MIT",
+    "attribution": "libpostal by Al Barrentine, MIT License. https://github.com/openvenues/libpostal. Dictionaries imported at the pinned commit."
+  },
+  "entries": [
+    {
+      "canonical": "autovia",
+      "variants": []
+    },
+    {
+      "canonical": "autopista",
+      "variants": ["auto", "autop"]
+    },
+    {
+      "canonical": "avenida",
+      "variants": ["av", "avd", "avda"]
+    },
+    {
+      "canonical": "alameda",
+      "variants": []
+    },
+    {
+      "canonical": "baixada",
+      "variants": []
+    },
+    {
+      "canonical": "camino",
+      "variants": []
+    },
+    {
+      "canonical": "costa",
+      "variants": []
+    },
+    {
+      "canonical": "encosta",
+      "variants": []
+    },
+    {
+      "canonical": "estrada",
+      "variants": []
+    },
+    {
+      "canonical": "glorieta",
+      "variants": []
+    },
+    {
+      "canonical": "paseo",
+      "variants": []
+    },
+    {
+      "canonical": "praza",
+      "variants": ["pr", "pza"]
+    },
+    {
+      "canonical": "pracina",
+      "variants": []
+    },
+    {
+      "canonical": "prazuela",
+      "variants": ["przla"]
+    },
+    {
+      "canonical": "rambla",
+      "variants": ["rbla"]
+    },
+    {
+      "canonical": "ronda",
+      "variants": ["rda"]
+    },
+    {
+      "canonical": "rotonda",
+      "variants": ["rtda"]
+    },
+    {
+      "canonical": "rua",
+      "variants": ["r", "ru"]
+    },
+    {
+      "canonical": "ruas",
+      "variants": ["rs"]
+    },
+    {
+      "canonical": "ruela",
+      "variants": []
+    },
+    {
+      "canonical": "sendeiro",
+      "variants": []
+    },
+    {
+      "canonical": "suba",
+      "variants": []
+    },
+    {
+      "canonical": "subida",
+      "variants": ["sbida"]
+    },
+    {
+      "canonical": "travesia",
+      "variants": ["trav"]
+    },
+    {
+      "canonical": "via",
+      "variants": []
+    },
+    {
+      "canonical": "viela",
+      "variants": []
+    }
+  ]
+}

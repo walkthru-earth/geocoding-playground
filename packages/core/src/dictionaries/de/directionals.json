@@ -1,0 +1,176 @@
+{
+  "_meta": {
+    "libpostal_repo": "openvenues/libpostal",
+    "libpostal_sha": "25099c506612b34b23b1bfe286ca6321fcf06f35",
+    "source_file": "directionals.txt",
+    "fetched_at": "2026-04-18T12:43:32.536Z",
+    "license": "MIT",
+    "attribution": "libpostal by Al Barrentine, MIT License. https://github.com/openvenues/libpostal. Dictionaries imported at the pinned commit."
+  },
+  "entries": [
+    {
+      "canonical": "nord",
+      "variants": ["n"]
+    },
+    {
+      "canonical": "norden",
+      "variants": []
+    },
+    {
+      "canonical": "nordlich",
+      "variants": ["nordl", "noerdlich"]
+    },
+    {
+      "canonical": "nordliche",
+      "variants": ["noerdliche"]
+    },
+    {
+      "canonical": "nordlicher",
+      "variants": ["noerdlicher"]
+    },
+    {
+      "canonical": "nordliches",
+      "variants": ["noerdliches"]
+    },
+    {
+      "canonical": "nordost",
+      "variants": ["no"]
+    },
+    {
+      "canonical": "nordosten",
+      "variants": []
+    },
+    {
+      "canonical": "nordostlich",
+      "variants": ["nordoestlich"]
+    },
+    {
+      "canonical": "nordwest",
+      "variants": ["nw"]
+    },
+    {
+      "canonical": "nordwestliche",
+      "variants": []
+    },
+    {
+      "canonical": "ost",
+      "variants": ["o"]
+    },
+    {
+      "canonical": "osten",
+      "variants": []
+    },
+    {
+      "canonical": "ostlich",
+      "variants": ["ostl", "oestlich"]
+    },
+    {
+      "canonical": "ostliche",
+      "variants": ["oestliche"]
+    },
+    {
+      "canonical": "ostlicher",
+      "variants": ["oestlicher"]
+    },
+    {
+      "canonical": "ostliches",
+      "variants": ["oestliches"]
+    },
+    {
+      "canonical": "sud",
+      "variants": ["s", "sued"]
+    },
+    {
+      "canonical": "suden",
+      "variants": ["sueden"]
+    },
+    {
+      "canonical": "sudlich",
+      "variants": ["sudl", "suedlich"]
+    },
+    {
+      "canonical": "sudliche",
+      "variants": ["suedliche"]
+    },
+    {
+      "canonical": "sudlicher",
+      "variants": ["suedlicher"]
+    },
+    {
+      "canonical": "sudliches",
+      "variants": ["suedliches"]
+    },
+    {
+      "canonical": "sudost",
+      "variants": ["so", "suedost"]
+    },
+    {
+      "canonical": "sudosten",
+      "variants": ["suedosten"]
+    },
+    {
+      "canonical": "sudostlich",
+      "variants": ["suedoestlich"]
+    },
+    {
+      "canonical": "sudostliche",
+      "variants": ["suedoestliche"]
+    },
+    {
+      "canonical": "sudostlicher",
+      "variants": ["suedoestlicher"]
+    },
+    {
+      "canonical": "sudostliches",
+      "variants": ["suedoestliches"]
+    },
+    {
+      "canonical": "sudwest",
+      "variants": ["sw", "suedwest"]
+    },
+    {
+      "canonical": "sudwesten",
+      "variants": ["suedwesten"]
+    },
+    {
+      "canonical": "sudwestlich",
+      "variants": ["suedwestlich"]
+    },
+    {
+      "canonical": "sudwestliche",
+      "variants": ["suedwestliche"]
+    },
+    {
+      "canonical": "sudwestlicher",
+      "variants": ["suedwestlicher"]
+    },
+    {
+      "canonical": "sudwestliches",
+      "variants": ["suedwestliches"]
+    },
+    {
+      "canonical": "west",
+      "variants": ["w"]
+    },
+    {
+      "canonical": "westen",
+      "variants": []
+    },
+    {
+      "canonical": "westlich",
+      "variants": ["westl"]
+    },
+    {
+      "canonical": "westliche",
+      "variants": []
+    },
+    {
+      "canonical": "westlicher",
+      "variants": []
+    },
+    {
+      "canonical": "westliches",
+      "variants": []
+    }
+  ]
+}

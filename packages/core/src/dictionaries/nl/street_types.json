@@ -1,0 +1,100 @@
+{
+  "_meta": {
+    "libpostal_repo": "openvenues/libpostal",
+    "libpostal_sha": "25099c506612b34b23b1bfe286ca6321fcf06f35",
+    "source_file": "street_types.txt",
+    "fetched_at": "2026-04-18T12:43:40.999Z",
+    "license": "MIT",
+    "attribution": "libpostal by Al Barrentine, MIT License. https://github.com/openvenues/libpostal. Dictionaries imported at the pinned commit."
+  },
+  "entries": [
+    {
+      "canonical": "baan",
+      "variants": []
+    },
+    {
+      "canonical": "dijk",
+      "variants": ["dk"]
+    },
+    {
+      "canonical": "dwarsstraat",
+      "variants": ["dwstr"]
+    },
+    {
+      "canonical": "dwarsweg",
+      "variants": ["dwwg"]
+    },
+    {
+      "canonical": "gracht",
+      "variants": ["gr"]
+    },
+    {
+      "canonical": "hof",
+      "variants": ["h"]
+    },
+    {
+      "canonical": "hoofdstraat",
+      "variants": []
+    },
+    {
+      "canonical": "kade",
+      "variants": ["kd"]
+    },
+    {
+      "canonical": "laan",
+      "variants": ["ln"]
+    },
+    {
+      "canonical": "lange",
+      "variants": ["l"]
+    },
+    {
+      "canonical": "lang",
+      "variants": ["l"]
+    },
+    {
+      "canonical": "leane",
+      "variants": []
+    },
+    {
+      "canonical": "loane",
+      "variants": []
+    },
+    {
+      "canonical": "park",
+      "variants": ["pk"]
+    },
+    {
+      "canonical": "plein",
+      "variants": ["pln"]
+    },
+    {
+      "canonical": "plantsoen",
+      "variants": ["plnts"]
+    },
+    {
+      "canonical": "singel",
+      "variants": ["sngl"]
+    },
+    {
+      "canonical": "straat",
+      "variants": ["str"]
+    },
+    {
+      "canonical": "steenweg",
+      "variants": ["stwg"]
+    },
+    {
+      "canonical": "verlengde",
+      "variants": ["verl"]
+    },
+    {
+      "canonical": "vliet",
+      "variants": ["vlt"]
+    },
+    {
+      "canonical": "weg",
+      "variants": ["wg"]
+    }
+  ]
+}

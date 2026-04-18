@@ -1,0 +1,64 @@
+{
+  "_meta": {
+    "libpostal_repo": "openvenues/libpostal",
+    "libpostal_sha": "25099c506612b34b23b1bfe286ca6321fcf06f35",
+    "source_file": "directionals.txt",
+    "fetched_at": "2026-04-18T12:43:52.439Z",
+    "license": "MIT",
+    "attribution": "libpostal by Al Barrentine, MIT License. https://github.com/openvenues/libpostal. Dictionaries imported at the pinned commit."
+  },
+  "entries": [
+    {
+      "canonical": "nordre",
+      "variants": ["ndr"]
+    },
+    {
+      "canonical": "nord",
+      "variants": ["n"]
+    },
+    {
+      "canonical": "nordost",
+      "variants": ["no"]
+    },
+    {
+      "canonical": "nordvest",
+      "variants": ["nv"]
+    },
+    {
+      "canonical": "ost",
+      "variants": ["o"]
+    },
+    {
+      "canonical": "ostre",
+      "variants": []
+    },
+    {
+      "canonical": "sentrum",
+      "variants": ["s"]
+    },
+    {
+      "canonical": "sondre",
+      "variants": ["sdr"]
+    },
+    {
+      "canonical": "syd",
+      "variants": ["s"]
+    },
+    {
+      "canonical": "sydost",
+      "variants": ["so"]
+    },
+    {
+      "canonical": "sydvest",
+      "variants": ["sv"]
+    },
+    {
+      "canonical": "vest",
+      "variants": ["v"]
+    },
+    {
+      "canonical": "vestre",
+      "variants": []
+    }
+  ]
+}

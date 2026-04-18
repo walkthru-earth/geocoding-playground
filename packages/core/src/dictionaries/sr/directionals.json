@@ -1,0 +1,44 @@
+{
+  "_meta": {
+    "libpostal_repo": "openvenues/libpostal",
+    "libpostal_sha": "25099c506612b34b23b1bfe286ca6321fcf06f35",
+    "source_file": "directionals.txt",
+    "fetched_at": "2026-04-18T12:44:08.156Z",
+    "license": "MIT",
+    "attribution": "libpostal by Al Barrentine, MIT License. https://github.com/openvenues/libpostal. Dictionaries imported at the pinned commit."
+  },
+  "entries": [
+    {
+      "canonical": "исток",
+      "variants": ["и"]
+    },
+    {
+      "canonical": "istok",
+      "variants": ["i"]
+    },
+    {
+      "canonical": "југ",
+      "variants": ["ј"]
+    },
+    {
+      "canonical": "jug",
+      "variants": ["j"]
+    },
+    {
+      "canonical": "север",
+      "variants": ["с"]
+    },
+    {
+      "canonical": "sever",
+      "variants": ["s"]
+    },
+    {
+      "canonical": "запад",
+      "variants": ["з"]
+    },
+    {
+      "canonical": "zapad",
+      "variants": ["z"]
+    }
+  ]
+}

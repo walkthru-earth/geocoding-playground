@@ -1,0 +1,32 @@
+{
+  "_meta": {
+    "libpostal_repo": "openvenues/libpostal",
+    "libpostal_sha": "25099c506612b34b23b1bfe286ca6321fcf06f35",
+    "source_file": "unit_types_standalone.txt",
+    "fetched_at": "2026-04-18T12:43:37.547Z",
+    "license": "MIT",
+    "attribution": "libpostal by Al Barrentine, MIT License. https://github.com/openvenues/libpostal. Dictionaries imported at the pinned commit."
+  },
+  "entries": [
+    {
+      "canonical": "atico",
+      "variants": ["at", "atco"]
+    },
+    {
+      "canonical": "atico de lujo",
+      "variants": ["at de lujo", "atico lujo", "at lujo", "atco lujo"]
+    },
+    {
+      "canonical": "cobertizo",
+      "variants": ["cbtizfrente", "fren"]
+    },
+    {
+      "canonical": "sobreatico",
+      "variants": []
+    },
+    {
+      "canonical": "trasera",
+      "variants": ["trs", "tras"]
+    }
+  ]
+}

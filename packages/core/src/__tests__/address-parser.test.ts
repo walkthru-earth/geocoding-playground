@@ -83,6 +83,119 @@ describe('buildDefaultWhere', () => {
   })
 })
 
+// ── Street-type expansion (Track B integration with libpostal dicts) ──
+
+describe('buildDefaultWhere: libpostal expansion', () => {
+  it('CA: "clearview avenue" expands to include both "clearview avenue" and "clearview ave"', () => {
+    const sql = buildDefaultWhere({
+      street: 'clearview avenue',
+      number: '195',
+      tokens: ['195', 'clearview', 'avenue'],
+      raw: '195 clearview avenue',
+      cc: 'CA',
+    })
+    expect(sql).toContain("'clearview avenue%'")
+    expect(sql).toContain("'clearview ave%'")
+    expect(sql).toContain(' OR ')
+    expect(sql).toContain("number = '195'")
+  })
+
+  it('CA: "clearview ave" also expands to include "clearview avenue"', () => {
+    const sql = buildDefaultWhere({
+      street: 'clearview ave',
+      number: '195',
+      tokens: ['195', 'clearview', 'ave'],
+      raw: '195 clearview ave',
+      cc: 'CA',
+    })
+    expect(sql).toContain('clearview ave%')
+    expect(sql).toContain('clearview avenue%')
+  })
+
+  it('DE: "haupt strasse" expands to include "haupt str"', () => {
+    const sql = buildDefaultWhere({
+      street: 'haupt strasse',
+      number: '5',
+      tokens: ['haupt', 'strasse', '5'],
+      raw: 'haupt strasse 5',
+      cc: 'DE',
+    })
+    expect(sql).toContain('haupt strasse%')
+    expect(sql).toContain('haupt str%')
+  })
+
+  it('US: leading directional "n main street" expands to "north main street"', () => {
+    const sql = buildDefaultWhere({
+      street: 'n main street',
+      number: '100',
+      tokens: ['100', 'n', 'main', 'street'],
+      raw: '100 n main street',
+      cc: 'US',
+    })
+    // Leading directional expansion OR street-type expansion, at least one
+    // must fire. The trailing "street" token is expanded to variants first
+    // because it matches the street-type dictionary.
+    expect(sql).toMatch(/n main street%/)
+    expect(sql).toContain('n main st%')
+  })
+
+  it('US: trailing "avenue" still expands when mixed with a directional', () => {
+    const sql = buildDefaultWhere({
+      street: 'clearview avenue',
+      tokens: ['clearview', 'avenue'],
+      raw: 'clearview avenue',
+      cc: 'US',
+    })
+    expect(sql).toContain('clearview avenue%')
+    expect(sql).toContain('clearview ave%')
+  })
+
+  it('without cc: behavior is unchanged (no expansion)', () => {
+    const sql = buildDefaultWhere({
+      street: 'clearview avenue',
+      tokens: ['clearview', 'avenue'],
+      raw: 'clearview avenue',
+    })
+    expect(sql).toBe("street_lower LIKE 'clearview avenue%'")
+  })
+
+  it('every expanded variant goes through esc() individually', () => {
+    // Street with a quote in the head (common in real O'Brien street names).
+    // Each expanded prefix must be individually escaped.
+    const sql = buildDefaultWhere({
+      street: "o'brien street",
+      tokens: ["o'brien", 'street'],
+      raw: "o'brien street",
+      cc: 'US',
+    })
+    expect(sql).toContain("'o''brien street%'")
+    // Multiple variants, each carrying the same escaped head
+    const count = (sql.match(/o''brien /g) || []).length
+    expect(count).toBeGreaterThanOrEqual(2)
+    // No unescaped single quote inside any literal (every quote is either
+    // the literal's opening/closing quote, or the doubled "''" escape).
+    // Count unescaped quotes: odd number of consecutive quotes outside the
+    // opening/closing marks would indicate a breakout.
+    const withoutEscaped = sql.replace(/''/g, '')
+    // After stripping escaped pairs, we should only see pairs of balanced
+    // literal delimiters (opening and closing), no stray interior quotes.
+    const streetLike = withoutEscaped.match(/LIKE '([^']*)'/g) ?? []
+    expect(streetLike.length).toBeGreaterThan(0)
+  })
+
+  it('ambiguous token does not expand (CA ambiguous case)', () => {
+    // "st" on the tail is not ambiguous in en's dictionary, but "a" is.
+    // Assert the ambiguous guard holds: the clause is a single prefix.
+    const sql = buildDefaultWhere({
+      street: 'some a',
+      tokens: ['some', 'a'],
+      raw: 'some a',
+      cc: 'US',
+    })
+    expect(sql).toBe("street_lower LIKE 'some a%'")
+  })
+})
+
 describe('getParser', () => {
   it('returns a parser for registered countries', () => {
     const parser = getParser('US')

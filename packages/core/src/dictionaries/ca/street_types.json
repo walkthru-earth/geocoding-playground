@@ -1,0 +1,124 @@
+{
+  "_meta": {
+    "libpostal_repo": "openvenues/libpostal",
+    "libpostal_sha": "25099c506612b34b23b1bfe286ca6321fcf06f35",
+    "source_file": "street_types.txt",
+    "fetched_at": "2026-04-18T12:44:23.673Z",
+    "license": "MIT",
+    "attribution": "libpostal by Al Barrentine, MIT License. https://github.com/openvenues/libpostal. Dictionaries imported at the pinned commit."
+  },
+  "entries": [
+    {
+      "canonical": "autopista",
+      "variants": ["auto", "autop"]
+    },
+    {
+      "canonical": "autovia",
+      "variants": ["autov"]
+    },
+    {
+      "canonical": "avinguda",
+      "variants": ["av", "avd", "avda", "avgda"]
+    },
+    {
+      "canonical": "cami",
+      "variants": []
+    },
+    {
+      "canonical": "carrer",
+      "variants": ["carr", "c /"]
+    },
+    {
+      "canonical": "carrera",
+      "variants": ["cra", "carra"]
+    },
+    {
+      "canonical": "carrero",
+      "variants": ["cro", "carro", "carr"]
+    },
+    {
+      "canonical": "carretera",
+      "variants": ["ctra"]
+    },
+    {
+      "canonical": "cinturo",
+      "variants": ["cint"]
+    },
+    {
+      "canonical": "diagonal",
+      "variants": ["diag"]
+    },
+    {
+      "canonical": "drecera",
+      "variants": ["drec"]
+    },
+    {
+      "canonical": "eix",
+      "variants": []
+    },
+    {
+      "canonical": "eix diagonal",
+      "variants": []
+    },
+    {
+      "canonical": "entrada",
+      "variants": ["entr"]
+    },
+    {
+      "canonical": "gran via",
+      "variants": ["gv", "g v"]
+    },
+    {
+      "canonical": "passadis",
+      "variants": ["pdis"]
+    },
+    {
+      "canonical": "passatge",
+      "variants": ["ptge"]
+    },
+    {
+      "canonical": "passeig",
+      "variants": ["pg"]
+    },
+    {
+      "canonical": "placa",
+      "variants": ["pl", "pca", "plc"]
+    },
+    {
+      "canonical": "portal",
+      "variants": ["ptal"]
+    },
+    {
+      "canonical": "rambla",
+      "variants": ["rbla"]
+    },
+    {
+      "canonical": "ronda",
+      "variants": ["rda"]
+    },
+    {
+      "canonical": "rotonda",
+      "variants": ["rtda"]
+    },
+    {
+      "canonical": "sortida",
+      "variants": ["sort"]
+    },
+    {
+      "canonical": "transversal",
+      "variants": ["trval", "trvsal"]
+    },
+    {
+      "canonical": "travessera",
+      "variants": ["trav"]
+    },
+    {
+      "canonical": "travessia",
+      "variants": ["trv", "trav"]
+    },
+    {
+      "canonical": "via",
+      "variants": ["v"]
+    }
+  ]
+}

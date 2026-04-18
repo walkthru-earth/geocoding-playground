@@ -1,0 +1,128 @@
+{
+  "_meta": {
+    "libpostal_repo": "openvenues/libpostal",
+    "libpostal_sha": "25099c506612b34b23b1bfe286ca6321fcf06f35",
+    "source_file": "street_types.txt",
+    "fetched_at": "2026-04-18T12:44:21.240Z",
+    "license": "MIT",
+    "attribution": "libpostal by Al Barrentine, MIT License. https://github.com/openvenues/libpostal. Dictionaries imported at the pinned commit."
+  },
+  "entries": [
+    {
+      "canonical": "barð",
+      "variants": ["baro"]
+    },
+    {
+      "canonical": "borg",
+      "variants": []
+    },
+    {
+      "canonical": "borgir",
+      "variants": []
+    },
+    {
+      "canonical": "braut",
+      "variants": []
+    },
+    {
+      "canonical": "byggð",
+      "variants": ["byggo"]
+    },
+    {
+      "canonical": "fell",
+      "variants": []
+    },
+    {
+      "canonical": "gata",
+      "variants": []
+    },
+    {
+      "canonical": "gerði",
+      "variants": ["geroi"]
+    },
+    {
+      "canonical": "grund",
+      "variants": []
+    },
+    {
+      "canonical": "hagi",
+      "variants": []
+    },
+    {
+      "canonical": "hals",
+      "variants": []
+    },
+    {
+      "canonical": "hjalli",
+      "variants": []
+    },
+    {
+      "canonical": "hlið",
+      "variants": ["hlio"]
+    },
+    {
+      "canonical": "holt",
+      "variants": []
+    },
+    {
+      "canonical": "land",
+      "variants": []
+    },
+    {
+      "canonical": "lundur",
+      "variants": []
+    },
+    {
+      "canonical": "melur",
+      "variants": []
+    },
+    {
+      "canonical": "muli",
+      "variants": []
+    },
+    {
+      "canonical": "nes",
+      "variants": []
+    },
+    {
+      "canonical": "sel",
+      "variants": []
+    },
+    {
+      "canonical": "sendi",
+      "variants": []
+    },
+    {
+      "canonical": "straeti",
+      "variants": []
+    },
+    {
+      "canonical": "teigur",
+      "variants": []
+    },
+    {
+      "canonical": "torg",
+      "variants": []
+    },
+    {
+      "canonical": "tun",
+      "variants": []
+    },
+    {
+      "canonical": "vangur",
+      "variants": []
+    },
+    {
+      "canonical": "vegi",
+      "variants": []
+    },
+    {
+      "canonical": "vegur",
+      "variants": []
+    },
+    {
+      "canonical": "vellir",
+      "variants": []
+    }
+  ]
+}

@@ -19,6 +19,9 @@ export {
   suggest,
   suggestionScore,
 } from './autocomplete'
+// ── Dictionaries (libpostal-derived) ────────────────────────
+export { COUNTRY_LANGUAGES, languagesForCC } from './dictionaries/countries'
+export { expandDirectional, expandStreetVariants, getCountryLanguages } from './dictionaries/index'
 export type { PrefetchOptions, QueryResult } from './duckdb'
 // ── DuckDB ───────────────────────────────────────────────────
 export {

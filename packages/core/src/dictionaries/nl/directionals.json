@@ -1,0 +1,92 @@
+{
+  "_meta": {
+    "libpostal_repo": "openvenues/libpostal",
+    "libpostal_sha": "25099c506612b34b23b1bfe286ca6321fcf06f35",
+    "source_file": "directionals.txt",
+    "fetched_at": "2026-04-18T12:43:41.449Z",
+    "license": "MIT",
+    "attribution": "libpostal by Al Barrentine, MIT License. https://github.com/openvenues/libpostal. Dictionaries imported at the pinned commit."
+  },
+  "entries": [
+    {
+      "canonical": "noord",
+      "variants": ["n"]
+    },
+    {
+      "canonical": "noorden",
+      "variants": ["n"]
+    },
+    {
+      "canonical": "noordelijke",
+      "variants": []
+    },
+    {
+      "canonical": "noordoost",
+      "variants": ["noord oost", "no", "n.o.", "n.o", "n o"]
+    },
+    {
+      "canonical": "noordoosten",
+      "variants": ["noord oosten", "no", "n.o.", "n.o", "n o"]
+    },
+    {
+      "canonical": "noordwest",
+      "variants": ["noord west", "nw", "n.w.", "n.w", "n w"]
+    },
+    {
+      "canonical": "noordwesten",
+      "variants": ["noord westen", "nw", "n.w.", "n.w", "n w"]
+    },
+    {
+      "canonical": "oost",
+      "variants": ["o"]
+    },
+    {
+      "canonical": "oosten",
+      "variants": ["o"]
+    },
+    {
+      "canonical": "oostelijke",
+      "variants": []
+    },
+    {
+      "canonical": "west",
+      "variants": ["w"]
+    },
+    {
+      "canonical": "westen",
+      "variants": ["w"]
+    },
+    {
+      "canonical": "westelijke",
+      "variants": []
+    },
+    {
+      "canonical": "zuidoost",
+      "variants": ["zuid oost", "zo", "z.o.", "z.o", "z o"]
+    },
+    {
+      "canonical": "zuidoosten",
+      "variants": ["zuid oosten", "zo", "z.o.", "z.o", "z o"]
+    },
+    {
+      "canonical": "zuidwest",
+      "variants": ["zw", "z.w.", "z.w", "z w"]
+    },
+    {
+      "canonical": "zuidwesten",
+      "variants": ["zw", "z.w.", "z.w", "z w"]
+    },
+    {
+      "canonical": "zuid",
+      "variants": ["z"]
+    },
+    {
+      "canonical": "zuiden",
+      "variants": ["z"]
+    },
+    {
+      "canonical": "zuidlijke",
+      "variants": []
+    }
+  ]
+}

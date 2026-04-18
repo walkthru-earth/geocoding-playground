@@ -1,0 +1,148 @@
+{
+  "_meta": {
+    "libpostal_repo": "openvenues/libpostal",
+    "libpostal_sha": "25099c506612b34b23b1bfe286ca6321fcf06f35",
+    "source_file": "street_types.txt",
+    "fetched_at": "2026-04-18T12:44:16.834Z",
+    "license": "MIT",
+    "attribution": "libpostal by Al Barrentine, MIT License. https://github.com/openvenues/libpostal. Dictionaries imported at the pinned commit."
+  },
+  "entries": [
+    {
+      "canonical": "arok",
+      "variants": []
+    },
+    {
+      "canonical": "dulo",
+      "variants": ["d.", "d"]
+    },
+    {
+      "canonical": "fasor",
+      "variants": []
+    },
+    {
+      "canonical": "fasora",
+      "variants": []
+    },
+    {
+      "canonical": "fokozlekedesi ut",
+      "variants": ["fout"]
+    },
+    {
+      "canonical": "hatarut",
+      "variants": []
+    },
+    {
+      "canonical": "kapu",
+      "variants": []
+    },
+    {
+      "canonical": "kert",
+      "variants": []
+    },
+    {
+      "canonical": "korond",
+      "variants": ["krnd"]
+    },
+    {
+      "canonical": "korvasutsor",
+      "variants": []
+    },
+    {
+      "canonical": "korut",
+      "variants": ["krt"]
+    },
+    {
+      "canonical": "koz",
+      "variants": []
+    },
+    {
+      "canonical": "lakotelep",
+      "variants": ["ltp.", "ltp"]
+    },
+    {
+      "canonical": "lejto",
+      "variants": []
+    },
+    {
+      "canonical": "lepcso",
+      "variants": []
+    },
+    {
+      "canonical": "liget",
+      "variants": []
+    },
+    {
+      "canonical": "mezo",
+      "variants": []
+    },
+    {
+      "canonical": "orszagut",
+      "variants": []
+    },
+    {
+      "canonical": "park",
+      "variants": []
+    },
+    {
+      "canonical": "parkja",
+      "variants": []
+    },
+    {
+      "canonical": "rakpart",
+      "variants": ["rkpt", "rkp", "rpt"]
+    },
+    {
+      "canonical": "setany",
+      "variants": ["stny.", "stny"]
+    },
+    {
+      "canonical": "sor",
+      "variants": ["s.", "s"]
+    },
+    {
+      "canonical": "setany",
+      "variants": ["set"]
+    },
+    {
+      "canonical": "sugarut",
+      "variants": ["sgrt.", "sgrt", "srt.", "srt", "sgt.", "sgt"]
+    },
+    {
+      "canonical": "sziget",
+      "variants": []
+    },
+    {
+      "canonical": "telep",
+      "variants": []
+    },
+    {
+      "canonical": "ter",
+      "variants": []
+    },
+    {
+      "canonical": "tere",
+      "variants": []
+    },
+    {
+      "canonical": "tanya",
+      "variants": ["t.", "t"]
+    },
+    {
+      "canonical": "udvar",
+      "variants": []
+    },
+    {
+      "canonical": "utca",
+      "variants": ["u.", "u"]
+    },
+    {
+      "canonical": "ut",
+      "variants": ["u.", "u"]
+    },
+    {
+      "canonical": "utja",
+      "variants": []
+    }
+  ]
+}

@@ -22,6 +22,12 @@ export interface ParsedAddress {
   city?: string
   tokens: string[]
   raw: string
+  /**
+   * Optional country code. When set, `buildDefaultWhere` uses libpostal
+   * dictionaries to expand the street's trailing type token (and the leading
+   * directional for NUMBER_FIRST countries) into OR'd `LIKE` prefixes.
+   */
+  cc?: string
 }
 
 export interface CountryParser {
@@ -39,6 +45,7 @@ export interface CountryParser {
 
 export { esc } from './utils'
 
+import { expandDirectional, expandStreetVariants } from './dictionaries/index'
 import { esc } from './utils'
 
 /** Postcode regex patterns per country */
@@ -83,6 +90,63 @@ export const NUMBER_FIRST = new Set([
   'IE',
 ])
 
+/**
+ * Build a street prefix clause, expanding libpostal synonyms when possible.
+ *
+ * When `cc` is provided and the street ends in (or for NUMBER_FIRST countries
+ * starts with) a known street-type or directional token, emit an OR of
+ * `street_lower LIKE '<prefix>%'` entries covering every synonym. Falls back
+ * to the original single-prefix behavior when no expansion applies.
+ *
+ * Every prefix is individually escaped with `esc()`.
+ */
+function buildStreetPrefixClause(street: string, cc?: string): string {
+  const base = street.toLowerCase()
+  const single = `street_lower LIKE '${esc(base)}%'`
+  if (!cc) return single
+
+  const tokens = base.split(/\s+/).filter(Boolean)
+  if (tokens.length === 0) return single
+
+  // Try trailing street-type expansion (covers both street-first and number-first
+  // countries, because the type word sits at the end in either convention).
+  const tail = tokens[tokens.length - 1]
+  const tailVariants = expandStreetVariants(cc, tail)
+  if (tailVariants.length > 1) {
+    const head = tokens.slice(0, -1).join(' ')
+    const prefixes = tailVariants.map((v) => (head ? `${head} ${v}` : v))
+    return orPrefixes(prefixes)
+  }
+
+  // For NUMBER_FIRST countries, try leading directional expansion
+  // ("n main st" -> "north main st"). For street-first countries the
+  // directional usually isn't the first token, so skip.
+  if (NUMBER_FIRST.has(cc) && tokens.length > 1) {
+    const head = tokens[0]
+    const dirVariants = expandDirectional(cc, head)
+    if (dirVariants.length > 1) {
+      const tailStr = tokens.slice(1).join(' ')
+      const prefixes = dirVariants.map((v) => `${v} ${tailStr}`)
+      return orPrefixes(prefixes)
+    }
+  }
+
+  return single
+}
+
+function orPrefixes(prefixes: string[]): string {
+  // Deduplicate while preserving order, individually escape each prefix.
+  const seen = new Set<string>()
+  const parts: string[] = []
+  for (const p of prefixes) {
+    if (seen.has(p)) continue
+    seen.add(p)
+    parts.push(`street_lower LIKE '${esc(p)}%'`)
+  }
+  if (parts.length === 1) return parts[0]
+  return `(${parts.join(' OR ')})`
+}
+
 /** Default WHERE clause builder ,reusable by all parsers */
 export function buildDefaultWhere(parsed: ParsedAddress): string {
   const conditions: string[] = []
@@ -93,7 +157,7 @@ export function buildDefaultWhere(parsed: ParsedAddress): string {
   if (parsed.street) {
     // street_lower is a physical column (v4.1+) enabling Parquet row-group pushdown.
     // lower(street) defeats pushdown because DuckDB can't apply functions to min/max stats.
-    conditions.push(`street_lower LIKE '${esc(parsed.street.toLowerCase())}%'`)
+    conditions.push(buildStreetPrefixClause(parsed.street, parsed.cc))
   }
   if (parsed.number) {
     conditions.push(`number = '${esc(parsed.number)}'`)

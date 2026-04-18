@@ -1,0 +1,64 @@
+{
+  "_meta": {
+    "libpostal_repo": "openvenues/libpostal",
+    "libpostal_sha": "25099c506612b34b23b1bfe286ca6321fcf06f35",
+    "source_file": "street_types.txt",
+    "fetched_at": "2026-04-18T12:43:54.167Z",
+    "license": "MIT",
+    "attribution": "libpostal by Al Barrentine, MIT License. https://github.com/openvenues/libpostal. Dictionaries imported at the pinned commit."
+  },
+  "entries": [
+    {
+      "canonical": "alle",
+      "variants": []
+    },
+    {
+      "canonical": "gata",
+      "variants": ["g"]
+    },
+    {
+      "canonical": "gatan",
+      "variants": []
+    },
+    {
+      "canonical": "grand",
+      "variants": ["graend"]
+    },
+    {
+      "canonical": "liden",
+      "variants": []
+    },
+    {
+      "canonical": "plan",
+      "variants": []
+    },
+    {
+      "canonical": "plats",
+      "variants": ["pl"]
+    },
+    {
+      "canonical": "platsen",
+      "variants": []
+    },
+    {
+      "canonical": "stig",
+      "variants": ["st"]
+    },
+    {
+      "canonical": "stigen",
+      "variants": []
+    },
+    {
+      "canonical": "torg",
+      "variants": []
+    },
+    {
+      "canonical": "vag",
+      "variants": ["vaeg", "v"]
+    },
+    {
+      "canonical": "vagen",
+      "variants": ["vaegen"]
+    }
+  ]
+}

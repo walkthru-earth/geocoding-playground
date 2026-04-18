@@ -1,0 +1,156 @@
+{
+  "_meta": {
+    "libpostal_repo": "openvenues/libpostal",
+    "libpostal_sha": "25099c506612b34b23b1bfe286ca6321fcf06f35",
+    "source_file": "street_types.txt",
+    "fetched_at": "2026-04-18T12:43:32.067Z",
+    "license": "MIT",
+    "attribution": "libpostal by Al Barrentine, MIT License. https://github.com/openvenues/libpostal. Dictionaries imported at the pinned commit."
+  },
+  "entries": [
+    {
+      "canonical": "allee",
+      "variants": ["a", "al"]
+    },
+    {
+      "canonical": "autobahn",
+      "variants": []
+    },
+    {
+      "canonical": "bach",
+      "variants": []
+    },
+    {
+      "canonical": "bad",
+      "variants": []
+    },
+    {
+      "canonical": "bahnhof",
+      "variants": ["bhf", "bf"]
+    },
+    {
+      "canonical": "boulevard",
+      "variants": ["bd"]
+    },
+    {
+      "canonical": "brucke",
+      "variants": ["br", "bruecke"]
+    },
+    {
+      "canonical": "buhl",
+      "variants": ["buehl"]
+    },
+    {
+      "canonical": "chaussee",
+      "variants": ["ch"]
+    },
+    {
+      "canonical": "damm",
+      "variants": ["d"]
+    },
+    {
+      "canonical": "forsthaus",
+      "variants": ["fh"]
+    },
+    {
+      "canonical": "gasse",
+      "variants": ["g"]
+    },
+    {
+      "canonical": "graben",
+      "variants": ["gr"]
+    },
+    {
+      "canonical": "grossser",
+      "variants": ["grosser"]
+    },
+    {
+      "canonical": "grosse",
+      "variants": ["gr", "g"]
+    },
+    {
+      "canonical": "grosses",
+      "variants": []
+    },
+    {
+      "canonical": "heiligen",
+      "variants": []
+    },
+    {
+      "canonical": "hof",
+      "variants": ["h"]
+    },
+    {
+      "canonical": "kamp",
+      "variants": ["k"]
+    },
+    {
+      "canonical": "obere",
+      "variants": ["ob"]
+    },
+    {
+      "canonical": "oberer",
+      "variants": ["ob"]
+    },
+    {
+      "canonical": "oberes",
+      "variants": []
+    },
+    {
+      "canonical": "pfad",
+      "variants": []
+    },
+    {
+      "canonical": "platz",
+      "variants": ["pl"]
+    },
+    {
+      "canonical": "quelle",
+      "variants": ["qu"]
+    },
+    {
+      "canonical": "rundwanderweg",
+      "variants": ["rww"]
+    },
+    {
+      "canonical": "siedlung",
+      "variants": ["sdlg"]
+    },
+    {
+      "canonical": "steg",
+      "variants": []
+    },
+    {
+      "canonical": "stiege",
+      "variants": ["stg"]
+    },
+    {
+      "canonical": "strasse",
+      "variants": ["str"]
+    },
+    {
+      "canonical": "ufer",
+      "variants": []
+    },
+    {
+      "canonical": "untere",
+      "variants": ["u"]
+    },
+    {
+      "canonical": "unterer",
+      "variants": []
+    },
+    {
+      "canonical": "unteres",
+      "variants": []
+    },
+    {
+      "canonical": "weg",
+      "variants": ["w"]
+    },
+    {
+      "canonical": "wiese",
+      "variants": ["ws"]
+    }
+  ]
+}
