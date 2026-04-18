@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { getParser, NUMBER_FIRST } from '../../address-parser'
-import { stripJPCoordZone } from '../../parsers/jp'
+import { canonicalizeChome, stripJPCoordZone } from '../../parsers/ja'
 
 // ── Test fixture type ───────────────────────────────────────
 
@@ -400,5 +400,176 @@ describe('stripJPCoordZone', () => {
 
   it('returns empty string unchanged', () => {
     expect(stripJPCoordZone('')).toBe('')
+  })
+})
+
+// ── JP native-input parser ───────────────────────────────────
+
+describe('JP native-input parser', () => {
+  it('parses whitespace form "本郷 1208"', () => {
+    const parser = getParser('JP')
+    const result = parser.parseAddress('本郷 1208')
+    expect(result.street).toBe('本郷')
+    expect(result.number).toBe('1208')
+  })
+
+  it('parses no-space form "土浦市本郷1208"', () => {
+    const parser = getParser('JP')
+    const result = parser.parseAddress('土浦市本郷1208')
+    expect(result.street).toBe('本郷')
+    expect(result.number).toBe('1208')
+  })
+
+  it('parses prefecture-prefixed "茨城県土浦市本郷1208"', () => {
+    const parser = getParser('JP')
+    const result = parser.parseAddress('茨城県土浦市本郷1208')
+    expect(result.street).toBe('本郷')
+    expect(result.number).toBe('1208')
+  })
+
+  it('parses mixed spacing "土浦市本郷 1208"', () => {
+    const parser = getParser('JP')
+    const result = parser.parseAddress('土浦市本郷 1208')
+    expect(result.street).toBe('本郷')
+    expect(result.number).toBe('1208')
+  })
+
+  it('parses kanji chome "並木一丁目 4233"', () => {
+    const parser = getParser('JP')
+    const result = parser.parseAddress('並木一丁目 4233')
+    expect(result.street).toBe('並木一丁目')
+    expect(result.number).toBe('4233')
+  })
+
+  it('parses arabic chome "並木1丁目 4233"', () => {
+    const parser = getParser('JP')
+    const result = parser.parseAddress('並木1丁目 4233')
+    expect(result.street).toBe('並木1丁目')
+    expect(result.number).toBe('4233')
+  })
+
+  it('strips kanji parcel prefix "乙24" to number=24 with variants', () => {
+    const parser = getParser('JP')
+    const result = parser.parseAddress('乙24')
+    expect(result.street).toBeUndefined()
+    expect(result.number).toBe('24')
+    expect(result.numberVariants).toBeDefined()
+    expect(result.numberVariants).toContain('乙24')
+    expect(result.numberVariants).toContain('24')
+  })
+
+  it('still parses existing "本郷 1-2-3" to banchi=2', () => {
+    const parser = getParser('JP')
+    const result = parser.parseAddress('本郷 1-2-3')
+    expect(result.street).toBe('本郷')
+    expect(result.number).toBe('2')
+  })
+
+  it('still detects postcode "100-0001"', () => {
+    const parser = getParser('JP')
+    const result = parser.parseAddress('100-0001')
+    expect(result.postcode).toBe('100-0001')
+    expect(result.street).toBeUndefined()
+    expect(result.number).toBeUndefined()
+  })
+
+  it('normalizes full-width digits "本郷１２０８"', () => {
+    const parser = getParser('JP')
+    const result = parser.parseAddress('本郷１２０８')
+    expect(result.street).toBe('本郷')
+    expect(result.number).toBe('1208')
+  })
+})
+
+// ── canonicalizeChome ────────────────────────────────────────
+
+describe('canonicalizeChome', () => {
+  it('kanji chome expands to kanji + arabic', () => {
+    const variants = canonicalizeChome('並木一丁目')
+    expect(variants).toContain('並木一丁目')
+    expect(variants).toContain('並木1丁目')
+  })
+
+  it('arabic chome expands to arabic + kanji', () => {
+    const variants = canonicalizeChome('並木1丁目')
+    expect(variants).toContain('並木1丁目')
+    expect(variants).toContain('並木一丁目')
+  })
+
+  it('bare arabic digit expands to four spellings', () => {
+    const variants = canonicalizeChome('並木1')
+    expect(variants).toContain('並木1')
+    expect(variants).toContain('並木一')
+    expect(variants).toContain('並木1丁目')
+    expect(variants).toContain('並木一丁目')
+  })
+
+  it('no chome returns input unchanged', () => {
+    const variants = canonicalizeChome('並木')
+    expect(variants).toEqual(['並木'])
+  })
+
+  it('does not alter kanji that looks like a place name', () => {
+    // "本町" contains 町 but has no chome digit.
+    const variants = canonicalizeChome('本町')
+    expect(variants).toEqual(['本町'])
+  })
+
+  it('handles two-digit kanji (十二)', () => {
+    const variants = canonicalizeChome('東神田十二丁目')
+    expect(variants).toContain('東神田十二丁目')
+    expect(variants).toContain('東神田12丁目')
+  })
+})
+
+// ── JP buildWhereClause ──────────────────────────────────────
+
+describe('JP buildWhereClause', () => {
+  it('emits OR over chome variants', () => {
+    const parser = getParser('JP')
+    const parsed = parser.parseAddress('並木一丁目 4233')
+    const sql = parser.buildWhereClause(parsed)
+    expect(sql).toContain("street_lower LIKE '並木一丁目%'")
+    expect(sql).toContain("street_lower LIKE '並木1丁目%'")
+    expect(sql).toContain(' OR ')
+    expect(sql).toContain("split_part(number, '-', 1) = '4233'")
+  })
+
+  it('emits OR over number parcel variants for "乙24"', () => {
+    const parser = getParser('JP')
+    const parsed = parser.parseAddress('乙24')
+    const sql = parser.buildWhereClause(parsed)
+    expect(sql).toContain("split_part(number, '-', 1) = '24'")
+    expect(sql).toContain("split_part(number, '-', 1) = '乙24'")
+    expect(sql).toContain(' OR ')
+  })
+
+  it('still emits split_part single form for plain input', () => {
+    const parser = getParser('JP')
+    const parsed = parser.parseAddress('本郷 362')
+    const sql = parser.buildWhereClause(parsed)
+    expect(sql).toContain("street_lower LIKE '本郷%'")
+    expect(sql).toContain("split_part(number, '-', 1) = '362'")
+    expect(sql).not.toContain("number = '362'")
+  })
+
+  it('passes every variant through esc()', () => {
+    const parser = getParser('JP')
+    // Hand-craft a ParsedAddress so we can slip an apostrophe into a variant.
+    const parsed = {
+      tokens: [],
+      raw: '',
+      street: "o'brien",
+      numberVariants: ["a'b", "c'd"],
+    }
+    const sql = parser.buildWhereClause(parsed)
+    // Single quote must be doubled inside every literal.
+    expect(sql).toContain("o''brien")
+    expect(sql).toContain("a''b")
+    expect(sql).toContain("c''d")
+    // There must be NO un-doubled apostrophe from user input. We check that
+    // the SQL parses by counting balanced single quotes.
+    const quotes = sql.split("'").length - 1
+    expect(quotes % 2).toBe(0)
   })
 })
