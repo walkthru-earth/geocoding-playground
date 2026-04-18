@@ -27,6 +27,8 @@ Svelte 5 app with reactive variables ($state, $derived, $effect). Uses Tailwind 
 - City search uses sub-ms JS `searchCities()` from core (not DuckDB SQL). City records loaded into `allCityRecords` array after prefetch
 - Use `$state.raw` (not `$state`) for immutable DuckDB result arrays: `results`, `cities`, `suggestions`, `countries`. These are never mutated in place, so deep reactivity proxy is wasted overhead
 - Map popup HTML uses `htmlEsc()` from core for all user-facing data
+- Multi-unit buildings render per-unit rows with a "Unit X" badge next to `full_address` in both `ResultsTable.svelte` and the popup. Popup markers are grouped by lat/lon key (`pointKey`) so a 328-unit apartment building renders one pin with a stacked popup, not 328 overlapping pins. `AddressRow.unit` is optional, the badge only shows when present
+- Default forward-geocode result limit is 20 (`GeocodePage.svelte` `limit = $state(20)`). Large enough to expose multi-unit buildings, small enough to stay readable
 - Theme switching persists to localStorage
 - PostHog analytics is optional, gated by env vars
 - Release list accessed via `getAvailableReleases()` getter (not the old `availableReleases` export)

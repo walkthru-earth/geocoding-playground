@@ -42,7 +42,9 @@ Pipeline processes 469M Overture Maps addresses into partitioned GeoParquet tile
 
 ## Data on S3
 
-Base URL: `https://s3.us-west-2.amazonaws.com/us-west-2.opendata.source.coop/walkthru-earth/indices/addresses-index/v4/release=2026-03-18.0/`
+Base URL: `https://s3.us-west-2.amazonaws.com/us-west-2.opendata.source.coop/walkthru-earth/indices/addresses-index/v4/release=<RELEASE>/`
+
+The app discovers releases from the S3 listing (`getAvailableReleases()`) and defaults to newest. Current newest is `2026-04-15.0`. Never hard-code a release in docs, always substitute the current one when running queries.
 
 Key files (all Hive-partitioned by country):
 - `manifest.parquet` - 39 countries (3 KB)
@@ -51,7 +53,7 @@ Key files (all Hive-partitioned by country):
 - `postcode_index/country=XX/data_0.parquet` - per-country postcodes
 - `street_index/country=XX/data_0.parquet` - per-country streets
 - `number_index/country=XX/data_0.parquet` - per-country house numbers
-- `geocoder/country=XX/h3_parent=YYY/data_0.parquet` - address tiles (0.5-48 MB)
+- `geocoder/country=XX/h3_res4=YYY/bucket=NN/data_0.parquet` - address tiles, partitioned by h3 res 4 parent and a per-tile bucket (`_` for small tiles, `01..NN` for large ones)
 
 ## Key Conventions
 
@@ -65,6 +67,9 @@ Key files (all Hive-partitioned by country):
 - **`$state.raw` for query results**: Use `$state.raw` (not `$state`) for arrays of immutable DuckDB results (`results`, `cities`, `suggestions`, `countries`) to avoid Svelte 5 deep-proxy overhead
 - **JS array search over DuckDB for cached data**: City search uses `searchCities()` from core (sub-ms JS) instead of DuckDB SQL round-trips. Street/postcode autocomplete queries DuckDB in-memory tables
 - **`getAvailableReleases()` not `availableReleases`**: Release list is exposed via a getter function, not an exported mutable variable
+- **libpostal street-type synonyms**: `packages/core/src/dictionaries/` vendors libpostal canonicalizations for 27 languages. `expandStreetVariants(cc, token)` and `expandDirectional(cc, token)` feed `buildStreetPrefixClause`, which emits `(street_lower LIKE 'x ave%' OR street_lower LIKE 'x avenue%' ...)`. `COUNTRY_LANGUAGES` maps each ISO country to its ISO 639 languages (e.g. `JP → ja`, `CH → de,fr,it`). Regenerate via `pnpm tsx scripts/fetch-libpostal-dicts.ts`
+- **Parser file naming is by country code**: `parsers/us.ts`, `parsers/jp.ts`, etc. Dictionaries live under `dictionaries/<lang>/` (ISO 639). Country-to-language resolution is via `COUNTRY_LANGUAGES`, never filename coincidence
+- **Multi-unit buildings**: Overture emits one row per apartment (e.g. 328 units at `195 Clearview AVE, Ottawa`). `AddressRow.unit` carries the suite number. The pipeline currently does **not** embed unit in `full_address`, so the playground renders a "Unit X" badge alongside the address and groups same-point markers with a stacked popup. See `docs/upstream-issues/full_address-should-embed-unit.md`
 
 ## Investigating Data Issues
 
@@ -113,3 +118,5 @@ See `_study/` for detailed architecture docs, data profiles, and issue history.
 - FR has no region in Overture (depth-1 only). `LEFT(postcode, 3)` grouping separates overseas territories.
 - IT, JP, TW, CO have no postcode index (Overture has no postcode data for these).
 - JP numbers in Overture are "banchi-coordZone" (e.g., "362-9"). The pipeline strips the zone suffix. The parser uses split_part for matching.
+- The JP parser (`parsers/jp.ts`) handles native no-space Japanese input, canonicalizes kanji/Arabic chome (`本郷1208`, `一丁目 4233`), and strips parcel prefixes (甲乙丙丁). Exported helpers: `canonicalizeChome`, `stripJPCoordZone`.
+- Parser tests must exercise the full `getParser(cc).buildWhereClause(parser.parseAddress(input))` chain. Testing `buildDefaultWhere` directly with a hard-coded `cc` passes even when the real parser never sets `cc` on `ParsedAddress`, which silently disables libpostal expansion. See the E2E cases in `__tests__/address-parser.test.ts`.

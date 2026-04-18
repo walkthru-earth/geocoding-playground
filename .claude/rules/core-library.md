@@ -8,13 +8,15 @@ This is `@walkthru-earth/geocoding-core`, a framework-agnostic library. Zero UI 
 
 ## Module responsibilities
 - `duckdb.ts` - DB init, tile cache (LRU ~4M addr budget), HTTP cache busting, prefetch, cancelPendingQuery(), getAvailableReleases()
-- `autocomplete.ts` - classifyInput() -> suggest() -> rankSuggestions(), SQL builders
+- `autocomplete.ts` - classifyInput() -> suggest() -> rankSuggestions(), SQL builders. `buildStreetNarrowSQL` also routes through `buildStreetPrefixClause` so libpostal expansion fires on the narrow step too
 - `search.ts` - SearchCache<T> (LRU+TTL), jaccardSimilarity(), preNormalize(), array search (sub-ms with optional pre-normalization)
-- `address-parser.ts` - 10 country parsers + GenericParser, POSTCODE_RE, NUMBER_FIRST
-- `types.ts` - AddressRow, CityRow, SuggestRow, ManifestRow, index types
+- `address-parser.ts` - parser factory + `buildDefaultWhere` + `buildStreetPrefixClause`. Country parsers live in `parsers/<cc>.ts` (US, CA, NL, DE, FR, IT, ES, BR, AU, JP) and share `GenericParser` as a fallback
+- `parsers/jp.ts` - Japanese native-input parser. Tokenizes no-space Japanese (`茨城県土浦市本郷1208`), strips prefecture/city/parcel prefixes, canonicalizes chome (`一丁目 ↔ 1-`). Exports `canonicalizeChome` + `stripJPCoordZone`
+- `dictionaries/` - libpostal-derived synonym tables, 27 languages. `index.ts` exposes `expandStreetVariants`, `expandDirectional`, `getCountryLanguages`; `countries.ts` maps ISO country → ISO 639 languages. Regenerate via `pnpm tsx scripts/fetch-libpostal-dicts.ts`
+- `types.ts` - AddressRow (includes `unit?: string | null`), CityRow, SuggestRow, ManifestRow, index types
 - `utils.ts` - fmt(), esc(), htmlEsc(), validateCC(), validateH3(), validateBucket(), validateFiniteNumber(), validateSourceExpr(), toArr(), step logging
-- `forward-geocode.ts` - resolveTileSource(), batchTilesSourceExpr(), buildForwardTileQuerySQL(). Keeps all tile source string building + the per-tile SELECT out of the Svelte app
-- `reverse-geocode.ts` - buildReverseQuerySQL(), buildTileLookupSQL(), radiusToBbox(), gridKForRadius(). All builders validate inputs at entry
+- `forward-geocode.ts` - resolveTileSource(), batchTilesSourceExpr(), buildForwardTileQuerySQL(). Keeps all tile source string building + the per-tile SELECT out of the Svelte app. SELECT now pulls `unit`
+- `reverse-geocode.ts` - buildReverseQuerySQL(), buildTileLookupSQL(), radiusToBbox(), gridKForRadius(). All builders validate inputs at entry. SELECT now pulls `unit`
 
 ## Key patterns
 - All SQL uses HTTPS URLs, never s3://
@@ -37,8 +39,12 @@ This is `@walkthru-earth/geocoding-core`, a framework-agnostic library. Zero UI 
 - `getParser(cc)` returns country-specific parser or GenericParser
 - NUMBER_FIRST set must match exactly between parser and pipeline SQL (addresses.sql line 143)
 - Each parser implements: parseAddress(input), extractPostcode(input), buildWhereClause(parsed)
-- buildDefaultWhere() generates structured SQL: street LIKE 'prefix%' AND number = 'exact'
+- `ParsedAddress.cc` carries the country code through to `buildStreetPrefixClause` so libpostal expansion fires. Every parser's `buildWhereClause` must set `cc` on the parsed object (e.g. `{...parsed, cc: parsed.cc ?? this.cc}`), otherwise `buildDefaultWhere` short-circuits to the single-prefix branch
+- buildDefaultWhere() generates structured SQL: street LIKE 'prefix%' AND number = 'exact'. When `cc` is set, the street condition expands to an OR of libpostal variants (`'clearview ave%' OR 'clearview avenue%' ...`)
 - Fallback: ILIKE on full_address for each token
+
+## Parser tests
+- E2E tests MUST exercise `getParser(cc).buildWhereClause(parser.parseAddress(input))`, not `buildDefaultWhere({...raw, cc})` directly. Hard-coding `cc` in the raw parsed object hides cases where `parseAddress` forgets to propagate it. See `__tests__/address-parser.test.ts` for the CA "195 clearview avenue" and IT "via roma 12" E2E cases
 
 ## Ranking
 - suggestionScore(): 100=exact, 80=word boundary, 60=prefix, 40=substring, 0-30=Jaccard

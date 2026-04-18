@@ -8,7 +8,9 @@ A browser-based geocoder powered by [DuckDB-WASM](https://duckdb.org/docs/api/wa
 
 - **Forward Geocoding** - search by street, postcode, or address across 39 countries
 - **Reverse Geocoding** - find nearest addresses by clicking the map or entering coordinates
-- **Country-aware parsing** - dedicated address parsers for NL, US, DE, FR, IT, ES, BR, AU, CA, JP with format-specific logic
+- **Country-aware parsing** - dedicated address parsers for NL, US, DE, FR, IT, ES, BR, AU, CA, JP with format-specific logic. The JP parser handles native no-space input and kanji/Arabic chome interchangeability
+- **libpostal street-type synonyms** - 27 languages of canonicalizations (e.g. `avenue ↔ ave`, `strasse ↔ str`, `via ↔ v`) are expanded at query time so "195 clearview avenue" matches stored "195 clearview ave"
+- **Apartment-aware** - Overture multi-unit buildings render per-unit rows with a "Unit X" badge, markers grouped by lat/lon so dense buildings stay readable
 - **Three-tier caching** - WASM init, country prefetch, tile LRU for sub-second queries
 - **Overture release selector** - switch between available Overture Maps releases from the navbar
 - **Interactive map** - MapLibre GL with H3 tile overlays and result markers

@@ -16,8 +16,9 @@ Investigate geocoder data issues by querying live parquet files on S3.
 
 ## S3 Base URL
 ```
-https://s3.us-west-2.amazonaws.com/us-west-2.opendata.source.coop/walkthru-earth/indices/addresses-index/v4/release=2026-03-18.0/
+https://s3.us-west-2.amazonaws.com/us-west-2.opendata.source.coop/walkthru-earth/indices/addresses-index/v4/release=<RELEASE>/
 ```
+Substitute the current release, newest is `2026-04-15.0` as of 2026-04-18. The app auto-discovers releases, so never hard-code an old one.
 
 ## Workflow
 
@@ -33,7 +34,7 @@ https://s3.us-west-2.amazonaws.com/us-west-2.opendata.source.coop/walkthru-earth
    - Street issues: `street_index/country=XX/data_0.parquet`
    - Postcode issues: `postcode_index/country=XX/data_0.parquet`
    - Number issues: `number_index/country=XX/data_0.parquet`
-   - Tile data: `geocoder/country=XX/h3_parent=HEXHASH/data_0.parquet`
+   - Tile data: `geocoder/country=XX/h3_res4=HEXHASH/bucket=NN/data_0.parquet`
    - Global stats: `manifest.parquet`, `tile_index.parquet`
 
 4. **Diagnose the root cause** using these patterns:
@@ -57,6 +58,7 @@ https://s3.us-west-2.amazonaws.com/us-west-2.opendata.source.coop/walkthru-earth
 - FR has no region (depth-1 address_levels only)
 - JP numbers in raw Overture are "banchi-coordZone", pipeline strips the zone suffix
 - City index uses per-country flat files, not global
+- Multi-unit buildings (apartments) emit one row per unit with identical `full_address`, the only differentiator is the `unit` column. 195 Clearview AVE in Ottawa = 328 rows. Always `SELECT unit` when investigating apparent duplicates
 
 ## Parquet Verification Queries
 After pipeline rebuilds, verify Parquet optimization with:
@@ -72,6 +74,6 @@ WHERE path_in_schema = 'street_lower' LIMIT 5;
 
 -- Geocoder tile bloom filters on street?
 SELECT path_in_schema, bloom_filter_offset
-FROM parquet_metadata('...BASE_URL.../geocoder/country=NL/h3_parent=841969dffffffff/data_0.parquet')
+FROM parquet_metadata('...BASE_URL.../geocoder/country=NL/h3_res4=841969dffffffff/bucket=_/data_0.parquet')
 WHERE path_in_schema = 'street' LIMIT 3;
 ```
