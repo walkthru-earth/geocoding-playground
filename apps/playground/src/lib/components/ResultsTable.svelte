@@ -52,7 +52,12 @@
             {#if showDistance}
               <td class="text-xs md:text-sm font-mono text-primary/70 font-semibold whitespace-nowrap">{formatDistance(r.distance_m ?? 0)}</td>
             {/if}
-            <td class="max-w-[180px] md:max-w-[280px] truncate group-hover:text-primary transition-colors font-medium text-xs md:text-sm">{r.full_address}</td>
+            <td class="max-w-[180px] md:max-w-[280px] truncate group-hover:text-primary transition-colors font-medium text-xs md:text-sm">
+              {r.full_address}
+              {#if r.unit}
+                <span class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded bg-primary/10 text-primary text-2xs md:text-xs font-semibold align-middle">Unit {r.unit}</span>
+              {/if}
+            </td>
             <td class="hidden sm:table-cell text-base-content/50 text-xs md:text-sm">{r.city ?? ''}</td>
             <td class="hidden sm:table-cell font-mono text-xs md:text-sm text-base-content/40">{r.postcode ?? ''}</td>
           </tr>

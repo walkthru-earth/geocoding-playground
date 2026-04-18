@@ -67,7 +67,7 @@ export function buildForwardTileQuerySQL(src: string, where: string, limit: numb
     throw new Error(`Invalid limit: ${limit}`)
   }
   return `
-    SELECT full_address, street, number, city, region, postcode,
+    SELECT full_address, street, number, unit, city, region, postcode,
            ST_Y(geometry) AS lat, ST_X(geometry) AS lon,
            h3_h3_to_string(h3_index) AS h3_index
     FROM ${src}

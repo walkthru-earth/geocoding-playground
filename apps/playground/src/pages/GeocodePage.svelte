@@ -115,7 +115,7 @@
   let prefetching = $state(false)
   let citiesReady = $state(false)
   let cacheInfo = $state('')
-  let limit = $state(5)
+  let limit = $state(20)
   let searchScope = $state<'city' | 'country'>('city')
   let lastClassification = $state<InputClassification | null>(null)
 
@@ -159,6 +159,7 @@
 
   function resultPopupHtml(r: AddressRow, idx: number): string {
     const parts = [r.city, r.postcode].filter(Boolean).map(s => htmlEsc(s!)).join(' · ')
+    const unitTag = r.unit ? `<span class="popup-unit">Unit ${htmlEsc(r.unit)}</span>` : ''
     const distLine = r.distance_m != null
       ? `<div style="display:flex;align-items:center;gap:8px;margin-left:2rem;margin-top:2px">
           <span class="popup-distance">${r.distance_m < 1000 ? `${Math.round(r.distance_m)}m` : `${(r.distance_m / 1000).toFixed(1)}km`} away</span>
@@ -168,7 +169,7 @@
     return `<div class="popup-body">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
         <span class="popup-badge ${idx === 0 ? 'popup-badge-primary' : 'popup-badge-secondary'}">${idx + 1}</span>
-        <span class="popup-title">${htmlEsc(r.full_address)}</span>
+        <span class="popup-title">${htmlEsc(r.full_address)}${unitTag ? ` ${unitTag}` : ''}</span>
       </div>
       ${parts ? `<div class="popup-subtitle">${parts}</div>` : ''}
       ${distLine}
@@ -184,12 +185,13 @@
   function groupPopupHtml(items: { row: AddressRow; idx: number }[]): string {
     const head = resultPopupHtml(items[0].row, items[0].idx)
     if (items.length === 1) return head
-    const rest = items.slice(1).map(({ row, idx }) =>
-      `<div style="font-size:0.78rem;line-height:1.35;margin:2px 0 0 2rem">
+    const rest = items.slice(1).map(({ row, idx }) => {
+      const unit = row.unit ? ` <span class="popup-unit">Unit ${htmlEsc(row.unit)}</span>` : ''
+      return `<div style="font-size:0.78rem;line-height:1.35;margin:2px 0 0 2rem">
          <span style="display:inline-block;min-width:1.5em;opacity:0.5">${idx + 1}.</span>
-         ${htmlEsc(row.full_address)}
-       </div>`,
-    ).join('')
+         ${htmlEsc(row.full_address)}${unit}
+       </div>`
+    }).join('')
     return `${head}
       <div style="margin-top:6px;border-top:1px solid var(--wt-border-subtle, rgba(0,0,0,0.1));padding-top:6px">
         <div style="font-size:0.7rem;opacity:0.6;margin:0 0 4px 2rem">+${items.length - 1} more at this exact point</div>

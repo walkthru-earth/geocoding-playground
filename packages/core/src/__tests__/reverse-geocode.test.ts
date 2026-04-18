@@ -47,6 +47,10 @@ describe('buildReverseQuerySQL', () => {
     const sql = buildReverseQuerySQL('"_tile_NL_841f8b_01"', 'NL', 52, 4, bbox, 25)
     expect(sql).not.toContain('distance_m <=')
   })
+  it('selects unit column so apartment buildings show per-unit rows', () => {
+    const sql = buildReverseQuerySQL('"_tile_NL_841f8b_01"', 'NL', 52.3, 4.9, bbox, 5)
+    expect(sql).toMatch(/full_address,\s*street,\s*number,\s*unit/)
+  })
   it('rejects non-finite or non-positive maxDistM', () => {
     expect(() => buildReverseQuerySQL('"_tile_NL_841f8b_01"', 'NL', 52, 4, bbox, 25, 0)).toThrow('Invalid maxDistM')
     expect(() => buildReverseQuerySQL('"_tile_NL_841f8b_01"', 'NL', 52, 4, bbox, 25, Number.NaN)).toThrow(

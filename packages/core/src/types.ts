@@ -11,6 +11,13 @@ export interface AddressRow {
   full_address: string
   street: string
   number: string
+  /**
+   * Apartment/suite/unit, when the address sits inside a multi-unit building.
+   * Overture provides this per-unit (e.g. 328 distinct units at 195 Clearview
+   * AVE, Ottawa), but the pipeline's `full_address` does not embed it, so the
+   * playground renders it alongside the address.
+   */
+  unit?: string | null
   city: string
   region: string | null
   postcode: string

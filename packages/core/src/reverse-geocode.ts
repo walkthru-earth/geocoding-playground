@@ -101,7 +101,7 @@ export function buildReverseQuerySQL(
   return `
     WITH __rev AS (
       SELECT
-        full_address, street, number, city, region, postcode,
+        full_address, street, number, unit, city, region, postcode,
         '${country}' AS country,
         ST_Y(geometry) AS lat,
         ST_X(geometry) AS lon,

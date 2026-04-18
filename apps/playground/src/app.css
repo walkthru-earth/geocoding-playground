@@ -309,6 +309,17 @@
   font-weight: 700;
   color: var(--wt-marker-primary);
 }
+.popup-unit {
+  display: inline-block;
+  padding: 0 0.4rem;
+  margin-left: 0.25rem;
+  border-radius: 0.25rem;
+  background: color-mix(in srgb, var(--wt-marker-primary) 16%, transparent);
+  color: var(--wt-marker-primary);
+  font-size: 0.72rem;
+  font-weight: 600;
+  vertical-align: middle;
+}
 .popup-mono {
   font-family: monospace;
   font-size: 0.75rem;

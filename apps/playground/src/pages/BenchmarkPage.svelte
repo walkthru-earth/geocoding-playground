@@ -141,7 +141,7 @@
           JP: ['842ead5ffffffff', '本郷'],
         }
         const [tile, street] = tiles[cc] ?? ['84196b1ffffffff', 'main']
-        return `SELECT full_address, street, number, city, postcode
+        return `SELECT full_address, street, number, unit, city, postcode
           FROM read_parquet('${tilePath(cc, tile, '_')}')
           WHERE street_lower LIKE '${street}%' LIMIT 5`
       },

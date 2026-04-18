@@ -31,6 +31,13 @@ describe('buildForwardTileQuerySQL', () => {
     expect(sql).toContain("WHERE street = 'Main'")
     expect(sql).toContain('LIMIT 100')
   })
+  it('selects unit so multi-unit buildings render distinct rows', () => {
+    // Overture exposes apartment/suite data on the `unit` column (e.g. 328
+    // units at 195 Clearview AVE, Ottawa). Without this the UI collapses
+    // them into identical-looking rows because full_address drops the unit.
+    const sql = buildForwardTileQuerySQL(validSrc, 'true', 10)
+    expect(sql).toMatch(/SELECT[\s\S]+unit/)
+  })
   it('rejects unsafe src', () => {
     expect(() => buildForwardTileQuerySQL('tbl', 'true', 10)).toThrow('Invalid src')
   })
