@@ -56,7 +56,7 @@ export {
   buildForwardTileQuerySQL,
   resolveTileSource,
 } from './forward-geocode'
-export { stripJPCoordZone } from './parsers/jp'
+export { canonicalizeChome, stripJPCoordZone } from './parsers/ja'
 // ── Reverse geocode ─────────────────────────────────────────
 export type { Bbox, TileBucketRow } from './reverse-geocode'
 export { buildReverseQuerySQL, buildTileLookupSQL, gridKForRadius, radiusToBbox } from './reverse-geocode'

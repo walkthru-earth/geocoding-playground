@@ -6,7 +6,7 @@ import { DEParser } from './de'
 import { ESParser } from './es'
 import { FRParser } from './fr'
 import { ITParser } from './it'
-import { JPParser } from './jp'
+import { JPParser } from './ja'
 import { NLParser } from './nl'
 import { USParser } from './us'
 
