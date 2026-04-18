@@ -113,6 +113,7 @@ export function normalizeForSearch(input: string): string {
 // ── JS array autocomplete (sub-millisecond) ─────────────────
 // Replaces DuckDB SQL LIKE queries for instant keystroke response.
 
+import { expandStreetVariants } from './dictionaries/index'
 import type { CityRecord, PostcodeRecord, StreetRecord } from './types'
 
 /**
@@ -127,6 +128,12 @@ export function preNormalize<T>(items: T[], getText: (item: T) => string): strin
 
 /**
  * Filter + rank streets by prefix. <1ms for 200K+ entries.
+ *
+ * When `cc` is provided, the query's trailing token is expanded via libpostal
+ * dictionaries so that typing "clearview avenue" also matches "clearview ave".
+ * Variants are matched in parallel, results are deduplicated by `street_lower`,
+ * then the existing addr_count sort + Jaccard rerank tail is applied.
+ *
  * Pass preNormed (from preNormalize) to skip per-record normalization.
  */
 export function searchStreets(
@@ -134,24 +141,61 @@ export function searchStreets(
   query: string,
   limit = 15,
   preNormed?: string[],
+  cc?: string,
 ): StreetRecord[] {
   const q = normalizeForSearch(query)
   const norm = preNormed ? (i: number) => preNormed[i] : (i: number) => normalizeForSearch(streets[i].street_lower)
 
+  // Derive the set of query prefixes to scan for. Without a CC we just use the
+  // normalized query. With one, we expand the trailing token (street type).
+  const queries = expandQueryVariants(cc, q)
+
   const matches: StreetRecord[] = []
-  for (let i = 0; i < streets.length; i++) {
-    if (norm(i).startsWith(q)) matches.push(streets[i])
-  }
-  // If few prefix matches, try contains
-  if (matches.length < 3) {
-    const seen = new Set(matches.map((s) => s.street_lower))
+  const seen = new Set<string>()
+  for (const variant of queries) {
     for (let i = 0; i < streets.length; i++) {
-      if (!seen.has(streets[i].street_lower) && norm(i).includes(q)) matches.push(streets[i])
+      if (seen.has(streets[i].street_lower)) continue
+      if (norm(i).startsWith(variant)) {
+        matches.push(streets[i])
+        seen.add(streets[i].street_lower)
+      }
+    }
+  }
+  // If few prefix matches, try contains using the original query
+  if (matches.length < 3) {
+    for (let i = 0; i < streets.length; i++) {
+      if (seen.has(streets[i].street_lower)) continue
+      if (norm(i).includes(q)) {
+        matches.push(streets[i])
+        seen.add(streets[i].street_lower)
+      }
     }
   }
   // Sort by addr_count descending, then rank by similarity
   matches.sort((a, b) => b.addr_count - a.addr_count)
   return rankBySimilarity(matches.slice(0, limit * 2), query, (s) => s.street_lower).slice(0, limit)
+}
+
+function expandQueryVariants(cc: string | undefined, normalizedQuery: string): string[] {
+  if (!cc) return [normalizedQuery]
+  const tokens = normalizedQuery.split(/\s+/).filter(Boolean)
+  if (tokens.length === 0) return [normalizedQuery]
+  const tail = tokens[tokens.length - 1]
+  const variants = expandStreetVariants(cc, tail)
+  if (variants.length <= 1) return [normalizedQuery]
+  const head = tokens.slice(0, -1).join(' ')
+  const out: string[] = []
+  const seen = new Set<string>()
+  for (const v of variants) {
+    const prefix = head ? `${head} ${v}` : v
+    if (seen.has(prefix)) continue
+    seen.add(prefix)
+    out.push(prefix)
+  }
+  // Keep the original normalized query first so exact-prefix matches rank ahead
+  // of alternate-spelling matches in the prefix scan.
+  if (!seen.has(normalizedQuery)) out.unshift(normalizedQuery)
+  return out
 }
 
 /** Filter + rank postcodes by prefix. <1ms even for 466K NL postcodes. */
