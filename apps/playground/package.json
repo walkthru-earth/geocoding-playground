@@ -12,24 +12,24 @@
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
-    "@duckdb/duckdb-wasm": "1.33.1-dev53.0",
+    "@duckdb/duckdb-wasm": "1.33.1-dev55.0",
     "@walkthru-earth/geocoding-core": "workspace:*",
     "driver.js": "^1.4.0",
     "h3-js": "^4.4.0",
-    "maplibre-gl": "^5.23.0",
-    "posthog-js": "^1.369.3"
+    "maplibre-gl": "^5.24.0",
+    "posthog-js": "^1.374.2"
   },
   "devDependencies": {
-    "@playwright/test": "^1.59.1",
-    "@sveltejs/vite-plugin-svelte": "^7.0.0",
-    "@tailwindcss/vite": "^4.2.2",
+    "@playwright/test": "^1.60.0",
+    "@sveltejs/vite-plugin-svelte": "^7.1.2",
+    "@tailwindcss/vite": "^4.3.0",
     "@tsconfig/svelte": "^5.0.8",
-    "@types/node": "^25.6.0",
-    "daisyui": "^5.5.19",
-    "svelte": "^5.55.4",
-    "svelte-check": "^4.4.6",
-    "tailwindcss": "^4.2.2",
+    "@types/node": "^25.9.1",
+    "daisyui": "^5.5.20",
+    "svelte": "^5.55.8",
+    "svelte-check": "^4.4.8",
+    "tailwindcss": "^4.3.0",
     "typescript": "~6.0.3",
-    "vite": "^8.0.8"
+    "vite": "^8.0.13"
   }
 }
