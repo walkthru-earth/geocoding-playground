@@ -6,4 +6,4 @@ allowBuilds:
   esbuild: true
   protobufjs: true
 minimumReleaseAgeExclude:
-  - '@duckdb/duckdb-wasm@1.33.1-dev55.0'
+  - '@duckdb/duckdb-wasm@1.33.1-dev57.0'
